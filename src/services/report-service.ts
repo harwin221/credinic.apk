@@ -263,12 +263,12 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
         console.log('🔍 generateColocacionVsRecuperacionReport called with filters:', JSON.stringify(filters));
         let { dateFrom, dateTo, sucursales, users } = filters;
         
-        // Si no se especifican fechas, usar HOY por defecto (como hace el dashboard)
-        const todayNic = todayInNicaragua();
+        // Si no se especifican fechas, NO usar fechas por defecto
+        // Esto permite ver el reporte completo sin filtro de fechas
         if (!dateFrom && !dateTo) {
-            console.log('📅 No dates specified, using today:', todayNic);
-            dateFrom = todayNic;
-            dateTo = todayNic;
+            console.log('📅 No dates specified, showing all time data');
+            dateFrom = undefined;
+            dateTo = undefined;
         }
 
         let userNamesToFilter: string[] = [];
