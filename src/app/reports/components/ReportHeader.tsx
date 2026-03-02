@@ -33,14 +33,14 @@ export function ReportHeader({ title, dateFrom, dateTo }: ReportHeaderProps) {
   }, []);
   
   return (
-    <header className="mb-4 print:mb-2 relative flex flex-col items-center text-center">
-      <div className="absolute left-0 top-0 print:scale-90">
+    <header className="mb-4 print:mb-1 relative flex flex-col items-center text-center">
+      <div className="absolute left-0 top-0 print:scale-75 print:left-[-5px]">
         <AppLogo collapsed={false} />
       </div>
-      <div>
-        <h1 className="text-sm font-bold mt-2 print:mt-1">{title}</h1>
+      <div className="print:mt-0">
+        <h1 className="text-sm font-bold mt-2 print:mt-0 print:text-[11px]">{title}</h1>
         {(formattedFrom || formattedTo) && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground print:text-[9px] print:mt-0">
             {formattedFrom && `Desde ${formattedFrom}`} {formattedTo && `hasta ${formattedTo}`}
         </p>
         )}
@@ -50,7 +50,7 @@ export function ReportHeader({ title, dateFrom, dateTo }: ReportHeaderProps) {
             {generatedAt && `Generado: ${generatedAt}`}
         </p>
       </div>
-      <hr className="my-2 print:my-1 w-full border-t border-gray-300 print:border-gray-600" />
+      <hr className="my-2 print:my-0.5 w-full border-t border-gray-300 print:border-gray-600" />
     </header>
   );
 }

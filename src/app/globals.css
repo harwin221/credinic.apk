@@ -160,7 +160,6 @@
         max-width: none !important;
         min-height: auto !important;
         overflow: visible !important;
-        page-break-before: avoid !important;
     }
     
     .report-container {
@@ -172,7 +171,6 @@
         max-width: none !important;
         min-height: auto !important;
         overflow: visible !important;
-        page-break-before: avoid !important;
     }
 
     .card, .card:hover, .card-content, .card-header, .card-footer {

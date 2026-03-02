@@ -164,7 +164,7 @@ function OverdueCreditsReportContent() {
   );
 
   return (
-    <div className="p-2 sm:p-4 print-container bg-white text-black">
+    <div className="p-2 sm:p-4 print:p-0 print-container bg-white text-black">
       <div className="report-container mx-auto">
         <ReportHeader title="Listado de Cobros Diario" dateFrom={dateFrom} dateTo={dateTo} />
         <div className="flex justify-end mb-4 no-print gap-2">
@@ -177,8 +177,8 @@ function OverdueCreditsReportContent() {
 
         {groupedData.length > 0 ? (
           groupedData.map((group) => (
-            <div key={group.gestorName} className="break-inside-avoid mb-8">
-              <h2 className="font-bold text-[12px] uppercase mb-2">{group.gestorName}</h2>
+            <div key={group.gestorName} className="break-inside-avoid mb-8 print:mb-2">
+              <h2 className="font-bold text-[12px] uppercase mb-2 print:mb-0.5 print:text-[10px]">{group.gestorName}</h2>
               <Table className="report-table-condensed">
                 <TableHeader>
                   <TableRow>
