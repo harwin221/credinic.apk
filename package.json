@@ -6,11 +6,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
-    "migrate": "node run-migration-complete.js",
-    "migrate:fase1": "node legacy-scripts/migration-scripts/migration-fase1.js",
-    "migrate:fase2": "node legacy-scripts/migration-scripts/migration-fase2.js",
-    "migrate:fase3": "node legacy-scripts/migration-scripts/migration-fase3.js"
+    "lint": "next lint"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.7",
