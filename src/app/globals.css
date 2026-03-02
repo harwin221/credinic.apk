@@ -134,6 +134,11 @@
       margin: 8mm 5mm;
     }
 
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
     body, html {
       background: white !important;
       color: black !important;
@@ -141,17 +146,35 @@
       padding: 0 !important;
       overflow: visible !important;
       height: auto !important;
+      width: 100% !important;
     }
 
-    .no-print {
+    /* Ocultar elementos que no deben imprimirse */
+    .no-print,
+    nav,
+    header:not(.report-header),
+    footer:not(.report-footer),
+    button:not(.print-only),
+    .sidebar,
+    [role="navigation"],
+    [role="banner"]:not(.report-header) {
         display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     .print-only {
         display: block !important;
     }
     
-    .print-container {
+    /* Contenedores principales sin espacios extra */
+    .print-container,
+    .report-container,
+    main,
+    [role="main"] {
+        display: block !important;
         padding: 0 !important;
         margin: 0 !important;
         box-shadow: none !important;
@@ -160,17 +183,7 @@
         max-width: none !important;
         min-height: auto !important;
         overflow: visible !important;
-    }
-    
-    .report-container {
-        padding: 0 !important;
-        margin: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-        width: 100% !important;
-        max-width: none !important;
-        min-height: auto !important;
-        overflow: visible !important;
+        background: white !important;
     }
 
     .card, .card:hover, .card-content, .card-header, .card-footer {
@@ -203,7 +216,7 @@
     }
 
     h1, h2, h3, h4 {
-        margin-top: 0.2rem !important;
+        margin-top: 0 !important;
         margin-bottom: 0.2rem !important;
         page-break-after: avoid;
     }
@@ -251,6 +264,15 @@
     
     .p-4, .p-2, .p-6 {
       padding: 0 !important;
+    }
+
+    /* Eliminar márgenes superiores que causan páginas en blanco */
+    body > *:first-child,
+    main > *:first-child,
+    .print-container > *:first-child,
+    .report-container > *:first-child {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
     }
   }
 }
