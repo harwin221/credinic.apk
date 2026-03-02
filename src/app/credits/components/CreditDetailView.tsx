@@ -16,7 +16,7 @@ import { ReceiptPreview } from './ReceiptPreview';
 import { calculateCreditStatusDetails, translateCreditStatus, getRiskCategoryVariant, formatDate, formatTime } from '@/lib/utils';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
-import { addPayment, revertDisbursement, updateCredit, voidPayment, requestVoidPayment } from '@/app/credits/actions';
+import { addPayment, revertDisbursement, updateCredit, voidPayment, requestVoidPayment, deletePayment } from '@/app/credits/actions';
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -62,12 +62,14 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
     const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
     const [isRevertModalOpen, setIsRevertModalOpen] = React.useState(false);
     const [isVoidModalOpen, setIsVoidModalOpen] = React.useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [isDeceasedModalOpen, setIsDeceasedModalOpen] = React.useState(false);
     const [isEditPlanModalOpen, setIsEditPlanModalOpen] = React.useState(false);
     const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = React.useState(false);
     const [lastPayment, setLastPayment] = React.useState<Omit<RegisteredPayment, 'id'> & { id?: string } | null>(null);
     const [isReprintForModal, setIsReprintForModal] = React.useState(false);
     const [paymentToVoid, setPaymentToVoid] = React.useState<RegisteredPayment | null>(null);
+    const [paymentToDelete, setPaymentToDelete] = React.useState<RegisteredPayment | null>(null);
     const [voidReason, setVoidReason] = React.useState('');
     const [credit, setCredit] = React.useState<CreditDetail>(initialCredit);
     const [isLoading, setIsLoading] = React.useState(false);
@@ -179,6 +181,43 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
             setPaymentToVoid(null);
         } catch (error) {
             toast({ title: 'Error', description: error instanceof Error ? error.message : 'No se pudo procesar la anulación.', variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const handleOpenDeleteModal = (payment: RegisteredPayment) => {
+        setPaymentToDelete(payment);
+        setIsDeleteModalOpen(true);
+    }
+
+    const handleDeletePayment = async () => {
+        if (!paymentToDelete || !user) return;
+        setIsLoading(true);
+
+        try {
+            const result = await deletePayment(credit.id, paymentToDelete.id, user);
+            if (result.success) {
+                toast({ 
+                    title: 'Pago Eliminado', 
+                    description: 'El pago ha sido eliminado permanentemente del sistema.' 
+                });
+                onPaymentSuccess?.();
+                setIsDeleteModalOpen(false);
+                setPaymentToDelete(null);
+            } else {
+                toast({ 
+                    title: 'Error', 
+                    description: result.error || 'No se pudo eliminar el pago.', 
+                    variant: 'destructive' 
+                });
+            }
+        } catch (error) {
+            toast({ 
+                title: 'Error', 
+                description: error instanceof Error ? error.message : 'No se pudo eliminar el pago.', 
+                variant: 'destructive' 
+            });
         } finally {
             setIsLoading(false);
         }
@@ -598,6 +637,11 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
                                                                     <Trash2 className="mr-2 h-4 w-4" /> Anular Pago
                                                                 </DropdownMenuItem>
                                                             )}
+                                                            {canVoidPayment && (
+                                                                <DropdownMenuItem onClick={() => handleOpenDeleteModal(p)} className="text-red-600 focus:bg-red-100 focus:text-red-900">
+                                                                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar Pago
+                                                                </DropdownMenuItem>
+                                                            )}
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
@@ -718,6 +762,37 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar Pago Permanentemente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción eliminará el pago de forma permanente del sistema. Esta acción no se puede deshacer.
+                            <br /><br />
+                            <strong>Pago a eliminar:</strong>
+                            <br />
+                            Monto: {paymentToDelete && formatCurrency(paymentToDelete.amount)}
+                            <br />
+                            Fecha: {paymentToDelete && formatDateForUser(paymentToDelete.paymentDate, "dd/MM/yyyy HH:mm")}
+                            <br />
+                            Transacción: {paymentToDelete?.transactionNumber}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDeletePayment} 
+                            className="bg-red-600 hover:bg-red-700" 
+                            disabled={isLoading}
+                        >
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Sí, Eliminar Permanentemente
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <AlertDialog open={isDeceasedModalOpen} onOpenChange={setIsDeceasedModalOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

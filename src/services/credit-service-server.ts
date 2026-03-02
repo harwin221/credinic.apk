@@ -389,6 +389,28 @@ export async function voidPayment(creditId: string, paymentId: string, actor: Us
     }
 }
 
+export async function deletePayment(creditId: string, paymentId: string, actor: User): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Solo ADMINISTRADOR puede eliminar pagos permanentemente
+        if (actor.role !== 'ADMINISTRADOR') {
+            return { success: false, error: 'No tienes permisos para eliminar pagos.' };
+        }
+
+        // Eliminar el pago permanentemente de la base de datos
+        await query(`DELETE FROM payments_registered WHERE id = ?`, [paymentId]);
+        await createLog(actor, 'payment:delete', `Eliminó permanentemente el pago ${paymentId}.`, { targetId: creditId });
+
+        // Force credit status back to Active if it was Paid
+        await query(`UPDATE credits SET status = 'Active' WHERE id = ? AND status = 'Paid'`, [creditId]);
+
+        revalidatePath(`/credits/${creditId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error(`Error in deletePayment for credit ${creditId}:`, error);
+        return { success: false, error: 'Ocurrió un error al eliminar el pago.' };
+    }
+}
+
 export async function getCreditsAdmin(filters: { status?: CreditStatus, gestorName?: string, sucursales?: string[], clientIds?: string[], clientId?: string, user?: User | null, searchTerm?: string, dateFrom?: string, dateTo?: string } = {}): Promise<{ credits: CreditDetail[], lastDoc: any | null, users: User[] }> {
     let sql = 'SELECT * FROM credits';
     const whereClauses: string[] = [];

@@ -9,6 +9,7 @@ import {
     addPayment as addPaymentService,
     voidPayment as voidPaymentService,
     requestVoidPayment as requestVoidPaymentService,
+    deletePayment as deletePaymentService,
     getClientCredits as getClientCreditsService
 } from '@/services/credit-service-server';
 // Importaciones limpias - solo las necesarias
@@ -34,6 +35,10 @@ export async function requestVoidPayment(creditId: string, paymentId: string, re
 
 export async function voidPayment(creditId: string, paymentId: string, actor: User): Promise<{ success: boolean; error?: string }> {
     return voidPaymentService(creditId, paymentId, actor);
+}
+
+export async function deletePayment(creditId: string, paymentId: string, actor: User): Promise<{ success: boolean; error?: string }> {
+    return deletePaymentService(creditId, paymentId, actor);
 }
 
 export async function addPayment(creditId: string, paymentData: Omit<RegisteredPayment, 'id'>, actor: User): Promise<{ success: boolean; error?: string, paymentId?: string, transactionNumber?: string }> {
