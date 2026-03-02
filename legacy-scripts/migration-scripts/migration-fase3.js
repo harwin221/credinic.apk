@@ -90,43 +90,43 @@ async function migratePaymentsBatch(oldDbConnection, newDbConnection, creditMap,
         // ✅ CONVERSIÓN CORRECTA: Nicaragua → UTC usando date-fns-tz
         let paymentDateTime;
         try {
-            if (payment.fecha_pagado) {
-                // La base vieja guardaba en hora Nicaragua
-                let nicaraguaTimeString;
-                
-                if (payment.fecha_pagado instanceof Date) {
-                    // Si es Date object, formatear en zona horaria Nicaragua
-                    nicaraguaTimeString = formatInTimeZone(payment.fecha_pagado, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
-                } else if (typeof payment.fecha_pagado === 'string') {
-                    nicaraguaTimeString = payment.fecha_pagado;
+            let nicaraguaTimeString;
+            
+            // Prioridad 1: fecha_pagado_real de prestamo_coutas (tiene hora exacta)
+            if (payment.fecha_pagado_real) {
+                if (payment.fecha_pagado_real instanceof Date) {
+                    nicaraguaTimeString = formatInTimeZone(payment.fecha_pagado_real, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
                 } else {
-                    nicaraguaTimeString = String(payment.fecha_pagado);
+                    nicaraguaTimeString = String(payment.fecha_pagado_real);
                 }
-                
-                // Convertir explícitamente de Nicaragua a UTC
-                const utcDate = zonedTimeToUtc(nicaraguaTimeString, 'America/Managua');
-                paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
-            } else if (payment.created_at) {
-                // Fallback: usar created_at
-                let nicaraguaTimeString;
-                
+            }
+            // Prioridad 2: updated_at (hora de última actualización/aplicación del pago)
+            else if (payment.updated_at) {
+                if (payment.updated_at instanceof Date) {
+                    nicaraguaTimeString = formatInTimeZone(payment.updated_at, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
+                } else {
+                    nicaraguaTimeString = String(payment.updated_at);
+                }
+            }
+            // Prioridad 3: created_at (hora de creación del pago)
+            else if (payment.created_at) {
                 if (payment.created_at instanceof Date) {
                     nicaraguaTimeString = formatInTimeZone(payment.created_at, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
-                } else if (typeof payment.created_at === 'string') {
-                    nicaraguaTimeString = payment.created_at;
                 } else {
                     nicaraguaTimeString = String(payment.created_at);
                 }
-                
-                const utcDate = zonedTimeToUtc(nicaraguaTimeString, 'America/Managua');
-                paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
-            } else {
-                // Último fallback: fecha actual
-                paymentDateTime = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
             }
+            else {
+                throw new Error(`Pago ${payment.id} no tiene fecha_pagado_real, updated_at ni created_at`);
+            }
+            
+            // Convertir explícitamente de Nicaragua a UTC
+            const utcDate = zonedTimeToUtc(nicaraguaTimeString, 'America/Managua');
+            paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
         } catch (error) {
-            console.log(`  ⚠️  Error convirtiendo fecha para pago ${payment.id}, usando fecha actual`);
-            paymentDateTime = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
+            console.log(`  ❌ ERROR CRÍTICO pago ${payment.id}: ${error.message}`);
+            skippedCount++;
+            continue;
         }
 
         valuesToInsert.push([
@@ -183,21 +183,20 @@ async function migratePayments(oldDbConnection, newDbConnection, creditMap, user
 
     const userNameMap = await getUserNamesMap(newDbConnection);
 
-    // JOIN con prestamo_coutas para obtener fecha_pagado con hora exacta
+    // Obtener pagos con fecha_pagado de prestamo_coutas que tiene la hora exacta
     const [payments] = await oldDbConnection.execute(`
         SELECT 
             a.*,
-            pc.fecha_pagado
-        FROM abonos a
-        LEFT JOIN prestamo_coutas pc ON a.prestamo_id = pc.prestamo_id 
-            AND a.id = (
-                SELECT MIN(a2.id) 
-                FROM abonos a2 
-                WHERE a2.prestamo_id = pc.prestamo_id 
-                AND DATE(a2.fecha_abono) = DATE(pc.fecha_cuota)
-                AND a2.estado = 1
+            (
+                SELECT pc.fecha_pagado 
+                FROM prestamo_coutas pc 
+                WHERE pc.prestamo_id = a.prestamo_id 
+                AND DATE(pc.fecha_cuota) = DATE(a.fecha_abono)
+                AND pc.fecha_pagado IS NOT NULL
+                ORDER BY pc.numero_cuota ASC
                 LIMIT 1
-            )
+            ) as fecha_pagado_real
+        FROM abonos a
         ORDER BY a.id
     `);
     console.log(`  📊 Total de pagos a procesar: ${payments.length}`);
