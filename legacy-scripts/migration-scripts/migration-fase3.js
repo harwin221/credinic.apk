@@ -2,8 +2,8 @@
 require('dotenv').config({ path: '.env' });
 const mysql = require('mysql2/promise');
 const fs = require('fs');
-const { zonedTimeToUtc, formatInTimeZone } = require('date-fns-tz');
-const { format } = require('date-fns');
+const { toDate, formatInTimeZone } = require('date-fns-tz');
+const { format, parseISO } = require('date-fns');
 
 // --- CONFIGURACIÓN ---
 const SIMULATION_MODE = false;
@@ -90,39 +90,34 @@ async function migratePaymentsBatch(oldDbConnection, newDbConnection, creditMap,
         // ✅ CONVERSIÓN CORRECTA: Nicaragua → UTC usando date-fns-tz
         let paymentDateTime;
         try {
-            let nicaraguaTimeString;
+            let sourceDate;
             
             // Prioridad 1: fecha_pagado_real de prestamo_coutas (tiene hora exacta)
             if (payment.fecha_pagado_real) {
-                if (payment.fecha_pagado_real instanceof Date) {
-                    nicaraguaTimeString = formatInTimeZone(payment.fecha_pagado_real, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
-                } else {
-                    nicaraguaTimeString = String(payment.fecha_pagado_real);
-                }
+                sourceDate = payment.fecha_pagado_real instanceof Date 
+                    ? payment.fecha_pagado_real 
+                    : parseISO(String(payment.fecha_pagado_real));
             }
             // Prioridad 2: updated_at (hora de última actualización/aplicación del pago)
             else if (payment.updated_at) {
-                if (payment.updated_at instanceof Date) {
-                    nicaraguaTimeString = formatInTimeZone(payment.updated_at, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
-                } else {
-                    nicaraguaTimeString = String(payment.updated_at);
-                }
+                sourceDate = payment.updated_at instanceof Date 
+                    ? payment.updated_at 
+                    : parseISO(String(payment.updated_at));
             }
             // Prioridad 3: created_at (hora de creación del pago)
             else if (payment.created_at) {
-                if (payment.created_at instanceof Date) {
-                    nicaraguaTimeString = formatInTimeZone(payment.created_at, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
-                } else {
-                    nicaraguaTimeString = String(payment.created_at);
-                }
+                sourceDate = payment.created_at instanceof Date 
+                    ? payment.created_at 
+                    : parseISO(String(payment.created_at));
             }
             else {
                 throw new Error(`Pago ${payment.id} no tiene fecha_pagado_real, updated_at ni created_at`);
             }
             
-            // Convertir explícitamente de Nicaragua a UTC
-            const utcDate = zonedTimeToUtc(nicaraguaTimeString, 'America/Managua');
-            paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+            // La fecha viene de MySQL que está en Nicaragua, convertir a UTC para guardar
+            // toDate interpreta la fecha como si estuviera en la zona horaria especificada
+            const utcDate = toDate(sourceDate, { timeZone: 'America/Managua' });
+            paymentDateTime = format(utcDate, 'yyyy-MM-dd HH:mm:ss');
         } catch (error) {
             console.log(`  ❌ ERROR CRÍTICO pago ${payment.id}: ${error.message}`);
             skippedCount++;
