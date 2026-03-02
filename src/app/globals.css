@@ -1,0 +1,279 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 25% 96%; /* Light Gray (#F0F4F8) */
+    --foreground: 222 47% 11%; /* Dark Slate Blue */
+
+    --card: 255 100% 100%; /* White */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 255 100% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 60%; /* Brighter, more vibrant Blue */
+    --primary-foreground: 210 40% 98%; /* White for contrast */
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 20% 65%;
+    
+    --accent: 142 76% 36%; /* A more vibrant, slightly darker green */
+    --accent-foreground: 210 40% 98%; /* White text on accent */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 31% 91%;
+    --input: 214 31% 91%;
+    --ring: 217 91% 60%; /* Matching ring color */
+
+    --radius: 0.5rem;
+    
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 358 75% 59%;
+    --chart-5: 27 87% 67%;
+
+    /* Light Theme Sidebar */
+    --sidebar-background: 0 0% 100%; /* White */
+    --sidebar-foreground: 222 47% 11%; 
+    --sidebar-primary: 217 91% 60%; /* Active item bg */
+    --sidebar-primary-foreground: 210 40% 98%; /* Active item text */
+    --sidebar-accent: 210 40% 96.1%; /* Hover item bg */
+    --sidebar-accent-foreground: 222 47% 11%; /* Hover item text */
+    --sidebar-border: 214 31% 91%;
+    --sidebar-ring: 217 91% 60%;
+  }
+ 
+  .dark {
+    --background: 222 47% 11%; /* Dark Slate Blue */
+    --foreground: 210 40% 98%; /* Almost White */
+
+    --card: 222 47% 14%; /* Slightly Lighter Dark Blue */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 65%; /* Lighter vibrant blue for dark mode */
+    --primary-foreground: 222 47% 11%; /* Dark for contrast on buttons */
+
+    --secondary: 217 33% 17%; /* Darker Secondary */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%; /* Lighter Gray */
+    
+    --accent: 142 76% 46%; /* Brighter Green for Dark Mode */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%; /* Darker Red */
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 25%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 65%; /* Matching ring color for dark mode */
+
+    --radius: 0.5rem;
+
+    --chart-1: 217 91% 65%;
+    --chart-2: 142 76% 46%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 358 75% 59%;
+    --chart-5: 27 87% 67%;
+
+    /* Dark Theme Sidebar */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%; 
+    --sidebar-primary: 217 91% 65%; 
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 17%; 
+    --sidebar-accent-foreground: 210 40% 98%; 
+    --sidebar-border: 217 33% 25%;
+    --sidebar-ring: 217 91% 65%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .main-background-container {
+      background-color: hsl(var(--background));
+  }
+  
+  .dark .main-background-container {
+      background-color: hsl(var(--background));
+  }
+  
+  .report-table-condensed th, .report-table-condensed td {
+    padding: 2px 4px !important; /* Denser padding */
+    font-size: 10px !important;
+  }
+  
+  .report-table-condensed td {
+    font-size: 9px !important;
+  }
+
+  @media print {
+    /* Configuración de página con márgenes mínimos */
+    @page {
+      size: A4 landscape;
+      margin: 8mm 5mm;
+    }
+
+    body, html {
+      background: white !important;
+      color: black !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      height: auto !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+    
+    .print-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        page-break-before: avoid !important;
+    }
+    
+    .report-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        page-break-before: avoid !important;
+    }
+
+    .card, .card:hover, .card-content, .card-header, .card-footer {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+    }
+    
+    table, .table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: auto;
+        margin: 0 !important;
+    }
+
+    .table td, .table th, .report-table-condensed td, .report-table-condensed th {
+        font-size: 8px !important;
+        padding: 2px 3px !important;
+        border: none !important;
+        line-height: 1.2;
+    }
+    
+    .table th, .table thead th, .report-table-condensed th, .report-table-condensed thead th {
+        font-weight: bold;
+        font-size: 9px !important;
+        background-color: transparent !important;
+        border-bottom: 1px solid #000 !important;
+    }
+
+    h1, h2, h3, h4 {
+        margin-top: 0.2rem !important;
+        margin-bottom: 0.2rem !important;
+        page-break-after: avoid;
+    }
+    h1 { font-size: 12px !important; }
+    h2 { font-size: 10px !important; }
+    h3 { font-size: 10px !important; }
+
+    a {
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .break-inside-avoid { 
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    /* Evitar saltos de página innecesarios */
+    h1, h2, h3, h4, h5, h6 { 
+      page-break-inside: avoid;
+      page-break-after: avoid;
+    }
+    
+    .card { 
+      page-break-inside: avoid;
+    }
+    
+    /* Permitir que las tablas se dividan entre páginas */
+    table { 
+      page-break-inside: auto;
+    }
+    
+    tr { 
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+
+    table thead { display: table-header-group; }
+    table tfoot { display: table-footer-group; }
+    
+    /* Eliminar espacios innecesarios */
+    .mb-8, .mb-4, .mb-2 {
+      margin-bottom: 0.5rem !important;
+    }
+    
+    .p-4, .p-2, .p-6 {
+      padding: 0 !important;
+    }
+  }
+}
+
+@layer components {
+    .shadow-top {
+        box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1), 0 -2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+    .client-card {
+        @apply bg-card p-3 rounded-lg border flex items-center justify-between transition-colors hover:bg-muted/50;
+    }
+
+    .client-card-info {
+        @apply flex items-center gap-4;
+    }
+
+    .client-card-avatar {
+        @apply bg-primary/10 rounded-full p-2;
+    }
+
+    .client-card-actions {
+        @apply opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2;
+    }
+}

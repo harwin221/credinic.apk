@@ -1,0 +1,53 @@
+{
+  "id": "/",
+  "name": "CREDINIC - Sistema de Gestión de Créditos",
+  "short_name": "CREDINIC",
+  "description": "Sistema completo de gestión de créditos y cobranza para microfinancieras",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#1f2937",
+  "background_color": "#1f2937",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "scope": "/",
+  "categories": [
+    "finance",
+    "business",
+    "productivity"
+  ],
+  "lang": "es-NI",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
+}
