@@ -175,18 +175,18 @@ export default function UsersPage() {
     <div>
       {/* Encabezado con título dinámico */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push('/settings')}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground h-8 px-2"
+            className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300 h-9 px-4"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="text-sm">Configuración</span>
+            <ArrowLeft className="h-4 w-4" />
+            <span className="font-medium">Configuración</span>
           </Button>
         </div>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             {currentUser && ['GERENTE', 'OPERATIVO'].includes(currentUser.role.toUpperCase()) && currentUser.sucursalName
               ? `Usuarios - ${currentUser.sucursalName} (${filteredUsers.length})`
               : `Gestión de Usuarios (${filteredUsers.length})`
@@ -194,7 +194,7 @@ export default function UsersPage() {
           </h1>
           <div>
             {canCreate && (
-              <Button onClick={handleAddNew}>
+              <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Agregar Usuario
               </Button>
@@ -237,39 +237,51 @@ export default function UsersPage() {
         )}
       </div>
 
-      <div className="rounded-lg border shadow-sm">
+      <div className="rounded-lg border shadow-sm bg-white">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Sucursal</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+            <TableRow className="bg-gray-50">
+              <TableHead className="font-semibold">Nombre</TableHead>
+              <TableHead className="font-semibold">Email</TableHead>
+              <TableHead className="font-semibold">Rol</TableHead>
+              <TableHead className="font-semibold">Sucursal</TableHead>
+              <TableHead className="font-semibold">Estado</TableHead>
+              <TableHead className="text-right font-semibold">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <span className="text-sm text-muted-foreground">Cargando usuarios...</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium uppercase">{user.fullName}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="uppercase">{user.role}</TableCell>
-                  <TableCell className="uppercase">{user.sucursalName}</TableCell>
+                <TableRow key={user.id} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">{user.fullName}</TableCell>
+                  <TableCell className="text-gray-600">{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.active !== false ? 'default' : 'secondary'}>{user.active !== false ? 'Activo' : 'Inactivo'}</Badge>
+                    <Badge variant="outline" className="font-medium">
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-gray-600">{user.sucursalName}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={user.active !== false ? 'default' : 'secondary'}
+                      className={user.active !== false ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
+                    >
+                      {user.active !== false ? 'Activo' : 'Inactivo'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={!canEdit && !canDelete && !canResetPassword}>
+                        <Button variant="ghost" size="icon" disabled={!canEdit && !canDelete && !canResetPassword} className="hover:bg-gray-100">
                           <Settings className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -284,8 +296,10 @@ export default function UsersPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  No hay usuarios registrados.
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <span className="text-sm">No hay usuarios registrados.</span>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
