@@ -13,13 +13,14 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { CashClosure } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 
 const formatCurrency = (amount: number, symbol: 'C$' | 'U$' = 'C$') => `${symbol}${amount.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
-        return format(parseISO(dateString), 'dd/MM/yyyy HH:mm:ss', { locale: es });
+        return formatInTimeZone(dateString, 'America/Managua', 'dd/MM/yyyy HH:mm:ss', { locale: es });
     } catch {
         return 'Fecha Inválida';
     }

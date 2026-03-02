@@ -33,7 +33,7 @@ if (process.env.NODE_ENV === 'production') {
     idleTimeout: 60000,
     decimalNumbers: true,
     timezone: '+00:00', // UTC - Estándar ISO 8601
-    dateStrings: false, // Convertir fechas a objetos Date de JavaScript
+    dateStrings: true, // Devolver fechas como strings para mayor control y predictibilidad
     ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   });
 } else {
@@ -52,7 +52,7 @@ if (process.env.NODE_ENV === 'production') {
       idleTimeout: 60000,
       decimalNumbers: true,
       timezone: '+00:00', // UTC - Estándar ISO 8601
-      dateStrings: false, // Convertir fechas a objetos Date de JavaScript
+      dateStrings: true, // Devolver fechas como strings para mayor control y predictibilidad
       ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
     });
   }

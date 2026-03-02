@@ -106,10 +106,12 @@ export async function deleteClosure(id: string): Promise<{ success: boolean; err
     }
 }
 
-export async function hasUserClosedDay(userId: string, date: Date = new Date()): Promise<boolean> {
+export async function hasUserClosedDay(userId: string, date?: Date): Promise<boolean> {
     try {
         const timeZone = 'America/Managua';
-        const dateInManagua = toNicaraguaTime(date);
+        // Obtener fecha actual en Nicaragua si no se proporciona
+        const dateToCheck = date || new Date();
+        const dateInManagua = toNicaraguaTime(toISOString(dateToCheck) || nowInNicaragua());
         const start = fromZonedTime(startOfDay(dateInManagua), timeZone);
         const end = fromZonedTime(endOfDay(dateInManagua), timeZone);
 

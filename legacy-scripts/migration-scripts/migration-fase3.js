@@ -2,10 +2,12 @@
 require('dotenv').config({ path: '.env' });
 const mysql = require('mysql2/promise');
 const fs = require('fs');
+const { zonedTimeToUtc, formatInTimeZone } = require('date-fns-tz');
+const { format } = require('date-fns');
 
 // --- CONFIGURACIÓN ---
 const SIMULATION_MODE = false;
-const BATCH_SIZE = 200; // Procesar pagos en lotes de 200 (optimizado)
+const BATCH_SIZE = 500; // Aumentado de 200 a 500 para mayor velocidad
 
 // --- GENERADORES DE ID BONITOS ---
 let paymentCounter = 1;
@@ -85,39 +87,46 @@ async function migratePaymentsBatch(oldDbConnection, newDbConnection, creditMap,
         const managedBy = userNameMap[newUserId] || "Administrador Sistema";
         const transactionNumber = `REC-${String(payment.id).padStart(6, '0')}`;
 
-        // CONVERSIÓN CORRECTA: La base vieja ya guardaba en hora Nicaragua
-        // NO necesitamos convertir, solo copiar la hora tal cual
+        // ✅ CONVERSIÓN CORRECTA: Nicaragua → UTC usando date-fns-tz
         let paymentDateTime;
-        if (payment.fecha_pagado) {
-            // Usar fecha_pagado de prestamo_coutas (tiene hora exacta)
-            // La base vieja guardaba hora de Nicaragua directamente
-            // Extraer componentes de fecha SIN conversión de zona horaria
-            if (payment.fecha_pagado instanceof Date) {
-                // Extraer componentes directamente del objeto Date
-                const year = payment.fecha_pagado.getFullYear();
-                const month = String(payment.fecha_pagado.getMonth() + 1).padStart(2, '0');
-                const day = String(payment.fecha_pagado.getDate()).padStart(2, '0');
-                const hours = String(payment.fecha_pagado.getHours()).padStart(2, '0');
-                const minutes = String(payment.fecha_pagado.getMinutes()).padStart(2, '0');
-                const seconds = String(payment.fecha_pagado.getSeconds()).padStart(2, '0');
-                paymentDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        try {
+            if (payment.fecha_pagado) {
+                // La base vieja guardaba en hora Nicaragua
+                let nicaraguaTimeString;
+                
+                if (payment.fecha_pagado instanceof Date) {
+                    // Si es Date object, formatear en zona horaria Nicaragua
+                    nicaraguaTimeString = formatInTimeZone(payment.fecha_pagado, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
+                } else if (typeof payment.fecha_pagado === 'string') {
+                    nicaraguaTimeString = payment.fecha_pagado;
+                } else {
+                    nicaraguaTimeString = String(payment.fecha_pagado);
+                }
+                
+                // Convertir explícitamente de Nicaragua a UTC
+                const utcDate = zonedTimeToUtc(nicaraguaTimeString, 'America/Managua');
+                paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+            } else if (payment.created_at) {
+                // Fallback: usar created_at
+                let nicaraguaTimeString;
+                
+                if (payment.created_at instanceof Date) {
+                    nicaraguaTimeString = formatInTimeZone(payment.created_at, 'America/Managua', 'yyyy-MM-dd HH:mm:ss');
+                } else if (typeof payment.created_at === 'string') {
+                    nicaraguaTimeString = payment.created_at;
+                } else {
+                    nicaraguaTimeString = String(payment.created_at);
+                }
+                
+                const utcDate = zonedTimeToUtc(nicaraguaTimeString, 'America/Managua');
+                paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
             } else {
-                // Si ya es string, usarlo directamente
-                paymentDateTime = payment.fecha_pagado;
+                // Último fallback: fecha actual
+                paymentDateTime = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
             }
-        } else {
-            // Fallback: usar created_at si no hay fecha_pagado
-            if (payment.created_at instanceof Date) {
-                const year = payment.created_at.getFullYear();
-                const month = String(payment.created_at.getMonth() + 1).padStart(2, '0');
-                const day = String(payment.created_at.getDate()).padStart(2, '0');
-                const hours = String(payment.created_at.getHours()).padStart(2, '0');
-                const minutes = String(payment.created_at.getMinutes()).padStart(2, '0');
-                const seconds = String(payment.created_at.getSeconds()).padStart(2, '0');
-                paymentDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-            } else {
-                paymentDateTime = payment.created_at;
-            }
+        } catch (error) {
+            console.log(`  ⚠️  Error convirtiendo fecha para pago ${payment.id}, usando fecha actual`);
+            paymentDateTime = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
         }
 
         valuesToInsert.push([
@@ -217,10 +226,7 @@ async function migratePayments(oldDbConnection, newDbConnection, creditMap, user
 
         console.log(`    ✅ Lote ${batchNumber}: ${processedCount} procesados, ${skippedCount} omitidos`);
 
-        // Pausa reducida para mayor velocidad
-        if (batchNumber < totalBatches) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        // Sin pausa para máxima velocidad
     }
 
     if (totalSkipped > 0) console.log(`  ⚠️  Se omitieron ${totalSkipped} pagos por no encontrar su crédito.`);

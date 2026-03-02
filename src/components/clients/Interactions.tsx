@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,7 +80,7 @@ export function Interactions({ client, onInteractionAdd }: InteractionsProps) {
               <CardContent className="p-3">
                  <div className="flex justify-between items-start text-xs">
                     <p className="font-semibold">{interaction.user} <span className="font-normal text-muted-foreground">({interaction.type})</span></p>
-                    <p className="text-muted-foreground">{format(parseISO(interaction.date), 'dd MMM yy, HH:mm', { locale: es })}</p>
+                    <p className="text-muted-foreground">{formatInTimeZone(interaction.date, 'America/Managua', 'dd MMM yy, HH:mm', { locale: es })}</p>
                  </div>
                  <p className="text-sm mt-1">{interaction.notes}</p>
               </CardContent>

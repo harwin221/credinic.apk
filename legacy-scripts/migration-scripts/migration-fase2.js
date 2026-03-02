@@ -6,6 +6,7 @@ const { addWeeks, addDays, differenceInDays, format, parseISO } = require('date-
 
 // --- CONFIGURACIÓN ---
 const SIMULATION_MODE = false;
+const BATCH_SIZE = 100; // Procesar créditos en lotes para mayor velocidad
 
 // --- GENERADORES DE ID BONITOS ---
 let creditCounter = 1;
@@ -177,28 +178,12 @@ async function prepareSchema(newDbConnection) {
     }
 }
 
-async function migrateCredits(oldDbConnection, newDbConnection, userClientMap) {
-    console.log(`--- FASE 2: MIGRANDO CRÉDITOS ---`);
-    const [credits] = await oldDbConnection.execute("SELECT * FROM prestamos");
-
-    // Obtener gestores
-    const [gestores] = await oldDbConnection.execute("SELECT id, nombres, apellidos FROM users WHERE tipo_usuario = 4");
-    const gestorMap = gestores.reduce((acc, gestor) => {
-        const fullName = `${gestor.nombres || ''} ${gestor.apellidos || ''}`.trim();
-        return { ...acc, [gestor.id]: fullName };
-    }, {});
-
-    // Obtener feriados para el plan de pagos
-    const [holidaysRows] = await newDbConnection.execute("SELECT date FROM holidays");
-    const holidays = holidaysRows.map(h => format(new Date(h.date), 'yyyy-MM-dd'));
-
-    const creditMap = {};
-    let skippedCount = 0;
+async function migrateCreditsBatch(newDbConnection, credits, userClientMap, gestorMap, holidays, creditMap, startIndex, endIndex) {
+    const batch = credits.slice(startIndex, endIndex);
     let processedCount = 0;
+    let skippedCount = 0;
 
-    console.log(`  📊 Total de créditos a procesar: ${credits.length}`);
-
-    for (const credit of credits) {
+    for (const credit of batch) {
         const newClientId = userClientMap[credit.user_id];
         if (!newClientId) {
             skippedCount++;
@@ -211,7 +196,7 @@ async function migrateCredits(oldDbConnection, newDbConnection, userClientMap) {
 
         const gestorName = gestorMap[credit.agente_id] || 'Administrador Administrador';
 
-        // Obtener sucursal del cliente
+        // Obtener sucursal del cliente (cache en memoria para evitar queries repetidas)
         const [clientSucursal] = await newDbConnection.execute('SELECT sucursal_id, sucursal_name FROM clients WHERE id = ?', [newClientId]);
         const sucursalId = clientSucursal[0]?.sucursal_id || 'suc_002';
         const sucursalName = clientSucursal[0]?.sucursal_name || 'Sucursal Jinotepe';
@@ -259,48 +244,82 @@ async function migrateCredits(oldDbConnection, newDbConnection, userClientMap) {
         ];
 
         try {
-            if (!SIMULATION_MODE) {
-                await newDbConnection.execute(sql, values);
+            await newDbConnection.execute(sql, values);
 
-                // --- GENERAR E INSERTAR PLAN DE PAGOS ---
-                const schedule = generatePaymentSchedule({
-                    loanAmount: credit.monto_prestamo || 0,
-                    monthlyInterestRate: interestRate,
-                    termMonths: termMonths,
-                    paymentFrequency: PAYMENT_FREQ_MAP[credit.forma_pago_tipo] || 'Diario',
-                    startDate: convertToNoonDate(credit.fecha_primer_pago) || deliveryDate,
-                    holidays: holidays
-                });
+            // --- GENERAR E INSERTAR PLAN DE PAGOS EN LOTE ---
+            const schedule = generatePaymentSchedule({
+                loanAmount: credit.monto_prestamo || 0,
+                monthlyInterestRate: interestRate,
+                termMonths: termMonths,
+                paymentFrequency: PAYMENT_FREQ_MAP[credit.forma_pago_tipo] || 'Diario',
+                startDate: convertToNoonDate(credit.fecha_primer_pago) || deliveryDate,
+                holidays: holidays
+            });
 
-                if (schedule && schedule.length > 0) {
-                    for (const p of schedule) {
-                        const pSql = `INSERT INTO payment_plan (id, creditId, paymentNumber, paymentDate, amount, principal, interest, balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                        const pValues = [
-                            `${newId}_${p.paymentNumber}`, newId, p.paymentNumber,
-                            p.paymentDate, p.amount, p.principal, p.interest, p.balance
-                        ];
-                        await newDbConnection.execute(pSql, pValues);
-                    }
-                } else {
-                    console.log(`  ⚠️  No se pudo generar plan de pagos para crédito ${creditNumber} (ID Legacy: ${credit.id})`);
-                }
-
-                processedCount++;
-
-                if (processedCount % 50 === 0) {
-                    console.log(`  📈 Progreso: ${processedCount}/${credits.length - skippedCount} créditos procesados...`);
-                }
-            } else {
-                console.log(`  💳 Crédito: ${creditNumber} - Gestor: ${gestorName} - Tasa: ${interestRate}% - Plazo: ${termMonths} meses`);
+            if (schedule && schedule.length > 0) {
+                // Insertar plan de pagos en una sola query
+                const paymentValues = schedule.map(p => [
+                    `${newId}_${p.paymentNumber}`, newId, p.paymentNumber,
+                    `${p.paymentDate} 12:00:00`, p.amount, p.principal, p.interest, p.balance
+                ]);
+                
+                const placeholders = paymentValues.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+                const pSql = `INSERT INTO payment_plan (id, creditId, paymentNumber, paymentDate, amount, principal, interest, balance) VALUES ${placeholders}`;
+                await newDbConnection.execute(pSql, paymentValues.flat());
             }
+
+            processedCount++;
         } catch (error) {
             console.log(`  ❌ Error al importar crédito ID ${credit.id}: ${error.message}`);
-            continue;
+            skippedCount++;
         }
     }
 
-    if (skippedCount > 0) console.log(`  ⚠️  Se omitieron ${skippedCount} créditos por no encontrar su cliente.`);
-    console.log(`  ✅ ${processedCount} créditos migrados exitosamente.`);
+    return { processedCount, skippedCount };
+}
+
+async function migrateCredits(oldDbConnection, newDbConnection, userClientMap) {
+    console.log(`--- FASE 2: MIGRANDO CRÉDITOS EN LOTES ---`);
+    const [credits] = await oldDbConnection.execute("SELECT * FROM prestamos");
+
+    // Obtener gestores
+    const [gestores] = await oldDbConnection.execute("SELECT id, nombres, apellidos FROM users WHERE tipo_usuario = 4");
+    const gestorMap = gestores.reduce((acc, gestor) => {
+        const fullName = `${gestor.nombres || ''} ${gestor.apellidos || ''}`.trim();
+        return { ...acc, [gestor.id]: fullName };
+    }, {});
+
+    // Obtener feriados para el plan de pagos
+    const [holidaysRows] = await newDbConnection.execute("SELECT date FROM holidays");
+    const holidays = holidaysRows.map(h => format(new Date(h.date), 'yyyy-MM-dd'));
+
+    const creditMap = {};
+    let totalProcessed = 0;
+    let totalSkipped = 0;
+    const totalBatches = Math.ceil(credits.length / BATCH_SIZE);
+
+    console.log(`  📊 Total de créditos a procesar: ${credits.length}`);
+
+    for (let i = 0; i < credits.length; i += BATCH_SIZE) {
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+        const startIndex = i;
+        const endIndex = Math.min(i + BATCH_SIZE, credits.length);
+
+        console.log(`  📦 Procesando lote ${batchNumber}/${totalBatches} (${startIndex + 1}-${endIndex})...`);
+
+        const { processedCount, skippedCount } = await migrateCreditsBatch(
+            newDbConnection, credits, userClientMap, gestorMap, holidays, creditMap,
+            startIndex, endIndex
+        );
+
+        totalProcessed += processedCount;
+        totalSkipped += skippedCount;
+
+        console.log(`    ✅ Lote ${batchNumber}: ${processedCount} procesados, ${skippedCount} omitidos`);
+    }
+
+    if (totalSkipped > 0) console.log(`  ⚠️  Se omitieron ${totalSkipped} créditos por no encontrar su cliente.`);
+    console.log(`  ✅ ${totalProcessed} créditos migrados exitosamente en ${totalBatches} lotes.`);
     return creditMap;
 }
 

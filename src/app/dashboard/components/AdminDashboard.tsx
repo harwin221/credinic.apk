@@ -8,6 +8,7 @@ import type { AppUser, Sucursal, CreditDetail, RegisteredPayment, PortfolioCredi
 import { generateColocacionVsRecuperacionReport, type ColocacionRecuperacionItem } from '@/services/report-service';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { nowInNicaragua } from '@/lib/date-utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -34,7 +35,8 @@ const formatCurrency = (amount: number = 0) => {
 const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
-        return format(parseISO(dateString), "dd/MM/yyyy, h:mm a", { locale: es });
+        // Convertir de UTC a hora de Nicaragua usando date-fns-tz
+        return formatInTimeZone(parseISO(dateString), 'America/Managua', "dd/MM/yyyy, h:mm a", { locale: es });
     } catch (e) {
         return 'Fecha inválida';
     }
