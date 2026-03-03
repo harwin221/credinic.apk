@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ReportClientSearchModal } from './components/ReportClientSearchModal';
 import { ReportCard } from '@/app/reports/components/ReportCard';
 import { ReportFilterModal } from '@/app/reports/components/ReportFilterModal';
+import { Loader2 } from 'lucide-react';
 
 const ALLOWED_ROLES: UserRole[] = ['ADMINISTRADOR', 'GERENTE', 'FINANZAS', 'OPERATIVO', 'GESTOR'];
 
@@ -21,7 +22,7 @@ const OFFICE_ROLES: UserRole[] = ['GERENTE', 'OPERATIVO'];
 const FIELD_ROLES: UserRole[] = ['GESTOR'];
 
 export default function ReportsPage() {
-  const { user } = useUser();
+  const { user, loading: isUserLoading } = useUser();
   const router = useRouter();
   const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
   const [isClientSearchModalOpen, setIsClientSearchModalOpen] = React.useState(false);
@@ -76,6 +77,14 @@ export default function ReportsPage() {
     }
     setIsFilterModalOpen(false);
   };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground text-blue-500" />
+      </div>
+    );
+  }
 
   if (!user || !ALLOWED_ROLES.includes(user.role)) {
     return <AccessDenied />;
