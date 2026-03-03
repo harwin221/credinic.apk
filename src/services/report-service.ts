@@ -279,15 +279,17 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
             console.log('👥 User names to filter:', userNamesToFilter);
         }
 
-        const allUsersSql = `SELECT id, fullName, sucursal_name FROM users WHERE active = true AND role IN ('GESTOR', 'ADMINISTRADOR', 'GERENTE', 'FINANZAS', 'OPERATIVO', 'CAJERO')`;
+        const allUsersSql = `
+            SELECT u.id, u.fullName, u.sucursal_id, COALESCE(s.name, u.sucursal_name) as sucursal_name 
+            FROM users u
+            LEFT JOIN sucursales s ON u.sucursal_id = s.id
+            WHERE u.active = true AND u.role IN ('GESTOR', 'ADMINISTRADOR', 'GERENTE', 'FINANZAS', 'OPERATIVO', 'CAJERO')
+        `;
         let userRows: any[] = await query(allUsersSql, []);
         console.log('👤 Total active users found:', userRows.length);
 
         if (sucursales && sucursales.length > 0) {
-            const placeholders = sucursales.map(() => '?').join(',');
-            const sucursalNamesResult: any[] = await query(`SELECT name FROM sucursales WHERE id IN (${placeholders})`, sucursales);
-            const sucursalNamesToFilter = sucursalNamesResult.map(s => s.name);
-            userRows = userRows.filter(u => sucursalNamesToFilter.includes(u.sucursal_name));
+            userRows = userRows.filter(u => sucursales.includes(u.sucursal_id));
             console.log('🏢 Filtered users by sucursal:', userRows.length);
         }
 
