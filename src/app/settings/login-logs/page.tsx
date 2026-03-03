@@ -12,7 +12,16 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Loader2, ArrowLeft, Search } from 'lucide-react';
-import { getFirstLogins, LoginLogItem } from '@/services/login-logs-server';
+import { getFirstLogins } from '@/services/login-logs-server';
+
+export interface LoginLogItem {
+    id: string; // audit log id (or generated)
+    userName: string;
+    sucursalName: string;
+    role: string;
+    loginTime: string; // The time they logged in
+    ipAddress: string;
+}
 import { useToast } from '@/hooks/use-toast';
 import { formatDateForUser } from '@/lib/date-utils';
 
