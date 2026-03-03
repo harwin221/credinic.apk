@@ -54,6 +54,8 @@ export interface DisbursementItem {
     approvedAmount: number;
     interestRate: number;
     termMonths: number;
+    sucursalName: string;
+    gestorName: string;
 }
 
 export interface RecoveryReportItem {
@@ -959,7 +961,9 @@ export async function generateDisbursementsReport(filters: ReportFilters): Promi
             c.totalAmount as amount,
             c.amount as approvedAmount,
             c.interestRate,
-            c.termMonths
+            c.termMonths,
+            c.branchName as sucursalName,
+            c.collectionsManager as gestorName
         FROM credits c
         WHERE c.status IN ('Active', 'Paid', 'Expired', 'Fallecido')
         AND c.deliveryDate IS NOT NULL

@@ -93,6 +93,15 @@ export async function loginUser(credentials: { username: string; password: strin
       sucursalName: user.sucursal_name
     };
 
+    try {
+      const { createLog } = await import('@/services/audit-log-service');
+      // We will only log the first login of the day in the component or we just log every login and filter it on the report page.
+      // The user asked "primer inicio de sesion de cada usuario", which we can get with a GROUP BY or MIN(createdAt) in the report.
+      await createLog(appUser, 'user:login', 'Inicio de sesión exitoso', { targetId: appUser.id as string });
+    } catch (logError) {
+      console.error('[Audit Log] No se pudo guardar el log de inicio de sesión:', logError);
+    }
+
     return { success: true, user: appUser };
 
   } catch (error) {

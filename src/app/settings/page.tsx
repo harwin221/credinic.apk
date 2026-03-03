@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Building, CalendarOff, Settings as SettingsIcon, Loader2, RefreshCw, ShieldAlert, ArrowRightLeft } from 'lucide-react';
+import { Users, Building, CalendarOff, Settings as SettingsIcon, Loader2, RefreshCw, ShieldAlert, ArrowRightLeft, Fingerprint } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { AccessDenied } from '@/components/AccessDenied';
@@ -85,6 +85,13 @@ export default function SettingsPage() {
       icon: ShieldAlert,
       href: '/settings/access-control',
     },
+    {
+      title: 'Inicios de Sesión',
+      category: 'Seguridad',
+      description: 'Auditoría del primer inicio de sesión por usuario.',
+      icon: Fingerprint,
+      href: '/settings/login-logs',
+    }
   ];
 
   return (

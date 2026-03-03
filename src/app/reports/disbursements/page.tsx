@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { ReportHeader } from '@/app/reports/components/ReportHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Loader2, Printer, FileSpreadsheet } from 'lucide-react';
 import type { DisbursementItem } from '@/services/report-service';
 import { generateDisbursementsReport, exportDisbursementsToExcel } from '@/services/report-service';
@@ -90,6 +90,20 @@ function DisbursementsReportContent() {
 
   const totalDisbursed = reportData.reduce((sum, item) => sum + item.amount, 0);
 
+  // Group data by Sucursal and then by User (gestorName)
+  const groupedData = reportData.reduce((acc, item) => {
+    const sucKey = item.sucursalName || 'Sin Sucursal';
+    if (!acc[sucKey]) {
+      acc[sucKey] = {};
+    }
+    const userKey = item.gestorName || item.disbursedBy || 'Sin Asignar';
+    if (!acc[sucKey][userKey]) {
+      acc[sucKey][userKey] = [];
+    }
+    acc[sucKey][userKey].push(item);
+    return acc;
+  }, {} as Record<string, Record<string, DisbursementItem[]>>);
+
   return (
     <div className="p-4 sm:p-6 print-container bg-white text-black">
       <div className="report-container mx-auto">
@@ -101,43 +115,82 @@ function DisbursementsReportContent() {
           </Button>
           <Button onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Imprimir</Button>
         </div>
-        <Table className="report-table-condensed">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nº Crédito</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Desembolsado por</TableHead>
-              <TableHead className="text-right">Tasa</TableHead>
-              <TableHead className="text-right">Plazo</TableHead>
-              <TableHead className="text-right">Monto Aprobado</TableHead>
-              <TableHead className="text-right">Monto Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reportData.length > 0 ? (
-              reportData.map((item) => (
-                <TableRow key={item.creditId}>
-                  <TableCell>{item.creditNumber}</TableCell>
-                  <TableCell>{item.clientName}</TableCell>
-                  <TableCell>{formatDate(item.deliveryDate)}</TableCell>
-                  <TableCell>{item.disbursedBy}</TableCell>
-                  <TableCell className="text-right">{item.interestRate}%</TableCell>
-                  <TableCell className="text-right">{item.termMonths} Meses</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.approvedAmount)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">No se encontraron desembolsos para los filtros seleccionados.</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        <div className="mt-4 text-right font-bold text-base pr-4">
-          Total Desembolsado: {formatCurrency(totalDisbursed)}
+
+        <div className="space-y-6">
+          {Object.keys(groupedData).length > 0 ? (
+            Object.entries(groupedData).map(([sucursalName, userGroup]) => {
+              const sucursalTotalDisbursed = Object.values(userGroup).flat().reduce((sum, item) => sum + item.amount, 0);
+
+              return (
+                <div key={sucursalName} className="break-inside-avoid">
+                  <h2 className="font-bold text-sm mb-3 uppercase">{`<< SUC. ${sucursalName} >>`}</h2>
+
+                  {Object.entries(userGroup).map(([gestorName, items]) => {
+                    const gestorTotalDisbursed = items.reduce((sum, item) => sum + item.amount, 0);
+
+                    return (
+                      <div key={gestorName} className="mb-6 ml-2">
+                        <h3 className="font-semibold text-xs mb-2 underline">{`GESTOR: ${gestorName}`}</h3>
+                        <Table className="report-table-condensed w-full mb-2">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Nº Crédito</TableHead>
+                              <TableHead>Cliente</TableHead>
+                              <TableHead>Fecha</TableHead>
+                              <TableHead>Desembolsado por</TableHead>
+                              <TableHead className="text-right">Tasa</TableHead>
+                              <TableHead className="text-right">Plazo</TableHead>
+                              <TableHead className="text-right">Monto Aprobado</TableHead>
+                              <TableHead className="text-right font-bold">Monto Total</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {items.map((item) => (
+                              <TableRow key={item.creditId}>
+                                <TableCell>{item.creditNumber}</TableCell>
+                                <TableCell>{item.clientName}</TableCell>
+                                <TableCell>{formatDate(item.deliveryDate)}</TableCell>
+                                <TableCell>{item.disbursedBy}</TableCell>
+                                <TableCell className="text-right">{item.interestRate}%</TableCell>
+                                <TableCell className="text-right">{item.termMonths} Meses</TableCell>
+                                <TableCell className="text-right">{formatCurrency(item.approvedAmount)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                          <TableFooter>
+                            <TableRow className="font-bold bg-gray-100">
+                              <TableCell colSpan={7} className="text-right">TOTAL GESTOR {gestorName}:</TableCell>
+                              <TableCell className="text-right font-bold text-blue-600">{formatCurrency(gestorTotalDisbursed)}</TableCell>
+                            </TableRow>
+                          </TableFooter>
+                        </Table>
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex justify-end mt-2 mb-8 mr-2">
+                    <div className="bg-gray-200 px-4 py-2 rounded-md border border-gray-400">
+                      <span className="font-bold text-sm mr-4">TOTAL SUCURSAL {sucursalName}:</span>
+                      <span className="font-bold text-sm text-green-700">{formatCurrency(sucursalTotalDisbursed)}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          ) : (
+            <div className="text-center py-10 text-muted-foreground">
+              <p>No se encontraron desembolsos para los filtros seleccionados.</p>
+            </div>
+          )}
         </div>
+
+        {reportData.length > 0 && (
+          <div className="mt-8 pt-6 border-t-2 border-black text-right pr-4">
+            <span className="font-bold text-lg">Gran Total Desembolsado:</span>
+            <span className="font-bold text-xl ml-4 text-blue-800">{formatCurrency(totalDisbursed)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
