@@ -88,7 +88,7 @@ function DisbursementsReportContent() {
     );
   }
 
-  const totalApproved = reportData.reduce((sum, item) => sum + item.approvedAmount, 0);
+  const totalDisbursed = reportData.reduce((sum, item) => sum + item.amount, 0);
 
   return (
     <div className="p-4 sm:p-6 print-container bg-white text-black">
@@ -111,7 +111,7 @@ function DisbursementsReportContent() {
               <TableHead className="text-right">Tasa</TableHead>
               <TableHead className="text-right">Plazo</TableHead>
               <TableHead className="text-right">Monto Aprobado</TableHead>
-              <TableHead className="text-right">Monto Entregado</TableHead>
+              <TableHead className="text-right">Monto Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -136,7 +136,7 @@ function DisbursementsReportContent() {
           </TableBody>
         </Table>
         <div className="mt-4 text-right font-bold text-base pr-4">
-          Total Aprobado: {formatCurrency(totalApproved)}
+          Total Desembolsado: {formatCurrency(totalDisbursed)}
         </div>
       </div>
     </div>

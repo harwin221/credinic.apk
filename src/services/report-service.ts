@@ -262,7 +262,7 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
     try {
         console.log('🔍 generateColocacionVsRecuperacionReport called with filters:', JSON.stringify(filters));
         let { dateFrom, dateTo, sucursales, users } = filters;
-        
+
         // Si no se especifican fechas, NO usar fechas por defecto
         // Esto permite ver el reporte completo sin filtro de fechas
         if (!dateFrom && !dateTo) {
@@ -322,7 +322,7 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
             }
         });
 
-        let colocacionSql = `SELECT collectionsManager, SUM(principalAmount) as total, COUNT(id) as count FROM credits WHERE status IN ('Active', 'Paid')`;
+        let colocacionSql = `SELECT collectionsManager, SUM(totalAmount) as total, COUNT(id) as count FROM credits WHERE status IN ('Active', 'Paid')`;
         const colocacionParams: any[] = [];
         if (dateFrom) { colocacionSql += ' AND DATE(deliveryDate) >= ?'; colocacionParams.push(getReportDateStart(dateFrom)); }
         if (dateTo) { colocacionSql += ' AND DATE(deliveryDate) <= ?'; colocacionParams.push(getReportDateEnd(dateTo)); }
@@ -349,7 +349,7 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
         // Esto evita que el reporte aparezca vacío cuando no hay movimientos
         console.log('✅ Final report items:', finalReport.length);
         console.log('📊 Sample items:', finalReport.slice(0, 3));
-        
+
         if (finalReport.length === 0) {
             console.warn('⚠️ No users found. Debug info:');
             console.warn('  - Date range:', { dateFrom, dateTo });
@@ -357,7 +357,7 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
             console.warn('  - Users filter:', users);
             console.warn('  - Total users in reportMap:', Object.keys(reportMap).length);
         }
-        
+
         return finalReport;
     } catch (error) {
         console.error('❌ Error in generateColocacionVsRecuperacionReport:', error);
@@ -493,21 +493,21 @@ export async function generateNonRenewedReport(filters: ReportFilters): Promise<
             'SELECT id FROM credits WHERE clientId = ? ORDER BY applicationDate DESC LIMIT 50',
             [c.clientId]
         );
-        
+
         let avgLateDaysGlobal = avgLateDaysForCredit; // Por defecto, usar el del crédito actual
-        
+
         if (allClientCreditsResult.length > 0) {
             const clientCreditIds = allClientCreditsResult.map(credit => credit.id);
             let totalAvgForClient = 0;
             let validCreditsCount = 0;
-            
+
             // Calcular promedio de cada crédito del cliente
             for (const clientCreditId of clientCreditIds) {
                 const [clientPaymentPlan, clientRegisteredPayments]: [any, any] = await Promise.all([
                     query('SELECT * FROM payment_plan WHERE creditId = ?', [clientCreditId]),
                     query('SELECT * FROM payments_registered WHERE creditId = ? AND status != "ANULADO"', [clientCreditId]),
                 ]);
-                
+
                 if (clientPaymentPlan.length > 0) {
                     const clientCreditDetails: CreditDetail = {
                         ...c,
@@ -520,7 +520,7 @@ export async function generateNonRenewedReport(filters: ReportFilters): Promise<
                     validCreditsCount++;
                 }
             }
-            
+
             avgLateDaysGlobal = validCreditsCount > 0 ? totalAvgForClient / validCreditsCount : avgLateDaysForCredit;
         }
 
@@ -672,19 +672,19 @@ export async function generateOverdueCreditsReport(filters: ReportFilters): Prom
         // 1. VENCIDO: Si la fecha de vencimiento del crédito ya pasó (última cuota vencida)
         // 2. DIARIO: Si tiene cuota HOY según plan de pago Y NO está vencido
         // 3. MORA: Si tiene mora pero NO tiene cuota hoy Y NO está vencido
-        
+
         // Verificar si la última cuota del plan ya venció
-        const lastInstallment = paymentPlan.length > 0 
-            ? paymentPlan[paymentPlan.length - 1] 
+        const lastInstallment = paymentPlan.length > 0
+            ? paymentPlan[paymentPlan.length - 1]
             : null;
-        
-        const lastInstallmentDateString = lastInstallment 
+
+        const lastInstallmentDateString = lastInstallment
             ? formatDateForUser(lastInstallment.paymentDate, 'yyyy-MM-dd')
             : null;
-        
+
         const asOfDateString = formatDateForUser(asOfDate, 'yyyy-MM-dd');
         const isLastInstallmentExpired = lastInstallmentDateString && lastInstallmentDateString < asOfDateString;
-        
+
         if (isLastInstallmentExpired || statusDetails.isExpired) {
             // Si la última cuota ya venció O la fecha de vencimiento del crédito pasó, va a VENCIDOS
             type = 'V';
@@ -804,21 +804,21 @@ export async function generateExpiredCreditsReport(filters: ReportFilters): Prom
             'SELECT id FROM credits WHERE clientId = ? ORDER BY applicationDate DESC LIMIT 50',
             [credit.clientId]
         );
-        
+
         let globalAvgLateDays = avgLateDaysForCredit; // Por defecto, usar el del crédito actual
-        
+
         if (allClientCreditsResult.length > 0) {
             const clientCreditIds = allClientCreditsResult.map(c => c.id);
             let totalAvgForClient = 0;
             let validCreditsCount = 0;
-            
+
             // Calcular promedio de cada crédito del cliente
             for (const clientCreditId of clientCreditIds) {
                 const [clientPaymentPlan, clientRegisteredPayments]: [any, any] = await Promise.all([
                     query('SELECT * FROM payment_plan WHERE creditId = ?', [clientCreditId]),
                     query('SELECT * FROM payments_registered WHERE creditId = ?', [clientCreditId]),
                 ]);
-                
+
                 if (clientPaymentPlan.length > 0) {
                     const clientCreditDetails: CreditDetail = {
                         ...credit,
@@ -831,13 +831,13 @@ export async function generateExpiredCreditsReport(filters: ReportFilters): Prom
                     validCreditsCount++;
                 }
             }
-            
+
             globalAvgLateDays = validCreditsCount > 0 ? totalAvgForClient / validCreditsCount : avgLateDaysForCredit;
         }
 
         // Obtener la fecha del último abono
         const validPayments = registeredPayments.filter((p: any) => p.status !== 'ANULADO');
-        const lastPaymentDate = validPayments.length > 0 
+        const lastPaymentDate = validPayments.length > 0
             ? validPayments.sort((a: any, b: any) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())[0].paymentDate
             : null;
 
@@ -882,23 +882,23 @@ export async function generateConsolidatedStatement(clientId: string): Promise<C
 
     // Calcular el promedio global de días de atraso sumando los promedios de cada crédito
     let totalAvgLateDays = 0;
-    
+
     console.log('📊 Calculando promedio global de días de atraso para cliente:', clientId);
     console.log('📊 Total de créditos a procesar:', creditCount);
-    
+
     // Agregar los promedios calculados a cada crédito
     const creditsWithAverages = credits.map(credit => {
         const { avgLateDaysForCredit, totalLateDaysForCredit } = calculateAveragePaymentDelay(credit);
         console.log(`  💳 Crédito ${credit.creditNumber}: Promedio=${avgLateDaysForCredit.toFixed(2)} días, Total=${totalLateDaysForCredit} días, Cuotas=${credit.paymentPlan?.length || 0}`);
         totalAvgLateDays += avgLateDaysForCredit;
-        
+
         return {
             ...credit,
             avgLateDays: avgLateDaysForCredit,
             totalLateDays: totalLateDaysForCredit
         };
     });
-    
+
     const globalAverageLateDays = creditCount > 0 ? totalAvgLateDays / creditCount : 0;
     console.log('📊 Suma total de promedios:', totalAvgLateDays.toFixed(2));
     console.log('📊 PROMEDIO GLOBAL FINAL:', globalAverageLateDays.toFixed(2), 'días');
@@ -919,9 +919,9 @@ export async function generateConsolidatedStatement(clientId: string): Promise<C
 
 export async function generateDisbursementsReport(filters: ReportFilters): Promise<DisbursementItem[]> {
     console.log('🔍 generateDisbursementsReport called with filters:', JSON.stringify(filters));
-    
+
     let { users, sucursales, dateFrom, dateTo } = filters;
-    
+
     // Si no se especifican fechas, usar HOY por defecto
     const todayNic = todayInNicaragua();
     if (!dateFrom && !dateTo) {
@@ -929,10 +929,10 @@ export async function generateDisbursementsReport(filters: ReportFilters): Promi
         dateFrom = todayNic;
         dateTo = todayNic;
     }
-    
+
     // Primero, obtener los nombres de usuarios que debemos filtrar
     let userNamesToFilter: string[] = [];
-    
+
     if (users && users.length > 0) {
         // Si se especificaron usuarios, obtener sus nombres
         const userNamesResult: any = await query(`SELECT fullName FROM users WHERE id IN (${users.map(() => '?').join(',')})`, users);
@@ -948,7 +948,7 @@ export async function generateDisbursementsReport(filters: ReportFilters): Promi
             console.log('🏢 User names from sucursales:', userNamesToFilter);
         }
     }
-    
+
     let sql = `
         SELECT 
             c.id as creditId,
@@ -956,7 +956,7 @@ export async function generateDisbursementsReport(filters: ReportFilters): Promi
             c.clientName,
             c.deliveryDate,
             c.disbursedBy,
-            c.disbursedAmount as amount,
+            c.totalAmount as amount,
             c.amount as approvedAmount,
             c.interestRate,
             c.termMonths
@@ -997,7 +997,7 @@ export async function generatePaymentsDetailReport(filters: ReportFilters): Prom
     try {
         console.log('🔍 generatePaymentsDetailReport called with filters:', JSON.stringify(filters));
         let { sucursales, users, dateFrom, dateTo } = filters;
-        
+
         // Si no se especifican fechas, usar HOY por defecto
         const todayNic = todayInNicaragua();
         if (!dateFrom && !dateTo) {
@@ -1005,10 +1005,10 @@ export async function generatePaymentsDetailReport(filters: ReportFilters): Prom
             dateFrom = todayNic;
             dateTo = todayNic;
         }
-        
+
         // Primero, obtener los nombres de usuarios que debemos filtrar
         let userNamesToFilter: string[] = [];
-        
+
         if (users && users.length > 0) {
             // Si se especificaron usuarios, obtener sus nombres
             const userNamesResult: any = await query(`SELECT fullName FROM users WHERE id IN (${users.map(() => '?').join(',')})`, [...users]);
@@ -1024,7 +1024,7 @@ export async function generatePaymentsDetailReport(filters: ReportFilters): Prom
                 console.log('🏢 User names from sucursales:', userNamesToFilter);
             }
         }
-        
+
         let sql = `
             SELECT
                 pr.transactionNumber,
@@ -1048,7 +1048,7 @@ export async function generatePaymentsDetailReport(filters: ReportFilters): Prom
 
         if (dateFrom) { sql += ` AND DATE(pr.paymentDate) >= ?`; params.push(dateFrom); }
         if (dateTo) { sql += ` AND DATE(pr.paymentDate) <= ?`; params.push(dateTo); }
-        
+
         // Filtrar por usuarios directamente en la consulta SQL
         if (userNamesToFilter.length > 0) {
             sql += ` AND pr.managedBy IN (${userNamesToFilter.map(() => '?').join(',')})`;
