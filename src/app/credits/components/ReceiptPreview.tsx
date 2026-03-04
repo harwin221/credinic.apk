@@ -103,8 +103,9 @@ export function ReceiptPreview({
             // Formatear fecha
             let formattedDate = '';
             try {
-                const pDate = typeof payment.paymentDate === 'string' ? parseISO(payment.paymentDate) : new Date();
-                formattedDate = isValid(pDate) ? format(pDate, "dd/MM/yyyy, hh:mm:ss a", { locale: es }) : 'N/A';
+                // CHANGE: Use centralized formatDateForUser to ensure timezone offsets apply correctly. 
+                // Using raw date-fns without timezon-info causes reprints to shift offsets.
+                formattedDate = formatDateForUser(payment.paymentDate, "dd/MM/yyyy, hh:mm:ss a");
             } catch (e) {
                 formattedDate = 'N/A';
             }
@@ -137,12 +138,12 @@ export function ReceiptPreview({
             };
 
             await bluetoothPrinter.printReceipt(receiptData);
-            
+
             toast({
                 title: "Recibo Impreso",
                 description: "El recibo se ha impreso exitosamente.",
             });
-            
+
             // Cerrar el modal después de imprimir
             setTimeout(() => onClose(), 1000);
         } catch (error: any) {
@@ -180,17 +181,17 @@ export function ReceiptPreview({
                     {bluetoothPrinter.isSupported() ? (
                         <>
                             {!isBluetoothConnected ? (
-                                <Button 
-                                    variant="outline" 
-                                    className="w-full" 
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
                                     onClick={handleConnectBluetooth}
                                 >
                                     <Bluetooth className="mr-2 h-4 w-4" />
                                     Conectar Impresora Bluetooth
                                 </Button>
                             ) : (
-                                <Button 
-                                    className="w-full bg-blue-600 hover:bg-blue-700" 
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700"
                                     onClick={handleBluetoothPrint}
                                     disabled={isPrinting}
                                 >

@@ -121,8 +121,12 @@ export function PaymentForm({
 
   const handleSubmit = async (data: PaymentFormValues) => {
     setIsSubmitting(true);
-    // La fecha ya viene en formato ISO desde DateInput
-    await onSubmit(data);
+    // Normalize the date. If user changed it via DateInput, we get an ISO string or 'yyyy-mm-dd'.
+    const finalDate = data.paymentDate.length === 10
+      ? `${data.paymentDate}T12:00:00.000Z`
+      : data.paymentDate;
+
+    await onSubmit({ ...data, paymentDate: finalDate });
     setIsSubmitting(false);
   };
 
