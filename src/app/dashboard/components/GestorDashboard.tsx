@@ -66,7 +66,8 @@ const CreditCategoryTable = ({
   credits,
   statusKey,
   onSelectCredit,
-  onReprintReceipt
+  onReprintReceipt,
+  onVoidRequest
 }: {
   credits: PortfolioCredit[],
   statusKey: keyof typeof statusConfig,
@@ -97,8 +98,9 @@ const CreditCategoryTable = ({
         </TableHeader>
         <TableBody>
           {credits.map(credit => {
-            const totalToPay = (credit.details.dueTodayAmount || 0) + credit.details.overdueAmount;
-            const paidToday = credit.details.paidToday > 0;
+            const totalToPay = (credit.details?.dueTodayAmount || 0) + (credit.details?.overdueAmount || 0);
+            const paidToday = (credit.details?.paidToday || 0) > 0;
+            if (!credit.details) return null;
             return (
               <TableRow key={credit.id} onClick={!paidToday ? () => onSelectCredit(credit) : undefined} className={!paidToday ? "cursor-pointer active:bg-muted/50" : ""}>
                 <TableCell className="font-medium">
@@ -110,8 +112,8 @@ const CreditCategoryTable = ({
                     {paidToday && statusKey === 'dueToday' && <Badge variant="secondary" className="w-fit mt-1 text-[10px]">Abonado</Badge>}
                   </div>
                 </TableCell>
-                <TableCell className="whitespace-nowrap">{formatCurrency(paidToday ? credit.details.paidToday : totalToPay)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatCurrency(credit.details.remainingBalance)}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatCurrency(paidToday ? (credit.details?.paidToday || 0) : totalToPay)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(credit.details?.remainingBalance || 0)}</TableCell>
                 <TableCell className="text-right p-2">
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
@@ -149,6 +151,7 @@ const CreditCategoryTable = ({
 export function GestorDashboard({ user, initialPortfolio, initialSummary }: { user: AppUser, initialPortfolio: PortfolioCredit[], initialSummary: GestorDashboardData }) {
   const { toast } = useToast();
   const router = useRouter();
+  const { user: loggedInUser } = useUser();
   const { isOnline } = useOnlineStatus();
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -166,7 +169,8 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
   const categorizeCredits = React.useCallback((portfolio: PortfolioCredit[]): CategorizedCredits => {
     const categories: CategorizedCredits = { paidToday: [], dueToday: [], overdue: [], expired: [], upToDate: [] };
 
-    portfolio.forEach(credit => {
+    (portfolio || []).forEach(credit => {
+      if (!credit.details) return;
       if (credit.details.paidToday > 0) {
         categories.paidToday.push(credit);
       } else if (credit.details.isDueToday) {
@@ -182,7 +186,7 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
     return categories;
   }, []);
 
-  const [categorizedCredits, setCategorizedCredits] = React.useState<CategorizedCredits>(() => categorizeCredits(initialPortfolio));
+  const [categorizedCredits, setCategorizedCredits] = React.useState<CategorizedCredits>(() => categorizeCredits(initialPortfolio || []));
   const [dailySummary, setDailySummary] = React.useState<GestorDashboardData | null>(initialSummary);
 
   const fetchPortfolio = React.useCallback(async () => {
