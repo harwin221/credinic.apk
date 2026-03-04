@@ -48,6 +48,7 @@ export interface AppUser {
   createdAt: any; // MySQL Timestamp or Date
   updatedAt: any; // MySQL Timestamp or Date
   active?: boolean;
+  sessionExpiresAt?: string;
 }
 
 // Estructura de la Sucursal

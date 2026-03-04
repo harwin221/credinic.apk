@@ -27,7 +27,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const savedUser = localStorage.getItem('credi_user');
       if (savedUser) {
         try {
-          setUser(JSON.parse(savedUser));
+          const parsedUser: AppUser = JSON.parse(savedUser);
+
+          // Verificar si la sesión expiró (para modo offline)
+          if (parsedUser.sessionExpiresAt && new Date(parsedUser.sessionExpiresAt) < new Date()) {
+            console.warn("Sesión local expirada por fecha final del día.");
+            localStorage.removeItem('credi_user');
+            setUser(null);
+          } else {
+            setUser(parsedUser);
+          }
           setLoading(false);
         } catch (e) {
           console.error("Error parsing saved user", e);

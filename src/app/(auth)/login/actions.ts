@@ -10,12 +10,18 @@ import * as bcrypt from 'bcryptjs';
 const secretKey = process.env.JWT_SECRET || 'fallback-secret-key-debe-ser-larga-y-segura';
 const key = new TextEncoder().encode(secretKey);
 
-export async function encrypt(payload: any) {
-  return await new SignJWT(payload)
+export async function encrypt(payload: any, expiration?: string | number | Date) {
+  let jwt = new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('1d') // Sesión de 1 día
-    .sign(key);
+    .setIssuedAt();
+
+  if (expiration) {
+    jwt = jwt.setExpirationTime(expiration);
+  } else {
+    jwt = jwt.setExpirationTime('1d'); // Default 1 day
+  }
+
+  return await jwt.sign(key);
 }
 
 export async function decrypt(input: string): Promise<any> {
@@ -81,8 +87,16 @@ export async function loginUser(credentials: { username: string; password: strin
       mustChangePassword: user.mustChangePassword
     };
 
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-    const session = await encrypt(sessionPayload);
+    // Calcular el fin del día en Nicaragua (23:59:59)
+    const { toZonedTime, fromZonedTime } = await import('date-fns-tz');
+    const { endOfDay } = await import('date-fns');
+
+    const nicaraguaNow = toZonedTime(new Date(), 'America/Managua');
+    const expiresNica = endOfDay(nicaraguaNow);
+    const expires = fromZonedTime(expiresNica, 'America/Managua');
+
+    // El JWT también expira al final del día
+    const session = await encrypt(sessionPayload, expires);
 
     (await cookies()).set('session', session, { expires, httpOnly: true });
 
@@ -90,7 +104,8 @@ export async function loginUser(credentials: { username: string; password: strin
     const appUser: AppUser = {
       ...user,
       sucursal: user.sucursal_id,
-      sucursalName: user.sucursal_name
+      sucursalName: user.sucursal_name,
+      sessionExpiresAt: expires.toISOString()
     };
 
     try {
@@ -135,6 +150,8 @@ export async function getSession(): Promise<AppUser | null> {
         console.warn(`[Acceso Denegado] Usuario ${userProfile.username} bloqueado en tiempo real: ${accessCheck.reason}`);
         return null;
       }
+
+      userProfile.sessionExpiresAt = new Date(decryptedSession.exp * 1000).toISOString();
     }
 
     return userProfile;
