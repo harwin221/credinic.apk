@@ -1,9 +1,8 @@
-
 'use server';
 
 import { query } from '@/lib/mysql';
-import type { CreditDetail, PortfolioCredit, User, Client, RegisteredPayment } from '@/lib/types';
-import { calculateCreditStatusDetails, type CreditStatusDetails } from '@/lib/utils';
+import type { Sucursal, CreditDetail, PortfolioCredit, AppUser as User, Client, RegisteredPayment, CreditStatusDetails } from '@/lib/types';
+import { calculateCreditStatusDetails } from '@/lib/utils';
 import { isToday, parseISO, differenceInDays, subDays, startOfDay, endOfDay } from 'date-fns';
 import { toNicaraguaTime, nowInNicaragua } from '@/lib/date-utils';
 import { getCreditsAdmin as getCreditsAdminServerSide } from './credit-service-server';
@@ -12,10 +11,10 @@ import { generateDailyActivityReport } from './closure-service';
 
 
 export interface GestorDashboardData {
-  recuperacionTotal: number;
-  metaDeCobro: number;
-  totalClientesCobrados: number;
-  pendingRenewals: number;
+    recuperacionTotal: number;
+    metaDeCobro: number;
+    totalClientesCobrados: number;
+    pendingRenewals: number;
 }
 
 /**
@@ -34,8 +33,8 @@ export async function getPortfolioForGestor(gestorId: string): Promise<{
     const gestorName = gestor.fullName;
 
     // 1. Obtener todos los créditos activos del gestor.
-    const { credits: activeCredits } = await getCreditsAdminServerSide({ 
-        gestorName: gestorName, 
+    const { credits: activeCredits } = await getCreditsAdminServerSide({
+        gestorName: gestorName,
         status: 'Active',
         user: gestor,
     });
@@ -44,7 +43,7 @@ export async function getPortfolioForGestor(gestorId: string): Promise<{
         const dailySummary = await getGestorDashboardData(gestor, []);
         return { portfolio: [], dailySummary: dailySummary };
     }
-    
+
     // 2. Obtener TODOS los pagos y planes de pago para esos créditos en consultas optimizadas.
     const creditIds = activeCredits.map(c => c.id);
 
@@ -70,13 +69,13 @@ export async function getPortfolioForGestor(gestorId: string): Promise<{
         }
         paymentPlansByCreditId.get(plan.creditId)!.push(plan);
     }
-    
+
     const asOfDate = toNicaraguaTime(nowInNicaragua());
 
     // 4. Procesar cada crédito usando los datos ya obtenidos en memoria.
     const portfolioCredits = activeCredits.map(credit => {
-        const creditWithDetails = { 
-            ...credit, 
+        const creditWithDetails = {
+            ...credit,
             registeredPayments: paymentsByCreditId.get(credit.id) || [],
             paymentPlan: paymentPlansByCreditId.get(credit.id) || []
         };
@@ -86,28 +85,28 @@ export async function getPortfolioForGestor(gestorId: string): Promise<{
             details,
         };
     });
-    
+
     const statusOrder: Record<string, number> = {
         'dueToday': 1,
         'overdue': 2,
-        'expired': 3, 
+        'expired': 3,
         'upToDate': 4
     };
-    
+
     const getSortKey = (details: CreditStatusDetails): string => {
-        if(details.isDueToday) return 'dueToday';
-        if(details.overdueAmount > 0) return 'overdue';
-        if(details.isExpired) return 'expired';
+        if (details.isDueToday) return 'dueToday';
+        if (details.overdueAmount > 0) return 'overdue';
+        if (details.isExpired) return 'expired';
         return 'upToDate';
     }
-    
+
     const paidTodayCredits = portfolioCredits.filter(c => c.details.paidToday > 0);
     const notPaidTodayCredits = portfolioCredits.filter(c => c.details.paidToday === 0);
 
     const sortedNotPaidCredits = notPaidTodayCredits.sort((a, b) => {
         const keyA = getSortKey(a.details);
         const keyB = getSortKey(b.details);
-        
+
         if (statusOrder[keyA] !== statusOrder[keyB]) {
             return statusOrder[keyA] - statusOrder[keyB];
         }
@@ -134,7 +133,7 @@ export async function getGestorDashboardData(gestor: User, activeCredits: Credit
     const gestorName = gestor.fullName;
 
     const { collections } = await generateDailyActivityReport(gestor.id);
-    
+
     let metaDeCobro = 0;
     const clientsPaidToday = new Set<string>();
 
@@ -143,10 +142,10 @@ export async function getGestorDashboardData(gestor: User, activeCredits: Credit
     if (activeCredits.length > 0) {
         const creditIds = activeCredits.map(c => c.id);
         const placeholders = creditIds.map(() => '?').join(',');
-        
+
         const [paymentPlans, paymentRows]: [any[], any[]] = await Promise.all([
-             query(`SELECT * FROM payment_plan WHERE creditId IN (${placeholders})`, creditIds),
-             query(`SELECT * FROM payments_registered WHERE creditId IN (${placeholders})`, creditIds)
+            query(`SELECT * FROM payment_plan WHERE creditId IN (${placeholders})`, creditIds),
+            query(`SELECT * FROM payments_registered WHERE creditId IN (${placeholders})`, creditIds)
         ]);
 
         const paymentsByCreditId = new Map<string, any[]>();
@@ -162,8 +161,8 @@ export async function getGestorDashboardData(gestor: User, activeCredits: Credit
         });
 
         for (const credit of activeCredits) {
-            const creditWithPayments = { 
-                ...credit, 
+            const creditWithPayments = {
+                ...credit,
                 registeredPayments: paymentsByCreditId.get(credit.id) || [],
                 paymentPlan: paymentPlansByCreditId.get(credit.id) || []
             };
@@ -180,7 +179,7 @@ export async function getGestorDashboardData(gestor: User, activeCredits: Credit
     });
 
     let reloanEligibleCount = 0;
-    for(const c of activeCredits) {
+    for (const c of activeCredits) {
         const { remainingBalance } = calculateCreditStatusDetails(c, asOfDate);
         const paidPercentage = c.totalAmount > 0 ? ((c.totalAmount - remainingBalance) / c.totalAmount) * 100 : 0;
         if (paidPercentage >= 75) {
@@ -203,7 +202,7 @@ export async function getGestorDashboardData(gestor: User, activeCredits: Credit
 export async function getPaidCreditsForGestor(gestorName: string, daysAgo: number): Promise<CreditDetail[]> {
     const today = endOfDay(toNicaraguaTime(nowInNicaragua()));
     const dateLimit = startOfDay(subDays(today, daysAgo));
-    
+
     // 1. Encontrar los últimos pagos de cada crédito para determinar la fecha de cancelación
     const lastPaymentsSql = `
         SELECT creditId, MAX(paymentDate) as cancellationDate
@@ -229,8 +228,8 @@ export async function getPaidCreditsForGestor(gestorName: string, daysAgo: numbe
         AND status = 'Paid' 
         AND id IN (${placeholders})
     `;
-    
+
     const credits: any = await query(creditsSql, [gestorName, ...eligibleCreditIds]);
     return credits as CreditDetail[];
 }
-    
+

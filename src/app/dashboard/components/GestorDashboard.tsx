@@ -3,7 +3,7 @@
 import * as React from 'react';
 import type { AppUser, CreditDetail, RegisteredPayment, PortfolioCredit } from '@/lib/types';
 import { getPortfolioForGestor, type GestorDashboardData } from '@/services/portfolio-service';
-import { Loader2, CalendarClock, AlertTriangle, ShieldCheck, Ban, Wallet, Users, BarChart, Eye, Search, ArrowRightLeft, Target, HandCoins, MoreHorizontal, Printer, CheckCircle, RefreshCw, WifiOff } from 'lucide-react';
+import { Loader2, CalendarClock, AlertTriangle, ShieldCheck, Ban, Wallet, Users, BarChart, Eye, Search, ArrowRightLeft, Target, HandCoins, MoreHorizontal, Printer, CheckCircle, RefreshCw, WifiOff, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { nowInNicaragua } from '@/lib/date-utils';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PaymentForm } from '@/app/credits/components/PaymentForm';
-import { addPayment } from '@/app/credits/actions';
+import { addPayment, requestVoidPayment, voidPayment } from '@/app/credits/actions';
 import { calculateCreditStatusDetails } from '@/lib/utils';
 import { printDocument } from '@/services/printer-service';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useOfflineSync } from '@/services/offline-sync';
 import { getOfflineCredits, isDataAvailableOffline, getSyncStatus, savePendingPayment } from '@/services/offline-db';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 const formatCurrency = (amount: number = 0) => `C$${amount.toLocaleString('es-NI', { minimumFractionDigits: 2 })}`;
@@ -68,7 +71,8 @@ const CreditCategoryTable = ({
   credits: PortfolioCredit[],
   statusKey: keyof typeof statusConfig,
   onSelectCredit: (credit: PortfolioCredit) => void,
-  onReprintReceipt: (credit: PortfolioCredit) => void
+  onReprintReceipt: (credit: PortfolioCredit) => void,
+  onVoidRequest: (credit: PortfolioCredit) => void
 }) => {
   if (credits.length === 0) {
     return <div className="text-center text-muted-foreground p-8">No hay clientes en esta categoría.</div>;
@@ -121,9 +125,14 @@ const CreditCategoryTable = ({
                         <Wallet className="mr-2 h-4 w-4" /> Aplicar Abono
                       </DropdownMenuItem>
                       {paidToday && (
-                        <DropdownMenuItem className="cursor-pointer py-2.5 h-10" onClick={(e) => { e.stopPropagation(); onReprintReceipt(credit); }}>
-                          <Printer className="mr-2 h-4 w-4" /> Reimprimir
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem className="cursor-pointer py-2.5 h-10" onClick={(e) => { e.stopPropagation(); onReprintReceipt(credit); }}>
+                            <Printer className="mr-2 h-4 w-4" /> Reimprimir
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer py-2.5 h-10 text-amber-600 focus:text-amber-700" onClick={(e) => { e.stopPropagation(); onVoidRequest(credit); }}>
+                            <ShieldAlert className="mr-2 h-4 w-4" /> Solicitar Anulación
+                          </DropdownMenuItem>
+                        </>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -149,6 +158,10 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
   const [isReceiptModalOpen, setIsReceiptModalOpen] = React.useState(false);
   const [lastPayment, setLastPayment] = React.useState<any>(null);
   const [isReprintForModal, setIsReprintForModal] = React.useState(false);
+  const [isVoidModalOpen, setIsVoidModalOpen] = React.useState(false);
+  const [paymentToVoid, setPaymentToVoid] = React.useState<RegisteredPayment | null>(null);
+  const [voidReason, setVoidReason] = React.useState('');
+  const [creditForVoid, setCreditForVoid] = React.useState<PortfolioCredit | null>(null);
 
   const categorizeCredits = React.useCallback((portfolio: PortfolioCredit[]): CategorizedCredits => {
     const categories: CategorizedCredits = { paidToday: [], dueToday: [], overdue: [], expired: [], upToDate: [] };
@@ -272,6 +285,53 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
       setIsReceiptModalOpen(true);
     } else {
       toast({ title: 'Error', description: 'No se encontró el último pago para reimprimir.', variant: 'destructive' });
+    }
+  };
+
+  const handleOpenVoidModal = (credit: PortfolioCredit) => {
+    const lastPayment = [...(credit.registeredPayments || [])]
+      .filter(p => p.status === 'VALIDO')
+      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())[0];
+
+    if (lastPayment) {
+      setCreditForVoid(credit);
+      setPaymentToVoid(lastPayment);
+      setVoidReason('');
+      setIsVoidModalOpen(true);
+    } else {
+      toast({ title: 'Error', description: 'No se encontró un pago válido reciente para anular.', variant: 'destructive' });
+    }
+  };
+
+  const handleVoidAction = async () => {
+    const actor = loggedInUser || user;
+    if (!paymentToVoid || !creditForVoid || !actor) return;
+    setIsLoading(true);
+
+    try {
+      if (actor.role === 'ADMINISTRADOR') {
+        const result = await voidPayment(creditForVoid.id, paymentToVoid.id, actor);
+        if (result.success) {
+          toast({ title: 'Pago Anulado', description: 'El abono ha sido anulado exitosamente.' });
+          setIsVoidModalOpen(false);
+          fetchPortfolio();
+        } else {
+          toast({ title: 'Error', description: result.error || 'No se pudo anular el pago.', variant: 'destructive' });
+        }
+      } else {
+        const result = await requestVoidPayment(creditForVoid.id, paymentToVoid.id, voidReason, actor);
+        if (result.success) {
+          toast({ title: 'Solicitud Enviada', description: 'La solicitud de anulación ha sido enviada al administrador.' });
+          setIsVoidModalOpen(false);
+          fetchPortfolio();
+        } else {
+          toast({ title: 'Error', description: result.error || 'No se pudo enviar la solicitud.', variant: 'destructive' });
+        }
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Error de conexión al procesar la solicitud.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -440,6 +500,7 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
                   statusKey="paidToday"
                   onSelectCredit={handleSelectCreditForPayment}
                   onReprintReceipt={handleReprintReceipt}
+                  onVoidRequest={handleOpenVoidModal}
                 />
               </TabsContent>
               <TabsContent value="dueToday" className="mt-4">
@@ -448,6 +509,7 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
                   statusKey="dueToday"
                   onSelectCredit={handleSelectCreditForPayment}
                   onReprintReceipt={handleReprintReceipt}
+                  onVoidRequest={handleOpenVoidModal}
                 />
               </TabsContent>
               <TabsContent value="overdue" className="mt-4">
@@ -456,6 +518,7 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
                   statusKey="overdue"
                   onSelectCredit={handleSelectCreditForPayment}
                   onReprintReceipt={handleReprintReceipt}
+                  onVoidRequest={handleOpenVoidModal}
                 />
               </TabsContent>
               <TabsContent value="expired" className="mt-4">
@@ -464,6 +527,7 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
                   statusKey="expired"
                   onSelectCredit={handleSelectCreditForPayment}
                   onReprintReceipt={handleReprintReceipt}
+                  onVoidRequest={handleOpenVoidModal}
                 />
               </TabsContent>
               <TabsContent value="upToDate" className="mt-4">
@@ -472,6 +536,7 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
                   statusKey="upToDate"
                   onSelectCredit={handleSelectCreditForPayment}
                   onReprintReceipt={handleReprintReceipt}
+                  onVoidRequest={handleOpenVoidModal}
                 />
               </TabsContent>
             </Tabs>
@@ -517,6 +582,46 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
         mode="credit"
         onSelectCreditForPayment={handleSelectCreditForPayment}
       />
+
+      <AlertDialog open={isVoidModalOpen} onOpenChange={setIsVoidModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+              {loggedInUser?.role === 'ADMINISTRADOR' ? 'Anular Pago' : 'Solicitar Anulación de Pago'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Está a punto de {loggedInUser?.role === 'ADMINISTRADOR' ? 'anular' : 'solicitar la anulación del'} abono de {paymentToVoid && formatCurrency(paymentToVoid.amount)} realizado a {creditForVoid?.clientName}.
+              <br /><br />
+              {loggedInUser?.role === 'ADMINISTRADOR'
+                ? 'Esta acción marcará el pago como ANULADO de forma inmediata.'
+                : 'Debe indicar un motivo claro para que el Administrador o Gerente pueda aprobar esta solicitud.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {loggedInUser?.role !== 'ADMINISTRADOR' && (
+            <div className="py-4 space-y-2">
+              <Label htmlFor="void-reason">Motivo de la anulación</Label>
+              <Input
+                id="void-reason"
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="Ej: Pago duplicado, error de monto..."
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleVoidAction}
+              className={loggedInUser?.role === 'ADMINISTRADOR' ? 'bg-destructive hover:bg-destructive/90' : 'bg-amber-600 hover:bg-amber-700'}
+              disabled={isLoading || (loggedInUser?.role !== 'ADMINISTRADOR' && !voidReason.trim())}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loggedInUser?.role === 'ADMINISTRADOR' ? 'Confirmar Anulación' : 'Enviar Solicitud'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

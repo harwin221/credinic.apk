@@ -2,7 +2,7 @@
 'use server';
 
 import { query } from '@/lib/mysql';
-import type { User, CreditDetail } from '@/lib/types';
+import type { AppUser as User, CreditDetail } from '@/lib/types';
 import { format, isValid, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
@@ -24,9 +24,9 @@ export async function getDisburserDashboardData(disburserName: string): Promise<
   const pendingSql = `SELECT COUNT(*) as total FROM credits WHERE status = 'Approved'`;
 
   const [disbursedResult, rejectedResult, pendingResult]: [any, any, any] = await Promise.all([
-      query(disbursedSql, [disburserName, startOfDayUTC, endOfDayUTC]),
-      query(rejectedSql, [disburserName, startOfDayUTC, endOfDayUTC]),
-      query(pendingSql)
+    query(disbursedSql, [disburserName, startOfDayUTC, endOfDayUTC]),
+    query(rejectedSql, [disburserName, startOfDayUTC, endOfDayUTC]),
+    query(pendingSql)
   ]);
 
   return {
@@ -36,11 +36,11 @@ export async function getDisburserDashboardData(disburserName: string): Promise<
   };
 }
 
-export async function getDisbursementOrigin(actor: User): Promise<{ id: string, name: string}[]> {
-    // Por ahora, solo la caja "propia" del usuario es una opción.
-    // En el futuro, esto podría expandirse para incluir bóvedas de la oficina principal, etc.
-    return [{
-        id: `caja_usuario_${actor.id}`,
-        name: `Caja de ${actor.fullName}`
-    }];
+export async function getDisbursementOrigin(actor: User): Promise<{ id: string, name: string }[]> {
+  // Por ahora, solo la caja "propia" del usuario es una opción.
+  // En el futuro, esto podría expandirse para incluir bóvedas de la oficina principal, etc.
+  return [{
+    id: `caja_usuario_${actor.id}`,
+    name: `Caja de ${actor.fullName}`
+  }];
 }

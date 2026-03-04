@@ -42,7 +42,7 @@ export default function PaymentVoidsPage() {
     try {
       const response = await fetch('/api/payments/void-requests');
       const data = await response.json();
-      
+
       if (data.success) {
         setRequests(data.requests);
       } else {
@@ -67,14 +67,14 @@ export default function PaymentVoidsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         toast({
           title: action === 'approve' ? 'Anulación Aprobada' : 'Solicitud Rechazada',
-          description: action === 'approve' 
-            ? 'El pago ha sido anulado exitosamente.' 
+          description: action === 'approve'
+            ? 'El pago ha sido anulado exitosamente.'
             : 'La solicitud de anulación ha sido rechazada.'
         });
         fetchPendingRequests(); // Refrescar lista
@@ -100,13 +100,13 @@ export default function PaymentVoidsPage() {
   };
 
   React.useEffect(() => {
-    if (user?.role === 'ADMINISTRADOR') {
+    if (user?.role === 'ADMINISTRADOR' || user?.role === 'GERENTE') {
       fetchPendingRequests();
     }
   }, [user]);
 
   if (!user) return null;
-  if (user.role !== 'ADMINISTRADOR') {
+  if (user.role !== 'ADMINISTRADOR' && user.role !== 'GERENTE') {
     return <AccessDenied />;
   }
 
@@ -214,7 +214,7 @@ export default function PaymentVoidsPage() {
                   <p><strong>Solicitado por:</strong> {selectedRequest.voidRequestedBy}</p>
                   <p><strong>Motivo:</strong> {selectedRequest.voidReason}</p>
                   <p className="mt-4">
-                    {actionType === 'approve' 
+                    {actionType === 'approve'
                       ? '¿Confirma que desea aprobar esta anulación? El pago será marcado como anulado.'
                       : '¿Confirma que desea rechazar esta solicitud? El pago permanecerá válido.'
                     }
@@ -225,7 +225,7 @@ export default function PaymentVoidsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => selectedRequest && actionType && handleAction(selectedRequest, actionType)}
               disabled={processingId !== null}
               className={actionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}

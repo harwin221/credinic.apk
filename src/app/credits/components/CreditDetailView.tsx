@@ -100,13 +100,13 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
             calculatedRemainingBalance: remainingBalance,
             conamiCategory
         });
-        
+
         if (credit.paymentPlan && credit.paymentPlan.length > 0) {
             console.log('📅 Plan de pagos (primeras 3 cuotas):', credit.paymentPlan.slice(0, 3));
         } else {
             console.warn('⚠️ No hay plan de pagos cargado');
         }
-        
+
         if (credit.registeredPayments && credit.registeredPayments.length > 0) {
             console.log('💰 Pagos registrados (últimos 3):', credit.registeredPayments.slice(-3));
         } else {
@@ -164,7 +164,7 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
             if (user.role === 'GESTOR') {
                 await requestVoidPayment(credit.id, paymentToVoid.id, voidReason, user);
                 toast({ title: 'Solicitud de Anulación Enviada', description: 'Un administrador debe aprobar la anulación.' });
-            } else if (user.role === 'ADMINISTRADOR') {
+            } else if (user.role === 'ADMINISTRADOR' || user.role === 'GERENTE') {
                 // If admin and payment is PENDING, approve it. If it's VALID, void it directly.
                 if (paymentToVoid.status === 'ANULACION_PENDIENTE') {
                     await voidPayment(credit.id, paymentToVoid.id, user);
@@ -198,25 +198,25 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
         try {
             const result = await deletePayment(credit.id, paymentToDelete.id, user);
             if (result.success) {
-                toast({ 
-                    title: 'Pago Eliminado', 
-                    description: 'El pago ha sido eliminado permanentemente del sistema.' 
+                toast({
+                    title: 'Pago Eliminado',
+                    description: 'El pago ha sido eliminado permanentemente del sistema.'
                 });
                 onPaymentSuccess?.();
                 setIsDeleteModalOpen(false);
                 setPaymentToDelete(null);
             } else {
-                toast({ 
-                    title: 'Error', 
-                    description: result.error || 'No se pudo eliminar el pago.', 
-                    variant: 'destructive' 
+                toast({
+                    title: 'Error',
+                    description: result.error || 'No se pudo eliminar el pago.',
+                    variant: 'destructive'
                 });
             }
         } catch (error) {
-            toast({ 
-                title: 'Error', 
-                description: error instanceof Error ? error.message : 'No se pudo eliminar el pago.', 
-                variant: 'destructive' 
+            toast({
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'No se pudo eliminar el pago.',
+                variant: 'destructive'
             });
         } finally {
             setIsLoading(false);
@@ -367,8 +367,8 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
 
     const workAddress = credit.clientDetails?.asalariadoInfo?.companyAddress || credit.clientDetails?.comercianteInfo?.businessAddress;
 
-    const canManageCredit = user?.role === 'ADMINISTRADOR';
-    const canVoidPayment = user?.role === 'ADMINISTRADOR';
+    const canManageCredit = user?.role === 'ADMINISTRADOR' || user?.role === 'GERENTE';
+    const canVoidPayment = user?.role === 'ADMINISTRADOR' || user?.role === 'GERENTE';
     const canRequestVoidPayment = user?.role === 'GESTOR' || user?.role === 'GERENTE';
     const isFieldUser = user && FIELD_ROLES.includes(user.role);
     const isGestor = user?.role === 'GESTOR';
@@ -781,9 +781,9 @@ export function CreditDetailView({ credit: initialCredit, onPaymentSuccess }: Cr
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleDeletePayment} 
-                            className="bg-red-600 hover:bg-red-700" 
+                        <AlertDialogAction
+                            onClick={handleDeletePayment}
+                            className="bg-red-600 hover:bg-red-700"
                             disabled={isLoading}
                         >
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

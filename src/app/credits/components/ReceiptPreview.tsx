@@ -7,6 +7,7 @@ import { generateReceiptHtmlTemplate } from '@/services/pdf/receipt-template';
 import { bluetoothPrinter } from '@/services/bluetooth-printer-service';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateCreditStatusDetails } from '@/lib/utils';
+import { formatDateForUser } from '@/lib/date-utils';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 

@@ -229,7 +229,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
   ],
   GERENTE: [
     'dashboard:view', 'client:view', 'client:create', 'client:edit',
-    'credit:view:all', 'credit:create', 'credit:edit', 'credit:pay', 'payment:void_request',
+    'credit:view:all', 'credit:create', 'credit:edit', 'credit:pay', 'payment:void_request', 'void:approve',
     'closure:view', 'closure:create',
     'calculator:use', 'reports:view', 'reports:view:saldos', 'reports:view:operativos', 'reports:view:financieros',
     'approval:view', 'approval:level2',

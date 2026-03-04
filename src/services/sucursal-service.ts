@@ -2,7 +2,7 @@
 'use server';
 
 import { query } from '@/lib/mysql';
-import type { Sucursal, User } from '@/lib/types';
+import type { Sucursal, AppUser as User } from '@/lib/types';
 import { createLog } from './audit-log-service';
 import { revalidatePath } from 'next/cache';
 

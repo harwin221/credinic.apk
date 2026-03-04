@@ -1,5 +1,6 @@
 import { CreditDetail, RegisteredPayment } from '@/lib/types';
 import { calculateCreditStatusDetails, formatCurrency } from '@/lib/utils';
+import { formatDateForUser } from '@/lib/date-utils';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -51,7 +52,6 @@ export function generateReceiptHtmlTemplate({
   let formattedDate = '';
   try {
     // CHANGE: Use centralized formatDateForUser to prevent timezone drift, same as ReceiptPreview
-    const { formatDateForUser } = require('@/lib/date-utils');
     formattedDate = formatDateForUser(payment.paymentDate, "dd/MM/yyyy, hh:mm:ss a");
   } catch (e) {
     formattedDate = 'N/A';

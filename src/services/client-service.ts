@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { Client, User } from '@/lib/types';
+import type { Client, AppUser as User } from '@/lib/types';
 import { getClient as getClientServer } from './client-service-server';
 import { updateClient as updateClientServer } from '@/app/clients/actions';
 
@@ -21,8 +21,8 @@ export const getClient = async (id: string): Promise<Client | null> => {
  * Actualiza los datos de un cliente. Llama a una Server Action.
  */
 export const updateClient = async (id: string, clientData: Partial<Client>, actor: User): Promise<void> => {
-    const result = await updateClientServer(id, clientData, actor);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update client.');
-    }
+  const result = await updateClientServer(id, clientData, actor);
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to update client.');
+  }
 };
