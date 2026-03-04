@@ -22,9 +22,9 @@ export async function getFirstLogins(dateFrom: string, dateTo: string): Promise<
       JOIN users u ON al.userId = u.id
       LEFT JOIN sucursales s ON u.sucursal_id = s.id
       WHERE al.action = 'user:login'
-        AND DATE(al.timestamp) >= ?
-        AND DATE(al.timestamp) <= ?
-      GROUP BY DATE(al.timestamp), al.userId, u.fullName, u.role, COALESCE(s.name, u.sucursal_name), al.ipAddress
+        AND DATE(DATE_SUB(al.timestamp, INTERVAL 6 HOUR)) >= ?
+        AND DATE(DATE_SUB(al.timestamp, INTERVAL 6 HOUR)) <= ?
+      GROUP BY DATE(DATE_SUB(al.timestamp, INTERVAL 6 HOUR)), al.userId, u.fullName, u.role, COALESCE(s.name, u.sucursal_name), al.ipAddress
       ORDER BY firstLoginTime DESC
     `;
 
