@@ -202,7 +202,6 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
           details: calculateCreditStatusDetails(c)
         }));
         setCategorizedCredits(categorizeCredits(portfolio));
-        toast({ title: "Modo Offline", description: "Cargando datos locales de la última sincronización." });
         setIsLoading(false);
         return;
       }
@@ -212,7 +211,6 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
       const { portfolio, dailySummary } = await getPortfolioForGestor(user.id);
       setCategorizedCredits(categorizeCredits(portfolio));
       setDailySummary(dailySummary);
-      toast({ title: "Cartera Actualizada", description: "Se han cargado los datos más recientes." });
     } catch (error) {
       console.error("Error fetching gestor portfolio:", error);
 
@@ -380,19 +378,26 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
 
       const result = await addPayment(selectedCreditForPayment.id, newPayment, user);
       if (result.success && result.paymentId) {
-        toast({ title: "Pago Registrado en el Servidor", description: "El abono ha sido procesado exitosamente.", variant: 'info' });
-
-        setLastPayment({
+        const processedPayment = {
           ...newPayment,
           id: result.paymentId,
           transactionNumber: result.transactionNumber
-        });
+        };
+
+        setLastPayment(processedPayment);
+
+        // Inyectar el pago actual en el objeto del crédito para que el primer recibo calcule bien el saldo
+        const updatedCredit = {
+          ...selectedCreditForPayment,
+          registeredPayments: [processedPayment, ...(selectedCreditForPayment.registeredPayments || [])]
+        };
+        setSelectedCreditForPayment(updatedCredit);
+
         setIsReprintForModal(false);
         setIsPaymentModalOpen(false);
         setIsReceiptModalOpen(true);
 
-        fetchPortfolio(); // Refresh dashboard data
-        // No auto-print here. User will click Print in the modal if needed.
+        fetchPortfolio(); // Refrescar en segundo plano
       } else {
         throw new Error(result.error || "Error desconocido al registrar el pago.");
       }

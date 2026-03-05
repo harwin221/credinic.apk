@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     // Validar estructura de datos
     if (!payments || (isBatch && !Array.isArray(payments)) || (!isBatch && !payments.creditId)) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Estructura de datos inválida',
         expected: isBatch ? 'Array de pagos' : 'Objeto de pago único'
       }, { status: 400 });
@@ -50,8 +50,8 @@ export async function POST(request: Request) {
           status: 'VALIDO' as const // Campo requerido por RegisteredPayment
         };
 
-        // Aplicar el pago
-        const result = await addPayment(paymentData.creditId, paymentToAdd, session);
+        // Aplicar el pago con control de duplicados usando offlineId si existe
+        const result = await addPayment(paymentData.creditId, paymentToAdd, session, paymentData.offlineId);
 
         if (result.success) {
           results.push({
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('[API Mobile Payments Error]', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Error procesando pagos móviles',
       details: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });

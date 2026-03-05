@@ -304,8 +304,17 @@ export async function getClientCredits(clientId: string): Promise<CreditDetail[]
     return creditRows as CreditDetail[];
 }
 
-export async function addPayment(creditId: string, paymentData: Omit<RegisteredPayment, 'id'>, actor: User): Promise<{ success: boolean; error?: string, paymentId?: string, transactionNumber?: string }> {
+export async function addPayment(creditId: string, paymentData: Omit<RegisteredPayment, 'id'>, actor: User, offlineId?: string | number): Promise<{ success: boolean; error?: string, paymentId?: string, transactionNumber?: string }> {
     try {
+        // Verificar duplicados si se envía un offlineId
+        if (offlineId) {
+            const existing: any = await query('SELECT id, transactionNumber FROM payments_registered WHERE creditId = ? AND notes LIKE ? LIMIT 1', [creditId, `%OFFLINE_ID:${offlineId}%`]);
+            if (existing.length > 0) {
+                console.log(`[Duplicate Check] Pago con offlineId ${offlineId} ya existe. Ignorando.`);
+                return { success: true, paymentId: existing[0].id, transactionNumber: existing[0].transactionNumber };
+            }
+        }
+
         // Verificar si el usuario ya cerró caja hoy
         const hasClosed = await hasUserClosedDay(actor.id);
         if (hasClosed) {
@@ -325,6 +334,10 @@ export async function addPayment(creditId: string, paymentData: Omit<RegisteredP
 
         const paymentDateForDB = isoToMySQLDateTime(paymentData.paymentDate);
 
+        const paymentNotes = offlineId
+            ? `${paymentData.notes || ''} [OFFLINE_ID:${offlineId}]`.trim()
+            : (paymentData.notes || null);
+
         await query(sql, [
             paymentId,
             creditId,
@@ -334,7 +347,7 @@ export async function addPayment(creditId: string, paymentData: Omit<RegisteredP
             transactionNumber,
             'VALIDO',
             paymentData.paymentType || 'NORMAL',
-            paymentData.notes || null
+            paymentNotes
         ]);
 
         // After adding payment, check if credit is fully paid and update status
