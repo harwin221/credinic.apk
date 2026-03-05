@@ -81,7 +81,7 @@ const CreditCategoryTable = ({
 
   return (
     <div
-      className="relative w-full overflow-x-auto pb-4 rounded-md border"
+      className="relative w-full overflow-x-auto pb-4 rounded-md border min-h-[350px]"
       style={{
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-x pan-y'
@@ -468,10 +468,9 @@ export function GestorDashboard({ user, initialPortfolio, initialSummary }: { us
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <BigStatCard title="Recuperado Hoy" value={formatCurrency(dailySummary?.recuperacionTotal ?? 0)} icon={Wallet} color="bg-gradient-to-br from-blue-500 to-cyan-500" />
           <BigStatCard title="Clientes Atendidos" value={dailySummary?.totalClientesCobrados ?? 0} icon={Users} color="bg-gradient-to-br from-green-500 to-emerald-500" />
-          <BigStatCard title="Meta de Cobro" value={formatCurrency(dailySummary?.metaDeCobro ?? 0)} icon={Target} color="bg-gradient-to-br from-orange-500 to-amber-500" />
           <BigStatCard title="Renovaciones" value={dailySummary?.pendingRenewals ?? 0} icon={HandCoins} color="bg-gradient-to-br from-violet-500 to-purple-500" />
         </div>
 

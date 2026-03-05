@@ -49,7 +49,7 @@ interface GuaranteeFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: GuaranteeFormValues) => void;
-  initialData?: Partial<GuaranteeItem>; 
+  initialData?: Partial<GuaranteeItem>;
   mode: 'add' | 'edit';
 }
 
@@ -75,7 +75,7 @@ export function GuaranteeForm({ isOpen, onClose, onSubmit, initialData, mode }: 
         color: initialData?.color || '',
         model: initialData?.model || '',
         series: initialData?.series || '',
-        estimatedValue: initialData?.estimatedValue ?? 0,
+        estimatedValue: initialData?.estimatedValue !== undefined ? initialData.estimatedValue : undefined,
       };
       form.reset(defaultVals);
     }
@@ -89,7 +89,7 @@ export function GuaranteeForm({ isOpen, onClose, onSubmit, initialData, mode }: 
     await new Promise(resolve => setTimeout(resolve, 500)); // Simular llamada a la API
     onSubmit(data);
     setIsSubmitting(false);
-    onClose(); 
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -105,92 +105,92 @@ export function GuaranteeForm({ isOpen, onClose, onSubmit, initialData, mode }: 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-             <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-2">
-                <FormField
+            <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-2">
+              <FormField
                 control={form.control}
                 name="article"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Artículo</FormLabel>
                     <FormControl>
-                        <Input placeholder="Ej: Refrigerador, Televisor" {...field} />
+                      <Input placeholder="Ej: Refrigerador, Televisor" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="brand"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Marca <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
-                        <FormControl>
-                            <Input placeholder="Ej: Sony, LG" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="color"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Color <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
-                        <FormControl>
-                            <Input placeholder="Ej: Gris, Blanco" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="model"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Modelo <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
-                        <FormControl>
-                            <Input placeholder="Ej: RX-100, TU7000" {...field} value={field.value || ''}/>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="series"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Serie <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
-                        <FormControl>
-                            <Input placeholder="Ej: SN123456789" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
+                  control={form.control}
+                  name="brand"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Marca <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: Sony, LG" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Color <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: Gris, Blanco" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="model"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Modelo <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: RX-100, TU7000" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="series"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Serie <span className="text-xs text-muted-foreground">(Opcional)</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: SN123456789" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
                 control={form.control}
                 name="estimatedValue"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Valor estimado (C$)</FormLabel>
                     <FormControl>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">C$</span>
-                            <Input type="number" placeholder="5000" {...field} className="pl-9"/>
-                        </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">C$</span>
+                        <Input type="number" placeholder="5000" {...field} className="pl-9" />
+                      </div>
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
+              />
             </div>
             <DialogFooter className="pt-4 mt-4 border-t">
               <DialogClose asChild>
