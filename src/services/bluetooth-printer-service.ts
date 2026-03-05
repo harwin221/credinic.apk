@@ -25,15 +25,15 @@ const Commands = {
 };
 
 class BluetoothPrinterService {
-  private device: BluetoothDevice | null = null;
-  private characteristic: BluetoothRemoteGATTCharacteristic | null = null;
+  private device: any = null;
+  private characteristic: any = null;
   private encoder = new TextEncoder();
 
   /**
    * Verifica si el navegador soporta Web Bluetooth
    */
   isSupported(): boolean {
-    return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+    return typeof navigator !== 'undefined' && (navigator as any).bluetooth;
   }
 
   /**
@@ -46,7 +46,7 @@ class BluetoothPrinterService {
 
     try {
       // Solicitar dispositivo Bluetooth
-      this.device = await navigator.bluetooth.requestDevice({
+      this.device = await (navigator as any).bluetooth.requestDevice({
         filters: [
           { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Servicio común de impresoras
         ],
@@ -59,10 +59,10 @@ class BluetoothPrinterService {
 
       // Conectar al servidor GATT
       const server = await this.device.gatt.connect();
-      
+
       // Obtener el servicio
       const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-      
+
       // Obtener la característica de escritura
       this.characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
 
@@ -108,7 +108,7 @@ class BluetoothPrinterService {
     }
 
     const bytes = this.encoder.encode(data);
-    
+
     // Dividir en chunks de 512 bytes (límite de Bluetooth)
     const chunkSize = 512;
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -134,7 +134,7 @@ class BluetoothPrinterService {
   }
 
   /**
-   * Imprime un recibo de pago
+   * Imprime un recibo de pago con formato mejorado para 58mm
    */
   async printReceipt(receiptData: {
     companyName: string;
@@ -162,10 +162,21 @@ class BluetoothPrinterService {
     }
 
     try {
+      const lineLen = 32; // Ancho estándar para 58mm (fuente A)
+
+      const formatRow = (label: string, value: string) => {
+        const spaces = lineLen - label.length - value.length;
+        return label + (spaces > 0 ? ' '.repeat(spaces) : ' ') + value;
+      };
+
+      const sanitize = (text: string = '') => {
+        return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      };
+
       // Inicializar impresora
       await this.write(Commands.INIT);
 
-      // Encabezado - Nombre de la empresa (centrado, negrita)
+      // Encabezado - Nombre de la empresa (centrado, negrita, doble altura)
       await this.write(Commands.ALIGN_CENTER);
       await this.write(Commands.BOLD_ON);
       await this.write(Commands.DOUBLE_HEIGHT_ON);
@@ -178,108 +189,116 @@ class BluetoothPrinterService {
       await this.printText('COPIA: CLIENTE');
       await this.write(Commands.FONT_NORMAL);
 
-      await this.write(Commands.ALIGN_LEFT);
-      await this.printSeparator();
+      await this.write(Commands.ALIGN_CENTER);
+      await this.printText('--------------------------------');
 
       // Indicadores especiales
       if (receiptData.isReprint) {
-        await this.write(Commands.ALIGN_CENTER);
         await this.write(Commands.BOLD_ON);
         await this.printText('*** REIMPRESION ***');
         await this.write(Commands.BOLD_OFF);
-        await this.write(Commands.ALIGN_LEFT);
       }
       if (receiptData.isOffline) {
-        await this.write(Commands.ALIGN_CENTER);
         await this.write(Commands.BOLD_ON);
         await this.printText('*** MODO OFFLINE ***');
         await this.write(Commands.BOLD_OFF);
-        await this.write(Commands.ALIGN_LEFT);
       }
 
-      // Información del recibo
-      await this.printText(`Recibo: ${receiptData.receiptNumber}`);
-      await this.printText(`Credito: ${receiptData.creditNumber}`);
-      await this.printText(`Fecha/Hora: ${receiptData.date}`);
-      await this.printSeparator();
+      // Información del recibo (Alineado a la izquierda)
+      await this.write(Commands.ALIGN_LEFT);
+      await this.write(Commands.FONT_SMALL);
+      await this.printText(`Recibo:   ${receiptData.receiptNumber}`);
+      await this.printText(`Credito:  ${receiptData.creditNumber}`);
+      await this.printText(`Fecha:    ${receiptData.date}`);
+      await this.write(Commands.FONT_NORMAL);
+      await this.printText('--------------------------------');
 
       // Información del cliente
       await this.write(Commands.FONT_SMALL);
-      await this.printText('Cliente:');
+      await this.printText('CLIENTE:');
       await this.write(Commands.FONT_NORMAL);
       await this.write(Commands.BOLD_ON);
-      await this.printText(receiptData.clientName);
+      await this.printText(sanitize(receiptData.clientName));
       await this.write(Commands.BOLD_OFF);
       await this.write(Commands.FONT_SMALL);
-      await this.printText(receiptData.clientCode);
+      await this.printText(`CODIGO: ${sanitize(receiptData.clientCode)}`);
       await this.write(Commands.FONT_NORMAL);
-      await this.printSeparator();
+      await this.printText('--------------------------------');
 
-      // Detalles del pago
-      await this.printText(`Cuota del dia:      ${receiptData.cuotaDelDia}`);
-      await this.printText(`Monto atrasado:     ${receiptData.montoAtrasado}`);
-      await this.printText(`Dias mora:          ${receiptData.diasMora}`);
+      // Detalles del estado del crédito
+      await this.printText(formatRow('Cuota del dia:', receiptData.cuotaDelDia));
+      await this.printText(formatRow('Monto atrasado:', receiptData.montoAtrasado));
+      await this.printText(formatRow('Dias mora:', receiptData.diasMora));
+
       await this.write(Commands.BOLD_ON);
-      await this.printText(`Total a pagar:      ${receiptData.totalAPagar}`);
+      await this.printText(formatRow('TOTAL A PAGAR:', receiptData.totalAPagar));
       await this.write(Commands.BOLD_OFF);
-      await this.printSeparator();
+      await this.printText('--------------------------------');
 
       // Monto de cancelación
-      await this.printText(`Monto de cancelacion:`);
-      await this.printText(`                    ${receiptData.montoCancelacion}`);
-      
-      // Total cobrado (destacado con líneas)
-      await this.printText('--------------------------------');
+      await this.write(Commands.FONT_SMALL);
+      await this.printText(formatRow('MONTO CANCELACION:', receiptData.montoCancelacion));
+      await this.write(Commands.FONT_NORMAL);
+      await this.printText('');
+
+      // TOTAL COBRADO (DESTACADO)
+      await this.write(Commands.ALIGN_CENTER);
+      await this.printText('================================');
       await this.write(Commands.BOLD_ON);
-      await this.printText(`TOTAL COBRADO:      ${receiptData.totalCobrado}`);
+      await this.printText('TOTAL COBRADO');
+      await this.write(Commands.DOUBLE_HEIGHT_ON);
+      await this.printText(receiptData.totalCobrado);
+      await this.write(Commands.DOUBLE_HEIGHT_OFF);
       await this.write(Commands.BOLD_OFF);
-      await this.printText('--------------------------------');
+      await this.printText('================================');
+      await this.printText('');
 
       // Concepto
-      await this.write(Commands.ALIGN_CENTER);
       await this.write(Commands.FONT_SMALL);
-      await this.printText('Concepto: ABONO DE CREDITO');
+      await this.printText('CONCEPTO: ABONO DE CREDITO');
       await this.write(Commands.FONT_NORMAL);
       await this.write(Commands.ALIGN_LEFT);
       await this.printText('');
 
-      // Saldos
-      await this.printText(`Saldo anterior:     ${receiptData.saldoAnterior}`);
+      // Saldos (Bloque finalizado)
+      await this.printText(formatRow('Saldo anterior:', receiptData.saldoAnterior));
       await this.write(Commands.BOLD_ON);
-      await this.printText(`Nuevo saldo:        ${receiptData.nuevoSaldo}`);
+      await this.printText(formatRow('NUEVO SALDO:', receiptData.nuevoSaldo));
       await this.write(Commands.BOLD_OFF);
-      await this.printSeparator();
+      await this.printText('--------------------------------');
 
-      // Mensaje de agradecimiento
+      // Mensaje de cierre
       await this.write(Commands.ALIGN_CENTER);
       await this.write(Commands.FONT_SMALL);
-      await this.printText('Gracias por su pago.');
+      await this.printText('¡Gracias por su pago!');
+      await this.write(Commands.BOLD_ON);
       await this.printText('CONSERVE ESTE RECIBO');
-      await this.write(Commands.FONT_NORMAL);
-      await this.printText('');
+      await this.write(Commands.BOLD_OFF);
+      await this.write(Commands.LINE_FEED);
 
-      // Firma - Sucursal
-      await this.write(Commands.BOLD_ON);
+      // Firma / Sucursal
       await this.printText('_______________________________');
-      await this.printText(receiptData.branch);
-      await this.write(Commands.BOLD_OFF);
-      await this.printText('');
-      
-      // Cobrador y rol
-      await this.write(Commands.FONT_SMALL);
       await this.write(Commands.BOLD_ON);
-      await this.printText(receiptData.collector);
+      await this.printText(sanitize(receiptData.branch));
       await this.write(Commands.BOLD_OFF);
-      await this.printText(receiptData.role);
+      await this.write(Commands.LINE_FEED);
+
+      // Cobrador
+      await this.write(Commands.BOLD_ON);
+      await this.printText(sanitize(receiptData.collector));
+      await this.write(Commands.BOLD_OFF);
+      await this.write(Commands.FONT_SMALL);
+      await this.printText(sanitize(receiptData.role));
       await this.write(Commands.FONT_NORMAL);
 
-      // Espacios y corte
-      await this.printText('');
-      await this.printText('');
-      await this.printText('');
+      // Espacios finales para que el usuario pueda arrancar el papel
+      await this.write(Commands.LINE_FEED);
+      await this.write(Commands.LINE_FEED);
+      await this.write(Commands.LINE_FEED);
+      await this.write(Commands.LINE_FEED);
       await this.write(Commands.CUT_PAPER);
 
-      console.log('✅ Recibo impreso exitosamente');
+      console.log('✅ Recibo impreso con nuevo formato');
     } catch (error) {
       console.error('❌ Error al imprimir recibo:', error);
       throw error;
