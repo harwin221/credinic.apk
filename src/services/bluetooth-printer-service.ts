@@ -22,6 +22,12 @@ const Commands = {
   CUT_PAPER: GS + 'V' + '\x41' + '\x03',
   DOUBLE_HEIGHT_ON: ESC + '!' + '\x10',
   DOUBLE_HEIGHT_OFF: ESC + '!' + '\x00',
+  DOUBLE_WIDTH_ON: ESC + '!' + '\x20',
+  DOUBLE_WIDTH_OFF: ESC + '!' + '\x00',
+  DOUBLE_SIZE_ON: ESC + '!' + '\x30',
+  DOUBLE_SIZE_OFF: ESC + '!' + '\x00',
+  REVERSE_ON: GS + 'B' + '\x01',
+  REVERSE_OFF: GS + 'B' + '\x00',
 };
 
 class BluetoothPrinterService {
@@ -134,7 +140,7 @@ class BluetoothPrinterService {
   }
 
   /**
-   * Imprime un recibo de pago con formato mejorado para 58mm
+   * Imprime un recibo de pago con formato PREMIUM para 58mm
    */
   async printReceipt(receiptData: {
     companyName: string;
@@ -162,7 +168,7 @@ class BluetoothPrinterService {
     }
 
     try {
-      const lineLen = 32; // Ancho estándar para 58mm (fuente A)
+      const lineLen = 32; // Ancho para 58mm
 
       const formatRow = (label: string, value: string) => {
         const spaces = lineLen - label.length - value.length;
@@ -176,21 +182,17 @@ class BluetoothPrinterService {
       // Inicializar impresora
       await this.write(Commands.INIT);
 
-      // Encabezado - Nombre de la empresa (centrado, negrita, doble altura)
+      // Encabezado - CREDINIC (Grande y Centrado)
       await this.write(Commands.ALIGN_CENTER);
-      await this.write(Commands.BOLD_ON);
-      await this.write(Commands.DOUBLE_HEIGHT_ON);
+      await this.write(Commands.DOUBLE_SIZE_ON);
       await this.printText('CREDINIC');
-      await this.write(Commands.DOUBLE_HEIGHT_OFF);
-      await this.write(Commands.BOLD_OFF);
+      await this.write(Commands.DOUBLE_SIZE_OFF);
 
       // Subtítulo
       await this.write(Commands.FONT_SMALL);
       await this.printText('COPIA: CLIENTE');
       await this.write(Commands.FONT_NORMAL);
-
-      await this.write(Commands.ALIGN_CENTER);
-      await this.printText('--------------------------------');
+      await this.printText('');
 
       // Indicadores especiales
       if (receiptData.isReprint) {
@@ -204,12 +206,12 @@ class BluetoothPrinterService {
         await this.write(Commands.BOLD_OFF);
       }
 
-      // Información del recibo (Alineado a la izquierda)
+      // Información del recibo
       await this.write(Commands.ALIGN_LEFT);
       await this.write(Commands.FONT_SMALL);
-      await this.printText(`Recibo:   ${receiptData.receiptNumber}`);
-      await this.printText(`Credito:  ${receiptData.creditNumber}`);
-      await this.printText(`Fecha:    ${receiptData.date}`);
+      await this.printText(formatRow('Recibo:', receiptData.receiptNumber));
+      await this.printText(formatRow('Credito:', receiptData.creditNumber));
+      await this.printText(formatRow('Fecha:', receiptData.date));
       await this.write(Commands.FONT_NORMAL);
       await this.printText('--------------------------------');
 
@@ -225,11 +227,12 @@ class BluetoothPrinterService {
       await this.write(Commands.FONT_NORMAL);
       await this.printText('--------------------------------');
 
-      // Detalles del estado del crédito
+      // Detalles financieros
       await this.printText(formatRow('Cuota del dia:', receiptData.cuotaDelDia));
       await this.printText(formatRow('Monto atrasado:', receiptData.montoAtrasado));
       await this.printText(formatRow('Dias mora:', receiptData.diasMora));
 
+      await this.printText('');
       await this.write(Commands.BOLD_ON);
       await this.printText(formatRow('TOTAL A PAGAR:', receiptData.totalAPagar));
       await this.write(Commands.BOLD_OFF);
@@ -241,49 +244,50 @@ class BluetoothPrinterService {
       await this.write(Commands.FONT_NORMAL);
       await this.printText('');
 
-      // TOTAL COBRADO (DESTACADO)
+      // BOX: TOTAL COBRADO (REVERSE PRINTING logic)
       await this.write(Commands.ALIGN_CENTER);
-      await this.printText('================================');
+      await this.printText('--------------------------------');
+      await this.write(Commands.REVERSE_ON);
       await this.write(Commands.BOLD_ON);
-      await this.printText('TOTAL COBRADO');
-      await this.write(Commands.DOUBLE_HEIGHT_ON);
-      await this.printText(receiptData.totalCobrado);
-      await this.write(Commands.DOUBLE_HEIGHT_OFF);
+      await this.printText('       TOTAL COBRADO        ');
+      await this.write(Commands.DOUBLE_SIZE_ON);
+      await this.printText(` ${receiptData.totalCobrado} `);
+      await this.write(Commands.DOUBLE_SIZE_OFF);
       await this.write(Commands.BOLD_OFF);
-      await this.printText('================================');
+      await this.write(Commands.REVERSE_OFF);
+      await this.printText('--------------------------------');
       await this.printText('');
 
       // Concepto
       await this.write(Commands.FONT_SMALL);
       await this.printText('CONCEPTO: ABONO DE CREDITO');
       await this.write(Commands.FONT_NORMAL);
-      await this.write(Commands.ALIGN_LEFT);
       await this.printText('');
 
-      // Saldos (Bloque finalizado)
+      // Saldos bloque final
+      await this.write(Commands.ALIGN_LEFT);
       await this.printText(formatRow('Saldo anterior:', receiptData.saldoAnterior));
       await this.write(Commands.BOLD_ON);
       await this.printText(formatRow('NUEVO SALDO:', receiptData.nuevoSaldo));
       await this.write(Commands.BOLD_OFF);
       await this.printText('--------------------------------');
 
-      // Mensaje de cierre
+      // Pie de página
       await this.write(Commands.ALIGN_CENTER);
       await this.write(Commands.FONT_SMALL);
       await this.printText('¡Gracias por su pago!');
       await this.write(Commands.BOLD_ON);
       await this.printText('CONSERVE ESTE RECIBO');
       await this.write(Commands.BOLD_OFF);
-      await this.write(Commands.LINE_FEED);
+      await this.printText('');
 
-      // Firma / Sucursal
+      // Firmas
       await this.printText('_______________________________');
       await this.write(Commands.BOLD_ON);
       await this.printText(sanitize(receiptData.branch));
       await this.write(Commands.BOLD_OFF);
-      await this.write(Commands.LINE_FEED);
+      await this.printText('');
 
-      // Cobrador
       await this.write(Commands.BOLD_ON);
       await this.printText(sanitize(receiptData.collector));
       await this.write(Commands.BOLD_OFF);
@@ -291,14 +295,13 @@ class BluetoothPrinterService {
       await this.printText(sanitize(receiptData.role));
       await this.write(Commands.FONT_NORMAL);
 
-      // Espacios finales para que el usuario pueda arrancar el papel
+      // Espacios para corte
       await this.write(Commands.LINE_FEED);
       await this.write(Commands.LINE_FEED);
       await this.write(Commands.LINE_FEED);
       await this.write(Commands.LINE_FEED);
       await this.write(Commands.CUT_PAPER);
 
-      console.log('✅ Recibo impreso con nuevo formato');
     } catch (error) {
       console.error('❌ Error al imprimir recibo:', error);
       throw error;

@@ -70,7 +70,7 @@ export function generateReceiptHtmlTemplate({
   return `
     <div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #000; width: 80mm; padding: 10px; box-sizing: border-box; background: white;">
       <div style="text-align: center; margin-bottom: 10px;">
-        <div style="font-size: 20px; font-weight: bold; letter-spacing: 1px;">CREDINICA</div>
+        <div style="font-size: 20px; font-weight: bold; letter-spacing: 1px;">CREDINIC</div>
         <div style="font-size: 10px; color: #555;">COPIA: CLIENTE</div>
       </div>
       

@@ -33,7 +33,7 @@
   "background_color": "#1f2937",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait",
   "scope": "/",
   "categories": [
     "finance",

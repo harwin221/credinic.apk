@@ -81,13 +81,13 @@ const CreditCategoryTable = ({
 
   return (
     <div
-      className="relative w-full overflow-x-auto pb-4 rounded-md border min-h-[350px]"
+      className="relative w-full overflow-x-auto pb-48 rounded-md border min-h-[500px]"
       style={{
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-x pan-y'
       }}
     >
-      <Table className="min-w-[750px] w-full">
+      <Table className="min-w-[750px] w-full mb-20">
         <TableHeader>
           <TableRow>
             <TableHead className="min-w-[200px]">Cliente</TableHead>
@@ -122,7 +122,7 @@ const CreditCategoryTable = ({
                         <span className="sr-only">Menú</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 z-50 pointer-events-auto" sideOffset={5} avoidCollisions={false}>
+                    <DropdownMenuContent align="end" className="w-48 z-50" sideOffset={5}>
                       <DropdownMenuItem className="cursor-pointer py-2.5 h-10" onClick={(e) => { e.stopPropagation(); onSelectCredit(credit); }}>
                         <Wallet className="mr-2 h-4 w-4" /> Aplicar Abono
                       </DropdownMenuItem>
