@@ -8,7 +8,7 @@ import { createLog } from './audit-log-service';
 import { revalidatePath } from 'next/cache';
 import { getCreditsAdmin, getCredit } from './credit-service-server';
 import { getPaidCreditsForGestor } from './portfolio-service';
-import { nowInNicaragua, isoToMySQLDateTime, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
+import { nowInNicaragua, isoToMySQLDateTime, isoToMySQLDateTimeNoon, toISOString } from '@/lib/date-utils';
 
 export async function createClient(
     clientData: Omit<Client, 'id' | 'clientNumber' | 'createdAt'>,
@@ -276,64 +276,93 @@ export const getClients = async (options: { searchTerm?: string; user?: User, fo
     }) as Client[];
 
     if (user?.role === 'GESTOR' && !forSearch) {
+        // 1. Obtener créditos básicos activos del gestor
         const { credits: basicActiveCredits } = await getCreditsAdmin({ gestorName: user.fullName, status: 'Active', user });
+        const activeCreditIds = basicActiveCredits.map(c => c.id);
+
+        // 2. Obtener créditos pagados recientes (para Renovación)
         const paidCredits = await getPaidCreditsForGestor(user.fullName, 30);
+        const paidCreditIds = paidCredits.map(c => c.id);
 
-        const activeClientIds = new Set(basicActiveCredits.map(c => c.clientId));
-
-        // Obtener créditos completos con pagos para calcular correctamente el porcentaje pagado
-        const activeCreditsWithPayments = await Promise.all(
-            basicActiveCredits.map(async (credit) => {
-                const fullCredit = await getCredit(credit.id);
-                return fullCredit;
-            })
-        );
-
-        // Filtrar créditos nulos y luego aplicar la lógica de elegibilidad
-        const validCredits = activeCreditsWithPayments.filter((c): c is CreditDetail => c !== null);
-
-        const eligibleCredits = validCredits.filter((c) => {
-            if (!c) return false;
-            const { remainingBalance } = calculateCreditStatusDetails(c);
-            const totalPaid = c.totalAmount - remainingBalance;
-            const paidPercentage = c.totalAmount > 0 ? (totalPaid / c.totalAmount) * 100 : 0;
-
-            // Verificar que tenga al menos 75% pagado
-            if (paidPercentage < 75) return false;
-
-            // Verificar que el promedio de atraso sea <= 2.5 días
-            const { avgLateDaysForCredit } = calculateAveragePaymentDelay(c);
-            return avgLateDaysForCredit <= 2.5;
-        });
+        // Unificar IDs de créditos que nos interesan procesar
+        const interestCreditIds = [...new Set([...activeCreditIds, ...paidCreditIds])];
 
         let reloanClients: Client[] = [];
-        if (eligibleCredits.length > 0) {
-            const eligibleClientIds = [...new Set(eligibleCredits.map(c => c.clientId))];
-            reloanClients = clients.filter(c => eligibleClientIds.includes(c.id));
-        }
-
-        const paidClientIds = paidCredits.map((c: any) => c.clientId);
         let renewalClients: Client[] = [];
-        if (paidClientIds.length > 0) {
-            // Obtener los créditos completos pagados para calcular el promedio de atraso
-            const paidCreditsWithDetails = await Promise.all(
-                paidCredits.map(async (credit: any) => {
-                    const fullCredit = await getCredit(credit.id);
-                    return fullCredit;
-                })
+
+        if (interestCreditIds.length > 0) {
+            const placeholders = interestCreditIds.map(() => '?').join(',');
+
+            // CARGA MASIVA: Traer todos los planes de pago de una sola vez
+            const allPaymentPlansRows: any[] = await query(
+                `SELECT * FROM payment_plan WHERE creditId IN (${placeholders}) ORDER BY creditId, paymentNumber`,
+                interestCreditIds
             );
 
-            // Filtrar por promedio de atraso <= 2.5 días
-            const eligiblePaidCredits = paidCreditsWithDetails.filter((c): c is CreditDetail => {
-                if (!c) return false;
-                const { avgLateDaysForCredit } = calculateAveragePaymentDelay(c);
-                return avgLateDaysForCredit <= 2.5;
+            // CARGA MASIVA: Traer todos los pagos registrados de una sola vez
+            const allPaymentsRows: any[] = await query(
+                `SELECT * FROM payments_registered WHERE creditId IN (${placeholders}) ORDER BY creditId, paymentDate DESC`,
+                interestCreditIds
+            );
+
+            // Organizar datos por CreditId para acceso rápido (O(1))
+            const plansMap: Record<string, any[]> = {};
+            allPaymentPlansRows.forEach(p => {
+                const cid = p.creditId;
+                if (!plansMap[cid]) plansMap[cid] = [];
+                plansMap[cid].push({ ...p, paymentDate: toISOString(p.paymentDate) });
             });
 
-            const eligiblePaidClientIds = [...new Set(eligiblePaidCredits.map(c => c.clientId))];
+            const paymentsMap: Record<string, any[]> = {};
+            allPaymentsRows.forEach(p => {
+                const cid = p.creditId;
+                if (!paymentsMap[cid]) paymentsMap[cid] = [];
+                paymentsMap[cid].push({ ...p, paymentDate: toISOString(p.paymentDate) });
+            });
 
-            renewalClients = clients
-                .filter(client => eligiblePaidClientIds.includes(client.id) && !activeClientIds.has(client.id));
+            // Función auxiliar para "armar" un crédito completo en memoria
+            const assembleCredit = (basic: any) => {
+                return {
+                    ...basic,
+                    paymentPlan: plansMap[basic.id] || [],
+                    registeredPayments: paymentsMap[basic.id] || []
+                } as CreditDetail;
+            };
+
+            // Lógica de Représtamo (sobre créditos Activos)
+            const eligibleReloanClientIds = new Set<string>();
+            activeCreditIds.forEach(id => {
+                const basic = basicActiveCredits.find(c => c.id === id);
+                if (!basic) return;
+                const credit = assembleCredit(basic);
+
+                const { remainingBalance } = calculateCreditStatusDetails(credit);
+                const totalPaid = credit.totalAmount - remainingBalance;
+                const paidPercentage = credit.totalAmount > 0 ? (totalPaid / credit.totalAmount) * 100 : 0;
+
+                if (paidPercentage >= 75) {
+                    const { avgLateDaysForCredit } = calculateAveragePaymentDelay(credit);
+                    if (avgLateDaysForCredit <= 2.5) {
+                        eligibleReloanClientIds.add(credit.clientId);
+                    }
+                }
+            });
+            reloanClients = clients.filter(c => eligibleReloanClientIds.has(c.id));
+
+            // Lógica de Renovación (sobre créditos Pagados)
+            const activeClientIdsSet = new Set(basicActiveCredits.map(c => c.clientId));
+            const eligibleRenewalClientIds = new Set<string>();
+            paidCreditIds.forEach(id => {
+                const basic = paidCredits.find(c => c.id === id);
+                if (!basic) return;
+                const credit = assembleCredit(basic);
+
+                const { avgLateDaysForCredit } = calculateAveragePaymentDelay(credit);
+                if (avgLateDaysForCredit <= 2.5 && !activeClientIdsSet.has(credit.clientId)) {
+                    eligibleRenewalClientIds.add(credit.clientId);
+                }
+            });
+            renewalClients = clients.filter(c => eligibleRenewalClientIds.has(c.id));
         }
 
         const gestorClientIds = new Set(clients.map(c => c.id));
