@@ -244,17 +244,15 @@ class BluetoothPrinterService {
       await this.write(Commands.FONT_NORMAL);
       await this.printText('');
 
-      // BOX: TOTAL COBRADO (REVERSE PRINTING logic)
+      // BOX: TOTAL COBRADO (Normal printing with bold)
       await this.write(Commands.ALIGN_CENTER);
       await this.printText('--------------------------------');
-      await this.write(Commands.REVERSE_ON);
       await this.write(Commands.BOLD_ON);
-      await this.printText('       TOTAL COBRADO        ');
+      await this.printText('TOTAL COBRADO');
       await this.write(Commands.DOUBLE_SIZE_ON);
-      await this.printText(` ${receiptData.totalCobrado} `);
+      await this.printText(receiptData.totalCobrado);
       await this.write(Commands.DOUBLE_SIZE_OFF);
       await this.write(Commands.BOLD_OFF);
-      await this.write(Commands.REVERSE_OFF);
       await this.printText('--------------------------------');
       await this.printText('');
 
