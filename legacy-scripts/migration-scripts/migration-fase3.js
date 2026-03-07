@@ -36,12 +36,12 @@ const PAYMENT_STATUS_MAP = { 1: 'valido', 2: 'anulado' };
 
 async function prepareSchema(newDbConnection) {
     console.log(`--- PREPARANDO ESQUEMA PARA PAGOS ---`);
-    
+
     // Limpiar pagos existentes
     console.log(`  🗑️  Limpiando pagos existentes...`);
     await newDbConnection.execute('DELETE FROM payments_registered');
     console.log(`  ✅ Pagos eliminados.`);
-    
+
     const checkSql = `SELECT COUNT(*) AS count FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?`;
     const [rows] = await newDbConnection.execute(checkSql, [newDbConfig.database, 'payments_registered', 'legacyId']);
 
@@ -91,33 +91,33 @@ async function migratePaymentsBatch(oldDbConnection, newDbConnection, creditMap,
         let paymentDateTime;
         try {
             let sourceDate;
-            
+
             // Prioridad 1: fecha_pagado_real de prestamo_coutas (tiene hora exacta)
             if (payment.fecha_pagado_real) {
-                sourceDate = payment.fecha_pagado_real instanceof Date 
-                    ? payment.fecha_pagado_real 
+                sourceDate = payment.fecha_pagado_real instanceof Date
+                    ? payment.fecha_pagado_real
                     : parseISO(String(payment.fecha_pagado_real));
             }
             // Prioridad 2: updated_at (hora de última actualización/aplicación del pago)
             else if (payment.updated_at) {
-                sourceDate = payment.updated_at instanceof Date 
-                    ? payment.updated_at 
+                sourceDate = payment.updated_at instanceof Date
+                    ? payment.updated_at
                     : parseISO(String(payment.updated_at));
             }
             // Prioridad 3: created_at (hora de creación del pago)
             else if (payment.created_at) {
-                sourceDate = payment.created_at instanceof Date 
-                    ? payment.created_at 
+                sourceDate = payment.created_at instanceof Date
+                    ? payment.created_at
                     : parseISO(String(payment.created_at));
             }
             else {
                 throw new Error(`Pago ${payment.id} no tiene fecha_pagado_real, updated_at ni created_at`);
             }
-            
+
             // La fecha viene de MySQL que está en Nicaragua, convertir a UTC para guardar
             // toDate interpreta la fecha como si estuviera en la zona horaria especificada
             const utcDate = toDate(sourceDate, { timeZone: 'America/Managua' });
-            paymentDateTime = format(utcDate, 'yyyy-MM-dd HH:mm:ss');
+            paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
         } catch (error) {
             console.log(`  ❌ ERROR CRÍTICO pago ${payment.id}: ${error.message}`);
             skippedCount++;
@@ -142,7 +142,7 @@ async function migratePaymentsBatch(oldDbConnection, newDbConnection, creditMap,
             const placeholders = valuesToInsert.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
             const sql = `INSERT INTO payments_registered (id, legacyId, creditId, paymentDate, amount, managedBy, transactionNumber, status) VALUES ${placeholders}`;
             const flatValues = valuesToInsert.flat();
-            
+
             await newDbConnection.execute(sql, flatValues);
             processedCount = valuesToInsert.length;
         } catch (error) {

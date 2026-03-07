@@ -219,8 +219,11 @@ await query(
 
 ### Código de Migración Fase 3:
 ```javascript
-// CORRECTO: Mantiene la hora exacta del pago
-const paymentDateTime = payment.fecha_abono; // Mantener fecha y hora original
+// ✅ CORRECTO: Nicaragua LOCAL → UTC (Suma 6 horas)
+// La fecha viene de la base vieja en hora local de Nicaragua.
+// Se debe convertir a UTC para que el sistema nuevo la lea bien.
+const utcDate = toDate(sourceDate, { timeZone: 'America/Managua' });
+const paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
 ```
 
 ---
