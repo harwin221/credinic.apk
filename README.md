@@ -1,11 +1,11 @@
-# 📋 SISTEMA DE GESTIÓN FINANCIERA CREDINICA
+# 📋 SISTEMA DE GESTIÓN FINANCIERA CREDINIC
 ## Manual Completo de Migración Actualizado (Marzo 2026)
 
 ---
 
 ## 🎯 **DESCRIPCIÓN DEL SISTEMA**
 
-**CrediNica** es un sistema integral de gestión de microfinanzas desarrollado como Progressive Web App (PWA) con capacidades offline para gestores de campo. El sistema está diseñado específicamente para operar bajo las regulaciones y prácticas del mercado financiero nicaragüense.
+**CrediNIC** es un sistema integral de gestión de microfinanzas desarrollado como Progressive Web App (PWA) con capacidades offline para gestores de campo. El sistema está diseñado específicamente para operar bajo las regulaciones y prácticas del mercado financiero nicaragüense.
 
 ### **Características Principales:**
 - ✅ **Gestión completa de clientes y créditos**
@@ -58,7 +58,7 @@ Para garantizar la integridad total de los datos (especialmente las fechas de pa
 
 ## 📞 **SOPORTE Y DESARROLLO**
 
-**© 2026 CrediNica - Todos los derechos reservados**
+**© 2026 CrediNIC - Todos los derechos reservados**
 **León, Nicaragua 🇳🇮**
 
 **Última actualización:** 6 de Marzo, 2026
