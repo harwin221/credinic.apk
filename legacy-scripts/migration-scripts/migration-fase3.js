@@ -87,37 +87,19 @@ async function migratePaymentsBatch(oldDbConnection, newDbConnection, creditMap,
         const managedBy = userNameMap[newUserId] || "Administrador Sistema";
         const transactionNumber = `REC-${String(payment.id).padStart(6, '0')}`;
 
-        // ✅ CONVERSIÓN CORRECTA: Nicaragua → UTC usando date-fns-tz
+        // ✅ LÓGICA SIMPLIFICADA: Usar created_at directamente (Ya viene en UTC según el usuario)
         let paymentDateTime;
         try {
-            let sourceDate;
+            const sourceDate = payment.created_at instanceof Date
+                ? payment.created_at
+                : new Date(payment.created_at);
 
-            // Prioridad 1: fecha_pagado_real de prestamo_coutas (tiene hora exacta)
-            if (payment.fecha_pagado_real) {
-                sourceDate = payment.fecha_pagado_real instanceof Date
-                    ? payment.fecha_pagado_real
-                    : parseISO(String(payment.fecha_pagado_real));
-            }
-            // Prioridad 2: updated_at (hora de última actualización/aplicación del pago)
-            else if (payment.updated_at) {
-                sourceDate = payment.updated_at instanceof Date
-                    ? payment.updated_at
-                    : parseISO(String(payment.updated_at));
-            }
-            // Prioridad 3: created_at (hora de creación del pago)
-            else if (payment.created_at) {
-                sourceDate = payment.created_at instanceof Date
-                    ? payment.created_at
-                    : parseISO(String(payment.created_at));
-            }
-            else {
-                throw new Error(`Pago ${payment.id} no tiene fecha_pagado_real, updated_at ni created_at`);
+            if (isNaN(sourceDate.getTime())) {
+                throw new Error(`Fecha inválida en pago ${payment.id}`);
             }
 
-            // La fecha viene de MySQL que está en Nicaragua, convertir a UTC para guardar
-            // toDate interpreta la fecha como si estuviera en la zona horaria especificada
-            const utcDate = toDate(sourceDate, { timeZone: 'America/Managua' });
-            paymentDateTime = formatInTimeZone(utcDate, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+            // No convertir zona horaria, simplemente formatear el objeto Date que ya es UTC
+            paymentDateTime = format(sourceDate, 'yyyy-MM-dd HH:mm:ss');
         } catch (error) {
             console.log(`  ❌ ERROR CRÍTICO pago ${payment.id}: ${error.message}`);
             skippedCount++;
@@ -178,21 +160,9 @@ async function migratePayments(oldDbConnection, newDbConnection, creditMap, user
 
     const userNameMap = await getUserNamesMap(newDbConnection);
 
-    // Obtener pagos con fecha_pagado de prestamo_coutas que tiene la hora exacta
+    // Obtener pagos directamente de la tabla abonos (La fuente de la verdad para montos y fechas)
     const [payments] = await oldDbConnection.execute(`
-        SELECT 
-            a.*,
-            (
-                SELECT pc.fecha_pagado 
-                FROM prestamo_coutas pc 
-                WHERE pc.prestamo_id = a.prestamo_id 
-                AND DATE(pc.fecha_cuota) = DATE(a.fecha_abono)
-                AND pc.fecha_pagado IS NOT NULL
-                ORDER BY pc.numero_cuota ASC
-                LIMIT 1
-            ) as fecha_pagado_real
-        FROM abonos a
-        ORDER BY a.id
+        SELECT * FROM abonos ORDER BY id ASC
     `);
     console.log(`  📊 Total de pagos a procesar: ${payments.length}`);
 
