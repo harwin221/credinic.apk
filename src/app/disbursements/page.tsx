@@ -198,14 +198,14 @@ export default function DisbursementsPage() {
       // Si es un représtamo (hay saldo pendiente), liquidar el crédito anterior.
       if (selectedCredit.outstandingBalance && selectedCredit.outstandingBalance > 0 && (selectedCredit as any).activeCreditId) {
         const oldCreditId = (selectedCredit as any).activeCreditId;
-        
+
         // 1. Registrar el pago de cancelación en el crédito antiguo.
         const payoffPaymentData = {
-            paymentDate: nowInNicaragua(),
-            amount: selectedCredit.outstandingBalance,
-            managedBy: user.fullName, // El usuario que hace el desembolso
-            transactionNumber: `REFIN-${selectedCredit.creditNumber}`,
-            status: 'VALIDO' as const
+          paymentDate: nowInNicaragua(),
+          amount: selectedCredit.outstandingBalance,
+          managedBy: user.fullName, // El usuario que hace el desembolso
+          transactionNumber: `REFIN-${selectedCredit.creditNumber}`,
+          status: 'VALIDO' as const
         };
         await addPayment(oldCreditId, payoffPaymentData, user);
         // La función addPayment se encarga de cambiar el estado a 'Paid' si el saldo es 0.
@@ -277,7 +277,7 @@ export default function DisbursementsPage() {
           credits.map((credit) => (
             <TableRow key={credit.id}>
               <TableCell className="font-medium">{credit.clientName}</TableCell>
-              <TableCell>{formatCurrency(type === 'pending' ? (credit.netDisbursementAmount ?? credit.amount) : credit.disbursedAmount)}</TableCell>
+              <TableCell>{formatCurrency(type === 'pending' ? (credit.netDisbursementAmount ?? credit.amount) : (credit.disbursedAmount || credit.amount))}</TableCell>
               <TableCell>{credit.collectionsManager}</TableCell>
               <TableCell>{credit.approvalDate ? formatDateForUser(credit.approvalDate) : 'N/A'}</TableCell>
               {type === 'pending' &&
@@ -305,19 +305,19 @@ export default function DisbursementsPage() {
       <div className="space-y-6">
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid w-full grid-cols-3 h-11 bg-muted/50 p-1">
-            <TabsTrigger 
-              value="pending" 
+            <TabsTrigger
+              value="pending"
               className="data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
             >
               Por Desembolsar ({creditLists.pending.length})
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="disbursed"
               className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
             >
               Desembolsados Hoy ({creditLists.disbursedToday.length})
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="denied"
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
             >

@@ -231,11 +231,12 @@ async function migrateCreditsBatch(newDbConnection, credits, userClientMap, gest
         };
         const dueDate = calcDueDate();
 
-        const sql = `INSERT INTO credits (id, legacyId, creditNumber, clientId, clientName, status, applicationDate, approvalDate, amount, principalAmount, interestRate, termMonths, paymentFrequency, currencyType, totalAmount, totalInterest, totalInstallmentAmount, firstPaymentDate, deliveryDate, dueDate, collectionsManager, branch, branchName, createdAt, updatedAt) VALUES (?, ?, ?, ?, (SELECT name FROM clients WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const sql = `INSERT INTO credits (id, legacyId, creditNumber, clientId, clientName, status, applicationDate, approvalDate, amount, principalAmount, disbursedAmount, interestRate, termMonths, paymentFrequency, currencyType, totalAmount, totalInterest, totalInstallmentAmount, firstPaymentDate, deliveryDate, dueDate, collectionsManager, branch, branchName, createdAt, updatedAt) VALUES (?, ?, ?, ?, (SELECT name FROM clients WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         const values = [
             newId, credit.id, creditNumber, newClientId, newClientId,
             CREDIT_STATUS_MAP[credit.estado] || 'Active', deliveryDate,
             convertToNoonDate(credit.fecha_desembolso), credit.monto_prestamo || 0, credit.monto_prestamo || 0,
+            credit.monto_prestamo || 0, // disbursedAmount
             interestRate, termMonths, PAYMENT_FREQ_MAP[credit.forma_pago_tipo] || 'Diario',
             CURRENCY_MAP[credit.moneda_prestamo] || 'Cordobas', credit.monto_financiado || 0,
             credit.interes_total_pagar || 0, credit.monto_cuota || 0, convertToNoonDate(credit.fecha_primer_pago),
@@ -262,7 +263,7 @@ async function migrateCreditsBatch(newDbConnection, credits, userClientMap, gest
                     `${newId}_${p.paymentNumber}`, newId, p.paymentNumber,
                     `${p.paymentDate} 12:00:00`, p.amount, p.principal, p.interest, p.balance
                 ]);
-                
+
                 const placeholders = paymentValues.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
                 const pSql = `INSERT INTO payment_plan (id, creditId, paymentNumber, paymentDate, amount, principal, interest, balance) VALUES ${placeholders}`;
                 await newDbConnection.execute(pSql, paymentValues.flat());

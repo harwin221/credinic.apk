@@ -20,7 +20,7 @@ const formatDate = (dateString?: string) => {
   if (!dateString) return 'N/A';
   try {
     const dateToFormat = /^\d{4}-\d{2}-\d{2}$/.test(dateString) ? dateString + 'T12:00:00Z' : dateString;
-    return formatInTimeZone(dateToFormat, 'America/Managua', 'dd/MM/yyyy HH:mm', { locale: es });
+    return formatInTimeZone(dateToFormat, 'America/Managua', 'dd/MM/yyyy hh:mm a', { locale: es });
   } catch (e) {
     return 'Fecha Inválida';
   }

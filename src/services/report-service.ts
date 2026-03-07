@@ -1050,8 +1050,8 @@ export async function generatePaymentsDetailReport(filters: ReportFilters): Prom
         `;
         const params: any[] = [];
 
-        if (dateFrom) { sql += ` AND DATE(pr.paymentDate) >= ?`; params.push(dateFrom); }
-        if (dateTo) { sql += ` AND DATE(pr.paymentDate) <= ?`; params.push(dateTo); }
+        if (dateFrom) { sql += ` AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) >= ?`; params.push(dateFrom); }
+        if (dateTo) { sql += ` AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) <= ?`; params.push(dateTo); }
 
         // Filtrar por usuarios directamente en la consulta SQL
         if (userNamesToFilter.length > 0) {
