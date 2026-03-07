@@ -25,7 +25,7 @@ const formatCurrency = (amount: number) => `C$${amount.toLocaleString('es-NI', {
 
 const disbursementFormSchema = z.object({
   amount: z.coerce.number().positive({ message: 'El monto debe ser positivo.' }),
-  firstPaymentDate: z.string().refine((date) => !!userInputToISO(date), { message: "Formato de fecha inválido."}),
+  firstPaymentDate: z.string().refine((date) => !!userInputToISO(date), { message: "Formato de fecha inválido." }),
 });
 
 export type DisbursementFormValues = z.infer<typeof disbursementFormSchema>;
@@ -65,86 +65,84 @@ export function DisbursementForm({ isOpen, onClose, onSubmit, credit }: Disburse
     await onSubmit(data);
     setIsSubmitting(false);
   };
-  
+
   if (!isOpen || !credit) return null;
-  
+
   const originalDate = credit.firstPaymentDate ? format(new Date(credit.firstPaymentDate), 'dd MMMM, yyyy', { locale: es }) : 'No especificada';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto p-4">
         <DialogHeader>
-          <DialogTitle>Confirmar y Editar Desembolso</DialogTitle>
-          <DialogDescription>
-            Verifica y ajusta los detalles finales para <strong>{credit.clientName}</strong>. Esta acción activará el crédito y generará el plan de pagos.
+          <DialogTitle className="text-base">Confirmar y Editar Desembolso</DialogTitle>
+          <DialogDescription className="text-xs">
+            Verifica detalles para <strong>{credit.clientName}</strong>. Activará el crédito y generará el plan de pagos.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-2">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 py-1">
             {credit.outstandingBalance !== undefined && credit.outstandingBalance > 0 && (
-                 <div className="text-sm p-3 rounded-md bg-amber-50 border-l-4 border-amber-400 text-amber-800">
-                    <p><strong>Cancelación de Saldo (Refundición):</strong> Se deducirá un monto de <strong>{formatCurrency(credit.outstandingBalance)}</strong> del crédito anterior.</p>
-                    <p><strong>Monto Original Aprobado:</strong> {formatCurrency(credit.amount)}</p>
-                 </div>
+              <div className="text-[11px] p-2 rounded-md bg-amber-50 border-l-4 border-amber-400 text-amber-800">
+                <p><strong>Cancelación de Saldo (Refundición):</strong> Se deducirá <strong>{formatCurrency(credit.outstandingBalance)}</strong> del crédito anterior.</p>
+              </div>
             )}
             <FormField
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Monto Final a Entregar (C$)</FormLabel>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs">Monto Final a Entregar (C$)</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg text-muted-foreground">C$</span>
-                      <Input 
-                        type="number" 
-                        placeholder="5000.00" 
-                        {...field} 
-                        className="pl-9 h-12 text-xl font-bold text-green-700 bg-green-50 border-green-200 focus-visible:ring-green-500" 
-                        readOnly 
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">C$</span>
+                      <Input
+                        type="number"
+                        placeholder="5000.00"
+                        {...field}
+                        className="pl-9 h-10 text-lg font-bold text-green-700 bg-green-50 border-green-200 focus-visible:ring-green-500"
+                        readOnly
                       />
                     </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[10px]" />
                 </FormItem>
               )}
             />
-            
-            <div className="text-sm p-3 rounded-md bg-blue-50 border-l-4 border-blue-400 text-blue-800">
-              <p><strong>Fecha de Desembolso:</strong> Se registrará automáticamente al confirmar (hoy: {formatDateForUser(todayInNicaragua())})</p>
+
+            <div className="text-[11px] p-2 rounded-md bg-blue-50 border-l-4 border-blue-400 text-blue-800">
+              <p><strong>Fecha de Desembolso:</strong> Se registra hoy: {formatDateForUser(todayInNicaragua())}</p>
             </div>
 
             <FormField
               control={form.control}
               name="firstPaymentDate"
               render={({ field }) => (
-                <FormItem>
-                  <div className="flex justify-between items-center">
-                    <FormLabel>Fecha de Primera Cuota (Final)</FormLabel>
-                  </div>
-                   <FormControl>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs">Fecha de Primera Cuota (Final)</FormLabel>
+                  <FormControl>
                     <DateInput
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Seleccionar fecha"
+                      className="h-9 text-xs"
                       required
                     />
                   </FormControl>
-                  <FormDescription className="text-xs">Fecha original propuesta: {originalDate}</FormDescription>
-                  <FormMessage />
+                  <FormDescription className="text-[10px]">Propuesta: {originalDate}</FormDescription>
+                  <FormMessage className="text-[10px]" />
                 </FormItem>
               )}
             />
 
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-2 flex flex-row gap-2 sm:justify-end">
               <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isSubmitting}>
+                <Button type="button" variant="outline" disabled={isSubmitting} className="flex-1 h-9 text-xs">
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Landmark className="mr-2 h-4 w-4" />}
-                {isSubmitting ? 'Procesando...' : 'Confirmar Desembolso'}
+              <Button type="submit" disabled={isSubmitting} className="flex-1 h-9 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                {isSubmitting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Landmark className="mr-2 h-3.5 w-3.5" />}
+                {isSubmitting ? 'Procesando...' : 'Confirmar'}
               </Button>
             </DialogFooter>
           </form>

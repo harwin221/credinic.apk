@@ -139,65 +139,65 @@ export function PaymentForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto p-6 rounded-2xl">
-        <DialogHeader className="text-center mb-2">
-          <DialogTitle className="text-lg font-bold">{clientName}</DialogTitle>
-          <DialogDescription className="flex items-center justify-center gap-2">
+      <DialogContent className="sm:max-w-sm max-h-[92vh] overflow-y-auto p-4 rounded-2xl">
+        <DialogHeader className="text-center mb-1">
+          <DialogTitle className="text-base font-bold">{clientName}</DialogTitle>
+          <DialogDescription className="flex items-center justify-center gap-1.5 text-xs">
             {isOnline ? (
-              <><Wifi className="h-4 w-4 text-green-500" /> Conectado</>
+              <><Wifi className="h-3 w-3 text-green-500" /> Conectado</>
             ) : (
-              <><WifiOff className="h-4 w-4 text-red-500" /> Modo Offline</>
+              <><WifiOff className="h-3 w-3 text-red-500" /> Modo Offline</>
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-1">
-          <DetailRow label="Cuota del dia:" value={formatCurrency(remainingDueToday)} valueClassName="text-foreground" />
-          <DetailRow label="Monto Atrasado:" value={formatCurrency(remainingOverdue)} valueClassName="text-destructive" />
-          <DetailRow label="Cantidad Dias Mora:" value={(lateDays || 0).toString()} valueClassName="text-destructive" />
-          <Separator className="my-2" />
-          <DetailRow label="Total a Pagar:" value={formatCurrency(totalAPagar)} className="font-bold" valueClassName="text-lg text-primary" />
-          <DetailRow label="Monto para Cancelar:" value={formatCurrency(creditBalance)} className="font-bold" valueClassName="text-lg text-primary" />
+        <div className="space-y-0.5">
+          <DetailRow label="Cuota del dia:" value={formatCurrency(remainingDueToday)} valueClassName="text-foreground" className="py-0.5 text-xs" />
+          <DetailRow label="Monto Atrasado:" value={formatCurrency(remainingOverdue)} valueClassName="text-destructive" className="py-0.5 text-xs" />
+          <DetailRow label="Cantidad Dias Mora:" value={(lateDays || 0).toString()} valueClassName="text-destructive" className="py-0.5 text-xs" />
+          <Separator className="my-1.5" />
+          <DetailRow label="Total a Pagar:" value={formatCurrency(totalAPagar)} className="font-bold py-0.5 text-xs" valueClassName="text-base text-primary" />
+          <DetailRow label="Monto para Cancelar:" value={formatCurrency(creditBalance)} className="font-bold py-0.5 text-xs" valueClassName="text-base text-primary" />
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 pt-2">
             <FormField
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-left font-semibold">Ingrese el Monto Pagado:</FormLabel>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-left font-semibold text-xs">Ingrese el Monto Pagado:</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       placeholder="Ej: 300.50"
                       {...field}
-                      className="h-12 text-center text-lg bg-muted rounded-xl"
+                      className="h-10 text-center text-base bg-muted rounded-xl"
                       value={field.value ?? ''}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[10px]" />
                 </FormItem>
               )}
             />
             {isAdmin && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name="paymentDate"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-left font-semibold text-xs">Fecha del Pago</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-left font-semibold text-[11px]">Fecha del Pago</FormLabel>
                       <FormControl>
                         <DateInput
                           value={field.value}
                           onChange={(isoValue) => field.onChange(isoValue)}
                           placeholder="Fecha"
-                          className="h-10 text-center bg-muted rounded-xl"
+                          className="h-9 text-center text-xs bg-muted rounded-xl"
                           required
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}
                 />
@@ -205,19 +205,19 @@ export function PaymentForm({
                   control={form.control}
                   name="paymentType"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-left font-semibold text-xs">Tipo Transacción</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-left font-semibold text-[11px]">Tipo Transacción</FormLabel>
                       <FormControl>
                         <select
                           {...field}
-                          className="w-full h-10 px-3 text-sm bg-muted rounded-xl border-none focus:ring-2 focus:ring-accent"
+                          className="w-full h-9 px-3 text-xs bg-muted rounded-xl border-none focus:ring-1 focus:ring-accent"
                         >
                           <option value="NORMAL">Pago Normal</option>
                           <option value="DISPENSA">Dispensa</option>
                           <option value="AJUSTE">Ajuste</option>
                         </select>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}
                 />
@@ -242,12 +242,12 @@ export function PaymentForm({
                 )}
               />
             )}
-            <div className="flex gap-4 pt-2">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full rounded-full">
+            <div className="flex gap-3 pt-1">
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full h-9 text-xs rounded-full">
                 CANCELAR
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-full">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmitting} className="w-full h-9 text-xs bg-accent hover:bg-accent/90 text-accent-foreground rounded-full">
+                {isSubmitting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
                 PAGAR CUOTA
               </Button>
             </div>

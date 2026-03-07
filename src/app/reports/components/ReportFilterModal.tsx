@@ -72,10 +72,10 @@ function CheckboxFilterGroup({
   };
 
   return (
-    <div className="space-y-1.5 flex flex-col">
-      <Label className={cn("font-semibold text-xs", disabled && "text-muted-foreground")}>{title}</Label>
-      <div className={cn("rounded-md border p-1.5 flex-1 flex flex-col", disabled && "bg-muted/50 cursor-not-allowed")}>
-        <ScrollArea className="flex-1 h-28">
+    <div className="space-y-1 flex flex-col">
+      <Label className={cn("font-semibold text-[11px]", disabled && "text-muted-foreground")}>{title}</Label>
+      <div className={cn("rounded-md border p-1 flex-1 flex flex-col", disabled && "bg-muted/50 cursor-not-allowed")}>
+        <ScrollArea className="flex-1 h-24">
           <div className={cn("space-y-2 p-1", disabled && "pointer-events-none")}>
             {items.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-4">{emptyMessage}</p>
@@ -140,14 +140,14 @@ export function ReportFilterModal({
     return officeUsers.filter(u => {
       // Excluir GESTORES (van en la columna de gestores)
       if (u.role === 'GESTOR') return false;
-      
+
       // Incluir GERENTE y OPERATIVO (roles que hacen trabajo de campo)
       // GERENTE puede desembolsar y recuperar por cancelaciones
       if (!['GERENTE', 'OPERATIVO'].includes(u.role)) return false;
-      
+
       // Si no hay sucursales seleccionadas, no mostrar nada
       if (selectedSucursales.length === 0) return false;
-      
+
       // Si tiene sucursal asignada, verificar que esté en las seleccionadas
       return u.sucursal && selectedSucursales.includes(u.sucursal);
     }).sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -156,20 +156,20 @@ export function ReportFilterModal({
   const gestoresStaff = React.useMemo(() => {
     // Si no hay sucursales seleccionadas, no mostrar gestores
     if (selectedSucursales.length === 0) return [];
-    
+
     // Si hay usuarios de oficina seleccionados
     if (selectedOfficeUsers.length > 0) {
       // Si seleccionó "OFICINA (Todos)", mostrar el gerente de la sucursal
       if (selectedOfficeUsers.includes('ALL_OFFICE')) {
         // Buscar el gerente de las sucursales seleccionadas
-        const gerentes = officeUsers.filter(u => 
-          u.role === 'GERENTE' && 
-          u.sucursal && 
+        const gerentes = officeUsers.filter(u =>
+          u.role === 'GERENTE' &&
+          u.sucursal &&
           selectedSucursales.includes(u.sucursal)
         );
         return gerentes.sort((a, b) => a.fullName.localeCompare(b.fullName));
       }
-      
+
       // Si seleccionó un gerente específico (o cualquier usuario de oficina), mostrar sus gestores
       const selectedStaffSucursales = officeUsers
         .filter(u => selectedOfficeUsers.includes(u.id!))
@@ -267,9 +267,9 @@ export function ReportFilterModal({
   };
 
   const officeStaffItems = React.useMemo(() => {
-    const items = officeStaff.map(u => ({ 
-      id: u.id!, 
-      name: `${u.fullName} (${u.role === 'GERENTE' ? 'Gerente' : 'Operativo'})` 
+    const items = officeStaff.map(u => ({
+      id: u.id!,
+      name: `${u.fullName} (${u.role === 'GERENTE' ? 'Gerente' : 'Operativo'})`
     }));
     if (items.length > 0) {
       return [{ id: 'ALL_OFFICE', name: 'OFICINA (Todos)' }, ...items];
@@ -279,16 +279,16 @@ export function ReportFilterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-4xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
-        <DialogHeader className="p-4 pb-2">
-          <DialogTitle className="text-lg">{reportTitle}</DialogTitle>
+      <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="p-3 pb-1">
+          <DialogTitle className="text-base">{reportTitle}</DialogTitle>
           <DialogDescription className="text-xs">Selecciona los filtros para generar el reporte.</DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-4">
-          <div className="space-y-3 py-2">
+        <ScrollArea className="flex-1 px-3">
+          <div className="space-y-2 py-1">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 py-2 min-h-[200px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-1 min-h-[160px]">
               <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <CheckboxFilterGroup
                   title="Sucursal:"
@@ -335,12 +335,12 @@ export function ReportFilterModal({
 
 
             {hasViewTypeFilter && (
-              <div className="space-y-1.5 pt-2">
-                <Label className="font-semibold text-xs">Configuración de Visualización</Label>
+              <div className="space-y-1 pt-1">
+                <Label className="font-semibold text-[11px]">Configuración de Visualización</Label>
                 <RadioGroup
                   value={viewType}
                   onValueChange={(value) => setViewType(value as any)}
-                  className="flex items-center space-x-4"
+                  className="flex items-center space-x-3"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="detailed" id="detailed" />
@@ -354,9 +354,9 @@ export function ReportFilterModal({
               </div>
             )}
 
-            <Separator className="my-3" />
+            <Separator className="my-2" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 pb-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-0.5 pb-1">
               <div className="space-y-1.5">
                 <Label htmlFor="fecha-inicial" className="text-xs">Fecha Inicial:</Label>
                 <Popover>
@@ -414,13 +414,13 @@ export function ReportFilterModal({
         </ScrollArea>
 
 
-        <DialogFooter className="p-4 pt-2 border-t mt-0">
+        <DialogFooter className="p-3 pt-1.5 border-t mt-0">
           <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-9 text-sm">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-8 text-xs">
               Cancelar
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleSubmit} disabled={isSubmitting} className="sm:w-36 h-9 text-sm bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button type="button" onClick={handleSubmit} disabled={isSubmitting} className="sm:w-32 h-8 text-xs bg-accent text-accent-foreground hover:bg-accent/90">
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
