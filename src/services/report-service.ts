@@ -310,8 +310,8 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
 
         let recuperacionSql = `SELECT pr.managedBy, SUM(pr.amount) as total, MAX(pr.paymentDate) as lastDate FROM payments_registered pr WHERE pr.status != 'ANULADO'`;
         const recuperacionParams: any[] = [];
-        if (dateFrom) { recuperacionSql += ' AND DATE(pr.paymentDate) >= ?'; recuperacionParams.push(getReportDateStart(dateFrom)); }
-        if (dateTo) { recuperacionSql += ' AND DATE(pr.paymentDate) <= ?'; recuperacionParams.push(getReportDateEnd(dateTo)); }
+        if (dateFrom) { recuperacionSql += ` AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) >= ?`; recuperacionParams.push(getReportDateStart(dateFrom)); }
+        if (dateTo) { recuperacionSql += ` AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) <= ?`; recuperacionParams.push(getReportDateEnd(dateTo)); }
         recuperacionSql += ' GROUP BY pr.managedBy';
         console.log('💰 Recuperacion SQL:', recuperacionSql, 'Params:', recuperacionParams);
         const recuperacionRows: any[] = await query(recuperacionSql, recuperacionParams);
@@ -326,8 +326,8 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
 
         let colocacionSql = `SELECT collectionsManager, SUM(totalAmount) as total, COUNT(id) as count FROM credits WHERE status IN ('Active', 'Paid')`;
         const colocacionParams: any[] = [];
-        if (dateFrom) { colocacionSql += ' AND DATE(deliveryDate) >= ?'; colocacionParams.push(getReportDateStart(dateFrom)); }
-        if (dateTo) { colocacionSql += ' AND DATE(deliveryDate) <= ?'; colocacionParams.push(getReportDateEnd(dateTo)); }
+        if (dateFrom) { colocacionSql += ` AND DATE(CONVERT_TZ(deliveryDate, '+00:00', '-06:00')) >= ?`; colocacionParams.push(getReportDateStart(dateFrom)); }
+        if (dateTo) { colocacionSql += ` AND DATE(CONVERT_TZ(deliveryDate, '+00:00', '-06:00')) <= ?`; colocacionParams.push(getReportDateEnd(dateTo)); }
         colocacionSql += ' GROUP BY collectionsManager';
         console.log('📦 Colocacion SQL:', colocacionSql, 'Params:', colocacionParams);
         const colocacionRows: any[] = await query(colocacionSql, colocacionParams);
@@ -971,11 +971,11 @@ export async function generateDisbursementsReport(filters: ReportFilters): Promi
     const params: any[] = [];
 
     if (dateFrom) {
-        sql += ' AND DATE(c.deliveryDate) >= ?';
+        sql += ` AND DATE(CONVERT_TZ(c.deliveryDate, '+00:00', '-06:00')) >= ?`;
         params.push(getReportDateStart(dateFrom));
     }
     if (dateTo) {
-        sql += ' AND DATE(c.deliveryDate) <= ?';
+        sql += ` AND DATE(CONVERT_TZ(c.deliveryDate, '+00:00', '-06:00')) <= ?`;
         params.push(getReportDateEnd(dateTo));
     }
 
@@ -1188,8 +1188,8 @@ export async function generateRecoveryReport(filters: ReportFilters): Promise<Re
             WHERE c.collectionsManager = ? AND c.status = 'Active'
         `;
         const expectedParams: any[] = [user.fullName];
-        if (dateFrom) { expectedAmountSql += ` AND DATE(pp.paymentDate) >= ?`; expectedParams.push(dateFrom); }
-        if (dateTo) { expectedAmountSql += ` AND DATE(pp.paymentDate) <= ?`; expectedParams.push(dateTo); }
+        if (dateFrom) { expectedAmountSql += ` AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) >= ?`; expectedParams.push(dateFrom); }
+        if (dateTo) { expectedAmountSql += ` AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) <= ?`; expectedParams.push(dateTo); }
 
         const expectedResult: any[] = await query(expectedAmountSql, expectedParams);
         const expectedAmount = expectedResult[0]?.total || 0;
@@ -1197,8 +1197,8 @@ export async function generateRecoveryReport(filters: ReportFilters): Promise<Re
         // Monto Recuperado
         let collectedAmountSql = `SELECT SUM(amount) as total FROM payments_registered WHERE managedBy = ? AND status != 'ANULADO'`;
         const collectedParams: any[] = [user.fullName];
-        if (dateFrom) { collectedAmountSql += ` AND DATE(paymentDate) >= ?`; collectedParams.push(dateFrom); }
-        if (dateTo) { collectedAmountSql += ` AND DATE(paymentDate) <= ?`; collectedParams.push(dateTo); }
+        if (dateFrom) { collectedAmountSql += ` AND DATE(CONVERT_TZ(paymentDate, '+00:00', '-06:00')) >= ?`; collectedParams.push(dateFrom); }
+        if (dateTo) { collectedAmountSql += ` AND DATE(CONVERT_TZ(paymentDate, '+00:00', '-06:00')) <= ?`; collectedParams.push(dateTo); }
 
         const collectedResult: any[] = await query(collectedAmountSql, collectedParams);
         const collectedAmount = collectedResult[0]?.total || 0;
@@ -1241,11 +1241,11 @@ export async function generateFutureInstallmentsReport(filters: ReportFilters): 
     const params: any[] = [];
 
     if (dateFrom) {
-        sql += ` AND DATE(p.paymentDate) >= ?`;
+        sql += ` AND DATE(CONVERT_TZ(p.paymentDate, '+00:00', '-06:00')) >= ?`;
         params.push(dateFrom);
     }
     if (dateTo) {
-        sql += ` AND DATE(p.paymentDate) <= ?`;
+        sql += ` AND DATE(CONVERT_TZ(p.paymentDate, '+00:00', '-06:00')) <= ?`;
         params.push(dateTo);
     }
 
@@ -1326,11 +1326,11 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
     const params: any[] = [];
 
     if (dateFrom) {
-        sql += ` AND DATE(c.applicationDate) >= ?`;
+        sql += ` AND DATE(CONVERT_TZ(c.applicationDate, '+00:00', '-06:00')) >= ?`;
         params.push(getReportDateStart(dateFrom));
     }
     if (dateTo) {
-        sql += ` AND DATE(c.applicationDate) <= ?`;
+        sql += ` AND DATE(CONVERT_TZ(c.applicationDate, '+00:00', '-06:00')) <= ?`;
         params.push(getReportDateEnd(dateTo));
     }
 
