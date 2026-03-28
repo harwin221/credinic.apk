@@ -12,24 +12,21 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
         }
 
-        const userRows: any = await query('SELECT fullName, sucursal_name FROM users WHERE id = ? LIMIT 1', [userId]);
+        const userRows: any = await query('SELECT fullName FROM users WHERE id = ? LIMIT 1', [userId]);
         if (!userRows || userRows.length === 0) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
 
         const gestorName = userRows[0].fullName;
 
-        // Igual que el reporte de recuperación web: suma total de pagos del día
-        const todaySql = `
-            SELECT 
-                SUM(amount) as totalRecuperacion,
-                COUNT(DISTINCT creditId) as totalClientesCobrados
+        // Total del día
+        const todayRows: any = await query(`
+            SELECT SUM(amount) as totalRecuperacion, COUNT(DISTINCT creditId) as totalClientesCobrados
             FROM payments_registered 
-            WHERE managedBy = ? 
-              AND status != 'ANULADO'
+            WHERE managedBy = ? AND status != 'ANULADO'
               AND DATE(CONVERT_TZ(paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
-        `;
-        const todayRows: any = await query(todaySql, [gestorName]);
+        `, [gestorName]);
+
         const totalRecuperacion = Number(todayRows[0]?.totalRecuperacion || 0);
         const totalClientesCobrados = Number(todayRows[0]?.totalClientesCobrados || 0);
 
@@ -40,23 +37,29 @@ export async function GET(request: Request) {
             });
         }
 
-        // Obtener pagos del día con info del crédito para clasificar
+        // Pagos del día con contexto del crédito para clasificar proporcionalmente
         const paymentRows: any[] = await query(`
-            SELECT pr.creditId, pr.amount, pr.paymentDate,
-                   c.dueDate,
-                   (SELECT SUM(pp.amount) FROM payment_plan pp 
+            SELECT 
+                pr.creditId, pr.amount, pr.paymentDate,
+                c.dueDate,
+                COALESCE((
+                    SELECT SUM(pp.amount) FROM payment_plan pp 
                     WHERE pp.creditId = pr.creditId 
-                    AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) < DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))) as amountDueBefore,
-                   (SELECT SUM(pr2.amount) FROM payments_registered pr2 
+                    AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) < DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
+                ), 0) as amountDueBefore,
+                COALESCE((
+                    SELECT SUM(pr2.amount) FROM payments_registered pr2 
                     WHERE pr2.creditId = pr.creditId AND pr2.status != 'ANULADO'
-                    AND pr2.paymentDate < pr.paymentDate) as paidBefore,
-                   (SELECT COUNT(*) FROM payment_plan pp2 
-                    WHERE pp2.creditId = pr.creditId 
-                    AND DATE(CONVERT_TZ(pp2.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))) as hasDueToday
+                    AND pr2.paymentDate < pr.paymentDate
+                ), 0) as paidBefore,
+                COALESCE((
+                    SELECT SUM(pp3.amount) FROM payment_plan pp3 
+                    WHERE pp3.creditId = pr.creditId 
+                    AND DATE(CONVERT_TZ(pp3.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
+                ), 0) as dueTodayAmount
             FROM payments_registered pr
             JOIN credits c ON pr.creditId = c.id
-            WHERE pr.managedBy = ?
-              AND pr.status != 'ANULADO'
+            WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
               AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
         `, [gestorName]);
 
@@ -66,24 +69,31 @@ export async function GET(request: Request) {
         let proximoRecaudado = 0;
 
         for (const p of paymentRows) {
-            const amount = Number(p.amount || 0);
-            const amountDueBefore = Number(p.amountDueBefore || 0);
-            const paidBefore = Number(p.paidBefore || 0);
-            const overdueAmount = Math.max(0, amountDueBefore - paidBefore);
-            const hasDueToday = Number(p.hasDueToday || 0) > 0;
-
+            let amount = Number(p.amount || 0);
+            const overdueAmount = Math.max(0, Number(p.amountDueBefore || 0) - Number(p.paidBefore || 0));
+            const dueTodayAmount = Number(p.dueTodayAmount || 0);
             const dueDate = p.dueDate ? new Date(p.dueDate) : null;
-            const paymentDate = new Date(p.paymentDate);
-            const isExpired = dueDate ? dueDate < paymentDate : false;
+            const isExpired = dueDate ? dueDate < new Date(p.paymentDate) : false;
 
             if (isExpired) {
                 vencidoRecaudado += amount;
-            } else if (overdueAmount > 0) {
-                moraRecaudada += amount;
-            } else if (!hasDueToday) {
-                proximoRecaudado += amount;
             } else {
-                diaRecaudado += amount;
+                // 1. Cubre mora primero
+                const moraAplicada = Math.min(amount, overdueAmount);
+                moraRecaudada += moraAplicada;
+                amount -= moraAplicada;
+
+                // 2. Cubre cuota del día
+                if (amount > 0 && dueTodayAmount > 0) {
+                    const diaAplicado = Math.min(amount, dueTodayAmount);
+                    diaRecaudado += diaAplicado;
+                    amount -= diaAplicado;
+                }
+
+                // 3. Sobrante es adelanto
+                if (amount > 0) {
+                    proximoRecaudado += amount;
+                }
             }
         }
 
