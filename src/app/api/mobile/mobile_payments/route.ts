@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { addPayment as addPaymentService } from '@/services/credit-service-server';
 import { getUser } from '@/services/user-service-server';
+import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,8 @@ export async function POST(request: Request) {
         // Preparar los datos del pago según la interfaz de la web
         const paymentData = {
             amount: Number(amount),
-            paymentDate: new Date().toISOString(),
-            paymentMethod: 'CASH', // Los gestores manejan efectivo mayormente
+            paymentDate: nowInNicaragua(),
+            paymentMethod: 'CASH',
             paymentType: paymentType || 'NORMAL',
             description: notes || '',
             status: 'COMPLETADO'
