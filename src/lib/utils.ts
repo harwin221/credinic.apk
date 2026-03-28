@@ -627,7 +627,7 @@ export function calculateCreditStatusDetails(credit: CreditDetail, asOfDateStr?:
   const totalPaidBeforeToday = validPayments
     .filter(p => {
       const paymentDateString = formatDateForUser(p.paymentDate, 'yyyy-MM-dd');
-      return paymentDateString && paymentDateString < asOfDateString;
+      return paymentDateString && paymentDateString <= asOfDateString;
     })
     .reduce((sum, p) => sum + p.amount, 0);
 
