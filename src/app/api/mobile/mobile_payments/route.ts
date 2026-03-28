@@ -46,8 +46,8 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error en API Mobile Payments:', error);
-        return NextResponse.json({ success: false, message: 'Error interno al registrar el pago' }, { status: 500 });
+        return NextResponse.json({ success: false, message: `Error: ${error?.message || error}` }, { status: 500 });
     }
 }
