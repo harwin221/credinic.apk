@@ -23,9 +23,17 @@ export async function GET(request: Request) {
         }
         const client = clientRows[0];
 
-        // Créditos activos del cliente
+        // Créditos activos del cliente con toda la información
         const credits: any[] = await query(
-            "SELECT * FROM credits WHERE clientId = ? AND status = 'Active' ORDER BY applicationDate DESC",
+            `SELECT c.*, 
+                    b.name as branchName,
+                    cl.address as clientAddress,
+                    cl.workAddress as clientWorkAddress
+             FROM credits c
+             LEFT JOIN branches b ON c.branchId = b.id
+             LEFT JOIN clients cl ON c.clientId = cl.id
+             WHERE c.clientId = ? AND c.status = 'Active' 
+             ORDER BY c.applicationDate DESC`,
             [clientId]
         );
 
@@ -118,18 +126,42 @@ export async function GET(request: Request) {
             creditDetails.push({
                 id: credit.id,
                 creditNumber: credit.creditNumber,
-                amount: credit.amount,
-                totalAmount: credit.totalAmount,
+                
+                // Configuración del Préstamo
+                productType: credit.productType,
+                subProduct: credit.subProduct,
+                productDestination: credit.productDestination,
+                
+                // Intereses y plazos
+                interestRate: credit.interestRate,
+                currency: credit.currency || 'Córdobas',
+                paymentFrequency: credit.paymentFrequency,
+                termMonths: credit.termMonths,
+                
+                // Datos del Préstamo
+                amount: credit.amount, // Monto Principal
+                totalAmount: credit.totalAmount, // Monto Total del Crédito
+                installmentAmount: credit.installmentAmount, // Cuota a Pagar
+                disbursementDate: credit.disbursementDate, // Fecha de Entrega
+                firstPaymentDate: credit.firstPaymentDate, // Fecha de Primera Cuota
+                dueDate: credit.dueDate, // Fecha de Vencimiento
+                applicationDate: credit.applicationDate,
+                
+                // Información de Gestión
+                collectionsManager: credit.collectionsManager,
+                branchName: credit.branchName,
+                
+                // Estado actual del crédito
                 totalPaid,
                 remainingBalance,
                 overdueAmount,
                 lateDays,
                 avgLateDaysCurrentCredit, // Promedio del crédito actual
                 avgLateDaysGlobal, // Promedio global de todos los créditos
-                collectionsManager: credit.collectionsManager,
-                paymentFrequency: credit.paymentFrequency,
-                termMonths: credit.termMonths,
-                interestRate: credit.interestRate,
+                
+                // Direcciones del cliente
+                clientAddress: credit.clientAddress,
+                clientWorkAddress: credit.clientWorkAddress,
             });
         }
 
