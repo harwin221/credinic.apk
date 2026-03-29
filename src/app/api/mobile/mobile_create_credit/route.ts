@@ -12,7 +12,19 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
+        // Intentar leer el body
+        let body;
+        try {
+            body = await request.json();
+        } catch (jsonError) {
+            console.error('Error parseando JSON:', jsonError);
+            return NextResponse.json({ 
+                success: false, 
+                message: 'Datos inválidos: no se pudo parsear el JSON' 
+            }, { status: 400 });
+        }
+
+        console.log('Body recibido:', JSON.stringify(body, null, 2));
         
         const {
             clientId,
