@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { generatePaymentSchedule } from '@/lib/utils';
 import { nowInNicaragua, toISOString } from '@/lib/date-utils';
 
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
         const installmentAmount = scheduleData.periodicPayment;
 
         // Crear el crédito
-        const creditId = uuidv4();
+        const creditId = randomUUID();
         const now = nowInNicaragua();
 
         await query(
@@ -176,7 +176,7 @@ export async function POST(request: Request) {
                     principal, interest, balance, status
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    uuidv4(),
+                    randomUUID(),
                     creditId,
                     payment.paymentNumber,
                     toISOString(new Date(payment.paymentDate)),
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
                     id, creditId, type, description, estimatedValue
                 ) VALUES (?, ?, ?, ?, ?)`,
                 [
-                    uuidv4(),
+                    randomUUID(),
                     creditId,
                     guarantee.type,
                     guarantee.description,
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
                     id, creditId, name, cedula, phone, address, relationship
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    uuidv4(),
+                    randomUUID(),
                     creditId,
                     guarantor.name,
                     guarantor.cedula,
