@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
         // Info del cliente
         const clientRows: any = await query(
-            'SELECT id, clientNumber, name, cedula, phone, address, neighborhood, municipality, department FROM clients WHERE id = ? LIMIT 1',
+            'SELECT id, clientNumber, name, cedula, phone, address, workAddress, neighborhood, municipality, department FROM clients WHERE id = ? LIMIT 1',
             [clientId]
         );
         if (!clientRows || clientRows.length === 0) {
@@ -25,12 +25,8 @@ export async function GET(request: Request) {
 
         // Créditos activos del cliente con toda la información
         const credits: any[] = await query(
-            `SELECT c.*, 
-                    b.name as branchName,
-                    cl.address as clientAddress,
-                    cl.workAddress as clientWorkAddress
+            `SELECT c.*
              FROM credits c
-             LEFT JOIN branches b ON c.branchId = b.id
              LEFT JOIN clients cl ON c.clientId = cl.id
              WHERE c.clientId = ? AND c.status = 'Active' 
              ORDER BY c.applicationDate DESC`,
@@ -134,15 +130,15 @@ export async function GET(request: Request) {
                 
                 // Intereses y plazos
                 interestRate: credit.interestRate,
-                currency: credit.currency || 'Córdobas',
+                currency: credit.currencyType || 'Córdobas',
                 paymentFrequency: credit.paymentFrequency,
                 termMonths: credit.termMonths,
                 
                 // Datos del Préstamo
                 amount: credit.amount, // Monto Principal
                 totalAmount: credit.totalAmount, // Monto Total del Crédito
-                installmentAmount: credit.installmentAmount, // Cuota a Pagar
-                disbursementDate: credit.disbursementDate, // Fecha de Entrega
+                installmentAmount: credit.totalInstallmentAmount, // Cuota a Pagar
+                disbursementDate: credit.deliveryDate, // Fecha de Entrega
                 firstPaymentDate: credit.firstPaymentDate, // Fecha de Primera Cuota
                 dueDate: credit.dueDate, // Fecha de Vencimiento
                 applicationDate: credit.applicationDate,
@@ -159,9 +155,9 @@ export async function GET(request: Request) {
                 avgLateDaysCurrentCredit, // Promedio del crédito actual
                 avgLateDaysGlobal, // Promedio global de todos los créditos
                 
-                // Direcciones del cliente
-                clientAddress: credit.clientAddress,
-                clientWorkAddress: credit.clientWorkAddress,
+                // Direcciones del cliente (del objeto client que ya tenemos)
+                clientAddress: client.address,
+                clientWorkAddress: client.workAddress || 'N/A',
             });
         }
 
