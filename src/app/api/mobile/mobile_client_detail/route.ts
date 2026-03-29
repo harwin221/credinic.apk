@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
         // Info del cliente
         const clientRows: any = await query(
-            'SELECT id, clientNumber, name, cedula, phone, address, workAddress, neighborhood, municipality, department FROM clients WHERE id = ? LIMIT 1',
+            'SELECT id, clientNumber, name, cedula, phone, address, neighborhood, municipality, department FROM clients WHERE id = ? LIMIT 1',
             [clientId]
         );
         if (!clientRows || clientRows.length === 0) {
@@ -119,6 +119,28 @@ export async function GET(request: Request) {
             }
             const avgLateDaysGlobal = paymentCount > 0 ? (totalLateDaysSum / paymentCount).toFixed(1) : '0.0';
 
+            // Formatear plan de pago para el móvil
+            const paymentPlan = plans.map((p: any) => ({
+                paymentNumber: p.paymentNumber,
+                paymentDate: toISOString(p.paymentDate),
+                amount: p.amount,
+                principal: p.principal,
+                interest: p.interest,
+                balance: p.balance,
+            }));
+
+            // Formatear historial de pagos para el móvil
+            const paymentHistory = payments.map((p: any) => ({
+                id: p.id,
+                paymentDate: toISOString(p.paymentDate),
+                amount: p.amount,
+                managedBy: p.managedBy,
+                transactionNumber: p.transactionNumber,
+                status: p.status,
+                paymentType: p.paymentType,
+                notes: p.notes,
+            }));
+
             creditDetails.push({
                 id: credit.id,
                 creditNumber: credit.creditNumber,
@@ -155,9 +177,9 @@ export async function GET(request: Request) {
                 avgLateDaysCurrentCredit, // Promedio del crédito actual
                 avgLateDaysGlobal, // Promedio global de todos los créditos
                 
-                // Direcciones del cliente (del objeto client que ya tenemos)
-                clientAddress: client.address,
-                clientWorkAddress: client.workAddress || 'N/A',
+                // Plan de pago y historial
+                paymentPlan,
+                paymentHistory,
             });
         }
 
