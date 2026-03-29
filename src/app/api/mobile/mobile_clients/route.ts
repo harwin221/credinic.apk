@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { calculateCreditStatusDetails } from '@/lib/utils';
+import { calculateCreditStatusDetails, calculateAveragePaymentDelay } from '@/lib/utils';
 import { toISOString, nowInNicaragua } from '@/lib/date-utils';
+import type { CreditDetail } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,37 +67,80 @@ export async function GET(request: Request) {
 
         const asOfDate = nowInNicaragua();
         const reloanClientIds = new Set<string>();
-        const clientLateDaysMap = new Map<string, number[]>();
 
+        // Lógica de Représtamo: >= 75% pagado Y promedio de atraso <= 2.5 días
         for (const credit of activeCredits) {
-            const creditFull = {
+            const creditFull: CreditDetail = {
                 ...credit,
                 registeredPayments: paymentsByCreditId.get(credit.id) || [],
                 paymentPlan: plansByCreditId.get(credit.id) || [],
-            };
-            const details = calculateCreditStatusDetails(creditFull as any, asOfDate);
+            } as CreditDetail;
+            
+            const details = calculateCreditStatusDetails(creditFull, asOfDate);
             const paidPct = credit.totalAmount > 0 ? ((credit.totalAmount - details.remainingBalance) / credit.totalAmount) * 100 : 0;
 
-            if (!clientLateDaysMap.has(credit.clientId)) clientLateDaysMap.set(credit.clientId, []);
-            clientLateDaysMap.get(credit.clientId)!.push(details.lateDays);
-
-            if (paidPct >= 75) reloanClientIds.add(credit.clientId);
+            if (paidPct >= 75) {
+                const { avgLateDaysForCredit } = calculateAveragePaymentDelay(creditFull);
+                if (avgLateDaysForCredit <= 2.5) {
+                    reloanClientIds.add(credit.clientId);
+                }
+            }
         }
 
-        // Créditos pagados recientes para renovación
+        // Lógica de Renovación: Créditos pagados con promedio de atraso <= 2.5 días Y sin crédito activo
         const paidCredits: any[] = await query(
-            "SELECT DISTINCT clientId FROM credits WHERE collectionsManager = ? AND status = 'Paid'",
+            "SELECT id, clientId, totalAmount FROM credits WHERE collectionsManager = ? AND status = 'Paid' AND DATE(updatedAt) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)",
             [gestorName]
         );
-        const paidClientIds = new Set(paidCredits.map((c: any) => c.clientId));
+        
         const activeClientIds = new Set(activeCredits.map((c: any) => c.clientId));
+        const renewalClientIds = new Set<string>();
 
-        const renewalClientIds = new Set(
-            [...paidClientIds].filter(id => !activeClientIds.has(id))
-        );
+        if (paidCredits.length > 0) {
+            const paidCreditIds = paidCredits.map(c => c.id);
+            const paidPlaceholders = paidCreditIds.map(() => '?').join(',');
+
+            // Obtener pagos y planes de créditos pagados
+            const [paidPayments, paidPlans]: [any[], any[]] = await Promise.all([
+                query(`SELECT * FROM payments_registered WHERE creditId IN (${paidPlaceholders})`, paidCreditIds),
+                query(`SELECT * FROM payment_plan WHERE creditId IN (${paidPlaceholders})`, paidCreditIds),
+            ]);
+
+            const paidPaymentsByCreditId = new Map<string, any[]>();
+            paidPayments.forEach((p: any) => {
+                if (!paidPaymentsByCreditId.has(p.creditId)) paidPaymentsByCreditId.set(p.creditId, []);
+                paidPaymentsByCreditId.get(p.creditId)!.push({ ...p, paymentDate: toISOString(p.paymentDate) });
+            });
+
+            const paidPlansByCreditId = new Map<string, any[]>();
+            paidPlans.forEach((p: any) => {
+                if (!paidPlansByCreditId.has(p.creditId)) paidPlansByCreditId.set(p.creditId, []);
+                paidPlansByCreditId.get(p.creditId)!.push({ ...p, paymentDate: toISOString(p.paymentDate) });
+            });
+
+            for (const credit of paidCredits) {
+                // Solo clientes sin crédito activo
+                if (activeClientIds.has(credit.clientId)) continue;
+
+                const creditFull: CreditDetail = {
+                    ...credit,
+                    registeredPayments: paidPaymentsByCreditId.get(credit.id) || [],
+                    paymentPlan: paidPlansByCreditId.get(credit.id) || [],
+                } as CreditDetail;
+
+                const { avgLateDaysForCredit } = calculateAveragePaymentDelay(creditFull);
+                if (avgLateDaysForCredit <= 2.5) {
+                    renewalClientIds.add(credit.clientId);
+                }
+            }
+        }
 
         const reloan: any[] = [];
         const renewal: any[] = [];
+
+        // Filtrar clientes de représtamo
+        const reloanFiltered = clients.filter((c: any) => reloanClientIds.has(c.id));
+        reloan.push(...reloanFiltered);
 
         // Obtener clientes de renovación
         if (renewalClientIds.size > 0) {
@@ -111,15 +155,6 @@ export async function GET(request: Request) {
             const renewalClients: any[] = await query(renewalSql, renewalParams);
             renewal.push(...renewalClients);
         }
-
-        clients.forEach((c: any) => {
-            const avgLateDays = clientLateDaysMap.has(c.id)
-                ? clientLateDaysMap.get(c.id)!.reduce((a, b) => a + b, 0) / clientLateDaysMap.get(c.id)!.length
-                : 0;
-            if (reloanClientIds.has(c.id) && avgLateDays <= 2.5) {
-                reloan.push(c);
-            }
-        });
 
         return NextResponse.json({ success: true, data: { all: clients, reloan, renewal } });
 
