@@ -20,13 +20,14 @@ export async function GET(request: Request) {
             dueToday: [] as any[],
             overdue: [] as any[],
             expired: [] as any[],
+            upToDate: [] as any[], // Clientes al día (sin mora, no vencen hoy, no vencidos, no pagaron hoy)
             all: portfolio
         };
 
         portfolio.forEach(credit => {
             if (!credit.details) return;
 
-            // Un crédito puede estar en "Todos", pero aquí lo clasificamos para los tabs
+            // Categorización en orden de prioridad
             if (credit.details.paidToday > 0) {
                 categorized.paidToday.push(credit);
             } else if (credit.details.isDueToday) {
@@ -35,6 +36,9 @@ export async function GET(request: Request) {
                 categorized.expired.push(credit);
             } else if (credit.details.overdueAmount > 0) {
                 categorized.overdue.push(credit);
+            } else {
+                // Si no está en ninguna categoría anterior, está al día
+                categorized.upToDate.push(credit);
             }
         });
 
