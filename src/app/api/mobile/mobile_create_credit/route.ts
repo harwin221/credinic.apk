@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
 import { randomUUID } from 'crypto';
 import { generatePaymentSchedule } from '@/lib/utils';
-import { nowInNicaragua, toISOString } from '@/lib/date-utils';
+import { nowInNicaragua, isoToMySQLDateTime, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
+import { getClient } from '@/services/client-service-server';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Endpoint para crear una nueva solicitud de crédito desde la app móvil
  * POST /api/mobile/mobile_create_credit
+ * 
+ * Usa la misma lógica que credit-service-improved.ts
  */
 export async function POST(request: Request) {
     try {
@@ -81,16 +84,14 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // Verificar que el cliente existe
-        const clientRows: any = await query('SELECT * FROM clients WHERE id = ? LIMIT 1', [clientId]);
-        if (!clientRows || clientRows.length === 0) {
+        // Obtener información del cliente
+        const client = await getClient(clientId);
+        if (!client) {
             return NextResponse.json({ 
                 success: false, 
                 message: 'Cliente no encontrado' 
             }, { status: 404 });
         }
-
-        const client = clientRows[0];
 
         // Verificar que no tenga solicitudes pendientes o aprobadas
         const existingCredits: any = await query(
@@ -110,14 +111,21 @@ export async function POST(request: Request) {
         const creditCount = creditCountRows[0].count;
         const creditNumber = `CRE-${String(creditCount + 1).padStart(6, '0')}`;
 
-        // Generar plan de pagos
+        // Obtener feriados para ajustar fechas de pago
+        const holidaysResult: any = await query('SELECT date FROM holidays');
+        const holidays = holidaysResult.map((h: any) => {
+            const d = new Date(h.date);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        });
+
+        // Generar plan de pagos (igual que la web)
         const scheduleData = generatePaymentSchedule({
             loanAmount: principal,
             monthlyInterestRate: rate,
             termMonths: term,
             paymentFrequency: paymentFrequency as any,
             startDate: firstPaymentDate,
-            holidays: []
+            holidays
         });
 
         if (!scheduleData || !scheduleData.schedule) {
@@ -127,100 +135,80 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        const paymentPlan = scheduleData.schedule;
-        const totalAmount = scheduleData.totalPayment;
-        const totalInterest = scheduleData.totalInterest;
-        const installmentAmount = scheduleData.periodicPayment;
-
-        // Crear el crédito
+        // Crear el crédito (igual que la web)
         const creditId = randomUUID();
-        const now = nowInNicaragua();
+        const applicationDate = nowInNicaragua();
+        
+        // Los créditos desde móvil siempre son Pending (requieren aprobación)
+        const initialStatus = 'Pending';
 
-        await query(
-            `INSERT INTO credits (
-                id, creditNumber, clientId, clientName, amount, interestRate, 
-                termMonths, paymentFrequency, totalAmount, installmentAmount,
-                firstPaymentDate, status, collectionsManager, productType, 
-                subProduct, productDestination, createdAt, updatedAt,
-                sucursal, currency
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                creditId,
-                creditNumber,
-                clientId,
-                client.name,
-                principal,
-                rate,
-                term,
-                paymentFrequency,
-                totalAmount,
-                installmentAmount,
-                toISOString(new Date(firstPaymentDate)),
-                'Pending', // Estado inicial
-                collectionsManager,
-                productType,
-                subProduct,
-                productDestination,
-                toISOString(now),
-                toISOString(now),
-                client.sucursal,
-                'Córdobas'
-            ]
-        );
+        const creditSql = `
+            INSERT INTO credits (
+                id, creditNumber, clientId, clientName, status, applicationDate, approvalDate, approvedBy, 
+                amount, principalAmount, interestRate, termMonths, paymentFrequency, currencyType, 
+                totalAmount, totalInterest, totalInstallmentAmount, firstPaymentDate, deliveryDate, dueDate, 
+                collectionsManager, createdBy, branch, branchName, productType, subProduct, productDestination
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
 
-        // Insertar plan de pagos
-        for (const payment of paymentPlan) {
-            await query(
-                `INSERT INTO payment_plan (
-                    id, creditId, paymentNumber, paymentDate, amount, 
-                    principal, interest, balance, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    randomUUID(),
-                    creditId,
-                    payment.paymentNumber,
-                    toISOString(new Date(payment.paymentDate)),
-                    payment.amount,
-                    payment.principal,
-                    payment.interest,
-                    payment.balance,
-                    'Pending'
-                ]
-            );
-        }
+        await query(creditSql, [
+            creditId,
+            creditNumber,
+            clientId,
+            client.name,
+            initialStatus,
+            isoToMySQLDateTime(applicationDate),
+            null, // approvalDate
+            null, // approvedBy
+            principal,
+            principal, // principalAmount
+            rate,
+            term,
+            paymentFrequency,
+            'CÓRDOBAS',
+            scheduleData.totalPayment,
+            scheduleData.totalInterest,
+            scheduleData.periodicPayment,
+            isoToMySQLDateTimeNoon(firstPaymentDate),
+            null, // deliveryDate
+            `${scheduleData.schedule[scheduleData.schedule.length - 1].paymentDate} 12:00:00`,
+            collectionsManager,
+            collectionsManager, // createdBy
+            client.sucursal,
+            client.sucursalName || client.sucursal,
+            productType,
+            subProduct,
+            productDestination
+        ]);
 
         // Insertar garantías si existen
-        for (const guarantee of guarantees) {
-            await query(
-                `INSERT INTO guarantees (
-                    id, creditId, type, description, estimatedValue
-                ) VALUES (?, ?, ?, ?, ?)`,
-                [
-                    randomUUID(),
-                    creditId,
-                    guarantee.type,
-                    guarantee.description,
-                    guarantee.estimatedValue || 0
-                ]
-            );
+        if (guarantees && guarantees.length > 0) {
+            for (const guarantee of guarantees) {
+                await query(
+                    'INSERT INTO guarantees (id, creditId, article, brand, color, model, series, estimatedValue) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    [randomUUID(), creditId, guarantee.article, guarantee.brand, guarantee.color, guarantee.model, guarantee.series, guarantee.estimatedValue]
+                );
+            }
         }
 
         // Insertar fiadores si existen
-        for (const guarantor of guarantors) {
-            await query(
-                `INSERT INTO guarantors (
-                    id, creditId, name, cedula, phone, address, relationship
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    randomUUID(),
-                    creditId,
-                    guarantor.name,
-                    guarantor.cedula,
-                    guarantor.phone || '',
-                    guarantor.address || '',
-                    guarantor.relationship || ''
-                ]
-            );
+        if (guarantors && guarantors.length > 0) {
+            for (const guarantor of guarantors) {
+                await query(
+                    'INSERT INTO guarantors (id, creditId, name, cedula, phone, address, relationship) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [randomUUID(), creditId, guarantor.name, guarantor.cedula, guarantor.phone, guarantor.address, guarantor.relationship]
+                );
+            }
+        }
+
+        // Insertar plan de pagos (igual que la web)
+        if (scheduleData.schedule.length > 0) {
+            for (const payment of scheduleData.schedule) {
+                await query(
+                    'INSERT INTO payment_plan (creditId, paymentNumber, paymentDate, amount, principal, interest, balance) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [creditId, payment.paymentNumber, `${payment.paymentDate} 12:00:00`, payment.amount, payment.principal, payment.interest, payment.balance]
+                );
+            }
         }
 
         return NextResponse.json({
@@ -229,7 +217,7 @@ export async function POST(request: Request) {
             data: {
                 creditId,
                 creditNumber,
-                status: 'Pending'
+                status: initialStatus
             }
         });
 
