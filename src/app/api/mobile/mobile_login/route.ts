@@ -48,6 +48,27 @@ export async function POST(request: Request) {
             );
         }
 
+        // Registrar el inicio de sesión en el log de auditoría
+        try {
+            const { createLog } = await import('@/services/audit-log-service');
+            const appUser = {
+                id: user.id,
+                fullName: user.fullName,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                sucursal: user.sucursal_id,
+                sucursalName: user.sucursal_name,
+            };
+            await createLog(appUser, 'user:login', 'Inicio de sesión desde app móvil', { 
+                targetId: user.id,
+                device: 'mobile'
+            });
+        } catch (logError) {
+            console.error('[Audit Log] No se pudo guardar el log de inicio de sesión móvil:', logError);
+            // No fallar el login si el log falla
+        }
+
         // Si todo salió bien, respondemos con éxito y los datos limpios
         return NextResponse.json({
             success: true,
