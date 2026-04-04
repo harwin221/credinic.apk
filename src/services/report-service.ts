@@ -1322,18 +1322,19 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
             c.branchName as sucursalName,
             c.amount,
             c.rejectionReason as reason,
-            c.rejectedBy
+            c.rejectedBy,
+            c.approvalDate as rejectionDate
         FROM credits c
         WHERE c.status = 'Rejected'
     `;
     const params: any[] = [];
 
     if (dateFrom) {
-        sql += ` AND DATE(CONVERT_TZ(c.applicationDate, '+00:00', '-06:00')) >= ?`;
+        sql += ` AND DATE(CONVERT_TZ(c.approvalDate, '+00:00', '-06:00')) >= ?`;
         params.push(getReportDateStart(dateFrom));
     }
     if (dateTo) {
-        sql += ` AND DATE(CONVERT_TZ(c.applicationDate, '+00:00', '-06:00')) <= ?`;
+        sql += ` AND DATE(CONVERT_TZ(c.approvalDate, '+00:00', '-06:00')) <= ?`;
         params.push(getReportDateEnd(dateTo));
     }
 
@@ -1359,7 +1360,7 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
         }
     }
 
-    sql += ' ORDER BY c.applicationDate DESC';
+    sql += ' ORDER BY c.approvalDate DESC';
 
     console.log('[REJECTION_ANALYSIS] SQL:', sql);
     console.log('[REJECTION_ANALYSIS] Params:', params);
@@ -1372,6 +1373,7 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
     return results.map((row: any) => ({
         ...row,
         applicationDate: toISOString(row.applicationDate),
+        rejectionDate: row.rejectionDate ? toISOString(row.rejectionDate) : undefined,
     })) as RejectionAnalysisItem[];
 }
 

@@ -429,6 +429,7 @@ export interface PercentPaidItem {
 export interface RejectionAnalysisItem {
   creditId: string;
   applicationDate: string;
+  rejectionDate?: string;
   clientName: string;
   sucursalName: string;
   amount: number;

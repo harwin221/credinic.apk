@@ -105,7 +105,7 @@ function RejectionAnalysisReportContent() {
         <Table className="report-table-condensed">
           <TableHeader>
             <TableRow>
-              <TableHead>Fecha Solicitud</TableHead>
+              <TableHead>Fecha Rechazo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Sucursal</TableHead>
               <TableHead className="text-right">Monto Solicitado</TableHead>
@@ -117,7 +117,7 @@ function RejectionAnalysisReportContent() {
             {reportData.length > 0 ? (
               reportData.map((item) => (
                 <TableRow key={item.creditId}>
-                  <TableCell>{formatDate(item.applicationDate)}</TableCell>
+                  <TableCell>{formatDate(item.rejectionDate || item.applicationDate)}</TableCell>
                   <TableCell>{item.clientName}</TableCell>
                   <TableCell>{item.sucursalName}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
