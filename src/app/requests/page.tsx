@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useUser } from '@/hooks/use-user';
 import { updateCredit } from '@/app/credits/actions';
-import { nowInNicaragua, formatDateForUser } from '@/lib/date-utils';
+import { nowInNicaragua, formatDateForUser, todayInNicaragua } from '@/lib/date-utils';
 import type { CreditDetail, AppUser as User, UserRole } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -49,7 +49,7 @@ function CreditApprovalTabs({ user }: { user: User }) {
     setIsLoading(true);
 
     try {
-      const todayNicaragua = format(new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Managua' })), 'yyyy-MM-dd');
+      const todayNicaragua = todayInNicaragua();
 
       const { credits: pendingCredits } = await getCreditsAdmin({ status: 'Pending', user });
       const { credits: rejectedCreditsToday } = await getCreditsAdmin({ status: 'Rejected', user, dateFrom: todayNicaragua, dateTo: todayNicaragua });

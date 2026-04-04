@@ -468,12 +468,12 @@ export async function getCreditsAdmin(filters: { status?: CreditStatus, gestorNa
         params.push(filters.clientId);
     }
     if (filters.dateFrom) {
-        whereClauses.push(`(deliveryDate >= ? OR approvalDate >= ?)`);
-        params.push(`${filters.dateFrom} 00:00:00`, `${filters.dateFrom} 00:00:00`);
+        whereClauses.push(`(DATE(CONVERT_TZ(deliveryDate, '+00:00', '-06:00')) >= ? OR DATE(CONVERT_TZ(approvalDate, '+00:00', '-06:00')) >= ?)`);
+        params.push(filters.dateFrom, filters.dateFrom);
     }
     if (filters.dateTo) {
-        whereClauses.push(`(deliveryDate <= ? OR approvalDate <= ?)`);
-        params.push(`${filters.dateTo} 23:59:59`, `${filters.dateTo} 23:59:59`);
+        whereClauses.push(`(DATE(CONVERT_TZ(deliveryDate, '+00:00', '-06:00')) <= ? OR DATE(CONVERT_TZ(approvalDate, '+00:00', '-06:00')) <= ?)`);
+        params.push(filters.dateTo, filters.dateTo);
     }
     if (filters.searchTerm) {
         whereClauses.push('(clientName LIKE ? OR creditNumber LIKE ?)');
