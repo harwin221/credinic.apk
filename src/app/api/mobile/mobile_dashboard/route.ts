@@ -25,14 +25,14 @@ export async function GET(request: Request) {
 
         const user = userRows[0];
         const gestorName = user.fullName;
-        const userRole = user.role;
+        const userRole = user.role.toUpperCase(); // Convertir a mayúsculas para comparación
         const sucursalId = user.sucursal_id;
 
         console.log('[DASHBOARD] user:', user);
         console.log('[DASHBOARD] userRole:', userRole, 'sucursalId:', sucursalId);
 
-        // Si es gerente o admin, mostrar datos de toda la sucursal
-        if (role === 'manager' || userRole === 'Gerente' || userRole === 'Admin') {
+        // Si es gerente, admin o finanzas, mostrar datos de toda la sucursal
+        if (userRole === 'GERENTE' || userRole === 'ADMINISTRADOR' || userRole === 'FINANZAS') {
             console.log('[DASHBOARD] Llamando a getManagerDashboard');
             return await getManagerDashboard(userId, gestorName, sucursalId);
         }
