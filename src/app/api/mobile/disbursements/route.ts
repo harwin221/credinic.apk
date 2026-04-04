@@ -47,7 +47,7 @@ export async function GET(request: Request) {
         console.log('[DISBURSEMENTS] whereClause:', whereClause);
         console.log('[DISBURSEMENTS] params:', params);
 
-        // Obtener desembolsos pendientes (créditos aprobados)
+        // Obtener desembolsos pendientes (créditos aprobados) con información completa
         const credits: any[] = await query(`
             SELECT 
                 c.id,
@@ -59,18 +59,51 @@ export async function GET(request: Request) {
                 c.totalInstallmentAmount,
                 c.termMonths,
                 c.paymentFrequency,
+                c.interestRate,
                 c.collectionsManager,
                 c.branchName,
                 c.approvalDate,
                 c.approvedBy,
-                c.status
+                c.status,
+                cl.address,
+                cl.department,
+                cl.municipality,
+                cl.neighborhood
             FROM credits c
+            LEFT JOIN clients cl ON c.clientId = cl.id
             ${whereClause}
             ORDER BY c.approvalDate DESC
         `, params);
 
         console.log('[DISBURSEMENTS] credits found:', credits.length);
-        console.log('[DISBURSEMENTS] credits:', JSON.stringify(credits, null, 2));
+
+        // Para cada crédito, calcular el saldo pendiente anterior y monto neto
+        for (const credit of credits) {
+            // Buscar si el cliente tiene créditos activos (saldo pendiente)
+            const activeCredits: any[] = await query(`
+                SELECT id, amount, COALESCE(totalPaid, 0) as totalPaid
+                FROM credits
+                WHERE clientId = ? AND status = 'Active'
+                LIMIT 1
+            `, [credit.clientId]);
+
+            if (activeCredits.length > 0) {
+                const activeCredit = activeCredits[0];
+                
+                // Calcular saldo pendiente del crédito activo
+                const totalPaid = Number(activeCredit.totalPaid || 0);
+                const totalAmount = Number(activeCredit.amount || 0);
+                const outstandingBalance = Math.max(0, totalAmount - totalPaid);
+                
+                credit.outstandingBalance = outstandingBalance;
+                credit.netDisbursementAmount = Math.max(0, credit.amount - outstandingBalance);
+            } else {
+                credit.outstandingBalance = 0;
+                credit.netDisbursementAmount = credit.amount;
+            }
+        }
+
+        console.log('[DISBURSEMENTS] credits with balances:', JSON.stringify(credits, null, 2));
 
         return NextResponse.json({
             success: true,

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
         console.log('[REQUESTS] whereClause:', whereClause);
         console.log('[REQUESTS] params:', params);
 
-        // Obtener solicitudes pendientes
+        // Obtener solicitudes pendientes con información completa
         const credits: any[] = await query(`
             SELECT 
                 c.id,
@@ -56,7 +56,10 @@ export async function GET(request: Request) {
                 c.clientId,
                 c.amount,
                 c.termMonths,
+                c.totalAmount,
                 c.totalInstallmentAmount,
+                c.interestRate,
+                c.paymentFrequency,
                 c.collectionsManager,
                 c.branchName,
                 c.applicationDate,

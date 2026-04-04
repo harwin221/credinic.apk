@@ -147,6 +147,17 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
     console.log('[MANAGER_DASHBOARD] Gestores encontrados:', gestoresRows.length);
 
+    // Total de cartera activa de la sucursal
+    const carteraRows: any = await query(`
+        SELECT SUM(c.amount - COALESCE(c.totalPaid, 0)) as totalCartera
+        FROM credits c
+        WHERE c.branch COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci 
+          AND c.status = 'Active'
+    `, [sucursalId]);
+
+    const totalCartera = Number(carteraRows[0]?.totalCartera || 0);
+    console.log('[MANAGER_DASHBOARD] Total cartera:', totalCartera);
+
     // Total recaudado hoy de toda la sucursal (usando managedBy como la app web)
     const totalRows: any = await query(`
         SELECT SUM(pr.amount) as totalRecuperacion
