@@ -64,6 +64,7 @@ export async function GET(request: Request) {
                 c.branchName,
                 c.approvalDate,
                 c.approvedBy,
+                c.firstPaymentDate,
                 c.status,
                 cl.address,
                 cl.department,
