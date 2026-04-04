@@ -84,7 +84,7 @@ export async function GET(request: Request) {
             const activeCredits: any[] = await query(`
                 SELECT 
                     c.id, 
-                    c.amount,
+                    c.totalAmount,
                     COALESCE((
                         SELECT SUM(pr.amount) 
                         FROM payments_registered pr 
@@ -98,9 +98,9 @@ export async function GET(request: Request) {
             if (activeCredits.length > 0) {
                 const activeCredit = activeCredits[0];
                 
-                // Calcular saldo pendiente del crédito activo
+                // Calcular saldo pendiente del crédito activo (igual que calculateCreditStatusDetails)
                 const totalPaid = Number(activeCredit.totalPaid || 0);
-                const totalAmount = Number(activeCredit.amount || 0);
+                const totalAmount = Number(activeCredit.totalAmount || 0);
                 const outstandingBalance = Math.max(0, totalAmount - totalPaid);
                 
                 credit.outstandingBalance = outstandingBalance;
