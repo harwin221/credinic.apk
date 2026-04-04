@@ -72,6 +72,39 @@ export async function GET(request: Request) {
         console.log('[REQUESTS] credits found:', credits.length);
         console.log('[REQUESTS] credits:', JSON.stringify(credits, null, 2));
 
+        // Para cada solicitud, calcular el saldo pendiente anterior y monto neto (igual que desembolsos)
+        for (const credit of credits) {
+            // Buscar si el cliente tiene créditos activos (saldo pendiente)
+            const activeCredits: any[] = await query(`
+                SELECT 
+                    c.id, 
+                    c.totalAmount,
+                    COALESCE((
+                        SELECT SUM(pr.amount) 
+                        FROM payments_registered pr 
+                        WHERE pr.creditId = c.id AND pr.status != 'ANULADO'
+                    ), 0) as totalPaid
+                FROM credits c
+                WHERE c.clientId = ? AND c.status = 'Active'
+                LIMIT 1
+            `, [credit.clientId]);
+
+            if (activeCredits.length > 0) {
+                const activeCredit = activeCredits[0];
+                
+                // Calcular saldo pendiente del crédito activo (igual que calculateCreditStatusDetails)
+                const totalPaid = Number(activeCredit.totalPaid || 0);
+                const totalAmount = Number(activeCredit.totalAmount || 0);
+                const outstandingBalance = Math.max(0, totalAmount - totalPaid);
+                
+                credit.outstandingBalance = outstandingBalance;
+                credit.netDisbursementAmount = Math.max(0, credit.amount - outstandingBalance);
+            } else {
+                credit.outstandingBalance = 0;
+                credit.netDisbursementAmount = credit.amount;
+            }
+        }
+
         return NextResponse.json({
             success: true,
             requests: credits
