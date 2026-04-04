@@ -47,6 +47,19 @@ export async function GET(request: Request) {
         console.log('[DISBURSEMENTS] whereClause:', whereClause);
         console.log('[DISBURSEMENTS] params:', params);
 
+        // Obtener todos los créditos relevantes: Approved, Active (desembolsados hoy), Rejected (denegados hoy)
+        let allWhereClause = "WHERE c.status IN ('Approved', 'Active', 'Rejected')";
+        const allParams: any[] = [];
+
+        // Filtrar por sucursal si es gerente u operativo
+        if (userRole === 'GERENTE' || userRole === 'OPERATIVO') {
+            allWhereClause += " AND c.branch COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci";
+            allParams.push(sucursalId);
+        }
+
+        console.log('[DISBURSEMENTS] allWhereClause:', allWhereClause);
+        console.log('[DISBURSEMENTS] allParams:', allParams);
+
         // Obtener desembolsos pendientes (créditos aprobados) con información completa
         const credits: any[] = await query(`
             SELECT 
@@ -65,6 +78,8 @@ export async function GET(request: Request) {
                 c.approvalDate,
                 c.approvedBy,
                 c.firstPaymentDate,
+                c.deliveryDate,
+                c.disbursedBy,
                 c.status,
                 cl.address,
                 cl.department,
@@ -72,9 +87,15 @@ export async function GET(request: Request) {
                 cl.neighborhood
             FROM credits c
             LEFT JOIN clients cl ON c.clientId = cl.id
-            ${whereClause}
-            ORDER BY c.approvalDate DESC
-        `, params);
+            ${allWhereClause}
+            ORDER BY 
+                CASE 
+                    WHEN c.status = 'Approved' THEN 1
+                    WHEN c.status = 'Active' THEN 2
+                    WHEN c.status = 'Rejected' THEN 3
+                END,
+                c.approvalDate DESC
+        `, allParams);
 
         console.log('[DISBURSEMENTS] credits found:', credits.length);
 

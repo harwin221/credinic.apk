@@ -43,11 +43,11 @@ export async function POST(request: Request) {
 
         console.log('[DISBURSE_CREDIT] Actualizando crédito');
 
-        // Actualizar el crédito a estado Active (desembolsado) usando NOW() de MySQL
+        // Actualizar el crédito a estado Active (desembolsado) usando hora de Nicaragua
         await query(`
             UPDATE credits 
             SET status = 'Active',
-                deliveryDate = NOW(),
+                deliveryDate = CONVERT_TZ(NOW(), '+00:00', '-06:00'),
                 disbursedBy = ?,
                 disbursedAmount = amount
             WHERE id = ?

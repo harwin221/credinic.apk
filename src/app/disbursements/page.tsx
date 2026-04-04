@@ -53,6 +53,8 @@ export default function DisbursementsPage() {
       const { credits: allCredits } = await getCreditsAdmin({ user });
 
       const todayStr = todayInNicaragua();
+      console.log('[DISBURSEMENTS] todayStr:', todayStr);
+      console.log('[DISBURSEMENTS] activeCredits count:', activeCredits.length);
 
       const approvedCredits = allCredits.filter(c => c.status === 'Approved');
       const activeCredits = allCredits.filter(c => c.status === 'Active');
@@ -75,7 +77,9 @@ export default function DisbursementsPage() {
             return false;
           }
 
-          return format(dateToCheck, 'yyyy-MM-dd') === todayStr;
+          const formattedDate = format(dateToCheck, 'yyyy-MM-dd');
+          console.log('[DISBURSEMENTS] Checking credit:', c.creditNumber, 'deliveryDate:', c.deliveryDate, 'formatted:', formattedDate, 'matches today?', formattedDate === todayStr);
+          return formattedDate === todayStr;
         } catch (error) {
           console.error('Error parsing deliveryDate:', c.deliveryDate, error);
           return false;
