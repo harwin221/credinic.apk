@@ -14,7 +14,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
         }
 
-        const userRows: any = await query('SELECT fullName, role, sucursalId FROM users WHERE id = ? LIMIT 1', [userId]);
+        const userRows: any = await query('SELECT fullName, role, sucursal_id FROM users WHERE id = ? LIMIT 1', [userId]);
         if (!userRows || userRows.length === 0) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         const user = userRows[0];
         const gestorName = user.fullName;
         const userRole = user.role;
-        const sucursalId = user.sucursalId;
+        const sucursalId = user.sucursal_id;
 
         // Si es gerente o admin, mostrar datos de toda la sucursal
         if (role === 'manager' || userRole === 'Gerente' || userRole === 'Admin') {
@@ -130,7 +130,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     const gestoresRows: any[] = await query(`
         SELECT id, fullName 
         FROM users 
-        WHERE sucursalId = ? AND role = 'Gestor' AND status = 'active'
+        WHERE sucursal_id = ? AND role = 'Gestor' AND active = 1
         ORDER BY fullName
     `, [sucursalId]);
 
@@ -140,7 +140,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursalId = ? AND pr.status != 'ANULADO'
+        WHERE u.sucursal_id = ? AND pr.status != 'ANULADO'
           AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
     `, [sucursalId]);
 
@@ -151,7 +151,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         SELECT SUM(c.remainingBalance) as totalCartera
         FROM credits c
         JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursalId = ? AND c.status = 'Active'
+        WHERE u.sucursal_id = ? AND c.status = 'Active'
     `, [sucursalId]);
 
     const totalCartera = Number(carteraRows[0]?.totalCartera || 0);
@@ -168,7 +168,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         ) as totalMora
         FROM credits c
         JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursalId = ? AND c.status = 'Active'
+        WHERE u.sucursal_id = ? AND c.status = 'Active'
     `, [sucursalId]);
 
     const totalMora = Math.max(0, Number(moraRows[0]?.totalMora || 0));
@@ -178,7 +178,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         SELECT COUNT(*) as count
         FROM credits c
         JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursalId = ? AND c.status = 'Pending'
+        WHERE u.sucursal_id = ? AND c.status = 'Pending'
     `, [sucursalId]);
 
     const solicitudesPendientes = Number(solicitudesRows[0]?.count || 0);
@@ -188,7 +188,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         SELECT COUNT(*) as count
         FROM credits c
         JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursalId = ? AND c.status = 'Approved'
+        WHERE u.sucursal_id = ? AND c.status = 'Approved'
     `, [sucursalId]);
 
     const desembolsosPendientes = Number(desembolsosRows[0]?.count || 0);
@@ -244,7 +244,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursalId = ? AND pr.status != 'ANULADO'
+        WHERE u.sucursal_id = ? AND pr.status != 'ANULADO'
           AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
     `, [sucursalId]);
 
