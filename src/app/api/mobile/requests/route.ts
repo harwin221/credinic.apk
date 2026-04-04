@@ -55,6 +55,8 @@ export async function GET(request: Request) {
                 c.clientName,
                 c.clientId,
                 c.amount,
+                c.termMonths,
+                c.totalInstallmentAmount,
                 c.collectionsManager,
                 c.branchName,
                 c.applicationDate,
