@@ -1,0 +1,65 @@
+import { NextResponse } from 'next/server';
+import { query } from '@/lib/mysql';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const userId = searchParams.get('userId');
+
+        if (!userId) {
+            return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
+        }
+
+        // Obtener información del usuario
+        const userRows: any = await query('SELECT fullName, role, sucursal_id FROM users WHERE id = ? LIMIT 1', [userId]);
+        if (!userRows || userRows.length === 0) {
+            return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
+        }
+
+        const user = userRows[0];
+        const userRole = user.role.toUpperCase();
+        const sucursalId = user.sucursal_id;
+
+        // Solo gerentes, admins y finanzas pueden ver solicitudes
+        if (!['GERENTE', 'ADMINISTRADOR', 'FINANZAS', 'OPERATIVO'].includes(userRole)) {
+            return NextResponse.json({ success: false, message: 'No tienes permisos' }, { status: 403 });
+        }
+
+        let whereClause = "WHERE c.status = 'Pending'";
+        const params: any[] = [];
+
+        // Filtrar por sucursal si es gerente u operativo
+        if (userRole === 'GERENTE' || userRole === 'OPERATIVO') {
+            whereClause += " AND c.branch = CAST(? AS CHAR)";
+            params.push(sucursalId);
+        }
+
+        // Obtener solicitudes pendientes
+        const credits: any[] = await query(`
+            SELECT 
+                c.id,
+                c.creditNumber,
+                c.clientName,
+                c.clientId,
+                c.amount,
+                c.collectionsManager,
+                c.branchName,
+                c.applicationDate,
+                c.status
+            FROM credits c
+            ${whereClause}
+            ORDER BY c.applicationDate DESC
+        `, params);
+
+        return NextResponse.json({
+            success: true,
+            requests: credits
+        });
+
+    } catch (error: any) {
+        console.error('Error in mobile requests API:', error);
+        return NextResponse.json({ success: false, message: `Error: ${error?.message}` }, { status: 500 });
+    }
+}
