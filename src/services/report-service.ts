@@ -1358,7 +1358,13 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
 
     sql += ' ORDER BY c.applicationDate DESC';
 
+    console.log('[REJECTION_ANALYSIS] SQL:', sql);
+    console.log('[REJECTION_ANALYSIS] Params:', params);
+
     const results = await query(sql, params);
+
+    console.log('[REJECTION_ANALYSIS] Results count:', results.length);
+    console.log('[REJECTION_ANALYSIS] Results:', JSON.stringify(results, null, 2));
 
     return results.map((row: any) => ({
         ...row,
