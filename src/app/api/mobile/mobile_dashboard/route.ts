@@ -145,31 +145,6 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
 
-    // Cartera total de la sucursal (convertir sucursalId a string)
-    const carteraRows: any = await query(`
-        SELECT SUM(c.remainingBalance) as totalCartera
-        FROM credits c
-        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Active'
-    `, [sucursalId]);
-
-    const totalCartera = Number(carteraRows[0]?.totalCartera || 0);
-
-    // Total en mora de la sucursal (convertir sucursalId a string)
-    const moraRows: any = await query(`
-        SELECT SUM(
-            COALESCE((
-                SELECT SUM(pp.amount) 
-                FROM payment_plan pp 
-                WHERE pp.creditId = c.id 
-                AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) < DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
-            ), 0) - c.totalPaid
-        ) as totalMora
-        FROM credits c
-        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Active'
-    `, [sucursalId]);
-
-    const totalMora = Math.max(0, Number(moraRows[0]?.totalMora || 0));
-
     // Solicitudes pendientes (convertir sucursalId a string)
     const solicitudesRows: any = await query(`
         SELECT COUNT(*) as count
@@ -279,8 +254,6 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         data: {
             gestorName: managerName,
             totalRecuperacion,
-            totalCartera,
-            totalMora,
             solicitudesPendientes,
             desembolsosPendientes,
             diaRecaudado,
