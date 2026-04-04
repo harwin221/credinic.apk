@@ -98,6 +98,14 @@ export async function GET(request: Request) {
         `, allParams);
 
         console.log('[DISBURSEMENTS] credits found:', credits.length);
+        console.log('[DISBURSEMENTS] Rejected credits:', credits.filter(c => c.status === 'Rejected').map(c => ({
+            id: c.id,
+            creditNumber: c.creditNumber,
+            clientName: c.clientName,
+            amount: c.amount,
+            status: c.status,
+            approvalDate: c.approvalDate
+        })));
 
         // Para cada crédito, calcular el saldo pendiente anterior y monto neto
         for (const credit of credits) {
