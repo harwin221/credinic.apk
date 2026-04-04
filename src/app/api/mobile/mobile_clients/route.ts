@@ -29,6 +29,13 @@ export async function GET(request: Request) {
             [gestorName]
         );
 
+        // Obtener clientes que ya tienen créditos pendientes o aprobados (no deberían aparecer en représtamo/renovación)
+        const pendingOrApprovedCredits: any[] = await query(
+            "SELECT DISTINCT clientId FROM credits WHERE collectionsManager = ? AND status IN ('Pending', 'Approved')",
+            [gestorName]
+        );
+        const clientsWithPendingCredits = new Set(pendingOrApprovedCredits.map((c: any) => c.clientId));
+
         if (activeCredits.length === 0) {
             return NextResponse.json({ success: true, data: { all: [], reloan: [], renewal: [] } });
         }
@@ -138,22 +145,27 @@ export async function GET(request: Request) {
         const reloan: any[] = [];
         const renewal: any[] = [];
 
-        // Filtrar clientes de représtamo
-        const reloanFiltered = clients.filter((c: any) => reloanClientIds.has(c.id));
+        // Filtrar clientes de représtamo (excluir los que tienen créditos pendientes/aprobados)
+        const reloanFiltered = clients.filter((c: any) => 
+            reloanClientIds.has(c.id) && !clientsWithPendingCredits.has(c.id)
+        );
         reloan.push(...reloanFiltered);
 
-        // Obtener clientes de renovación
+        // Obtener clientes de renovación (excluir los que tienen créditos pendientes/aprobados)
         if (renewalClientIds.size > 0) {
-            const renewalIds = [...renewalClientIds];
-            const rPlaceholders = renewalIds.map(() => '?').join(',');
-            let renewalSql = `SELECT id, clientNumber, name, cedula, phone FROM clients WHERE id IN (${rPlaceholders})`;
-            const renewalParams: any[] = [...renewalIds];
-            if (search) {
-                renewalSql += ` AND (name LIKE ? OR cedula LIKE ? OR clientNumber LIKE ?)`;
-                renewalParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+            const renewalIds = [...renewalClientIds].filter(id => !clientsWithPendingCredits.has(id));
+            
+            if (renewalIds.length > 0) {
+                const rPlaceholders = renewalIds.map(() => '?').join(',');
+                let renewalSql = `SELECT id, clientNumber, name, cedula, phone FROM clients WHERE id IN (${rPlaceholders})`;
+                const renewalParams: any[] = [...renewalIds];
+                if (search) {
+                    renewalSql += ` AND (name LIKE ? OR cedula LIKE ? OR clientNumber LIKE ?)`;
+                    renewalParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+                }
+                const renewalClients: any[] = await query(renewalSql, renewalParams);
+                renewal.push(...renewalClients);
             }
-            const renewalClients: any[] = await query(renewalSql, renewalParams);
-            renewal.push(...renewalClients);
         }
 
         return NextResponse.json({ success: true, data: { all: clients, reloan, renewal } });
