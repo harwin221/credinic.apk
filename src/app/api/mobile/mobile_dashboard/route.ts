@@ -134,13 +134,12 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         ORDER BY fullName
     `, [sucursalId]);
 
-    // Total recaudado hoy de toda la sucursal
+    // Total recaudado hoy de toda la sucursal (usando managedBy como la app web)
     const totalRows: any = await query(`
         SELECT SUM(pr.amount) as totalRecuperacion
         FROM payments_registered pr
-        JOIN credits c ON pr.creditId = c.id
-        JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursal_id = ? AND pr.status != 'ANULADO'
+        WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND active = 1)
+          AND pr.status != 'ANULADO'
           AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
     `, [sucursalId]);
 
@@ -221,10 +220,10 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     // Ordenar por total recaudado descendente
     recaudacionPorGestor.sort((a, b) => b.totalRecaudado - a.totalRecaudado);
 
-    // Detalle de recaudación (clasificación)
+    // Detalle de recaudación (clasificación) - usar managedBy como la app web
     const paymentRows: any[] = await query(`
         SELECT 
-            pr.creditId, pr.amount, pr.paymentDate,
+            pr.creditId, pr.amount, pr.paymentDate, pr.managedBy,
             c.dueDate,
             COALESCE((
                 SELECT SUM(pp.amount) FROM payment_plan pp 
@@ -243,8 +242,8 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
-        JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursal_id = ? AND pr.status != 'ANULADO'
+        WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND active = 1)
+          AND pr.status != 'ANULADO'
           AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
     `, [sucursalId]);
 
