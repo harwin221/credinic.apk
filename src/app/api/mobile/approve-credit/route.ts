@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,15 +28,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'No tienes permisos para aprobar' }, { status: 403 });
         }
 
-        // Actualizar el crédito a estado Approved
-        const approvalDate = nowInNicaragua();
+        console.log('[APPROVE_CREDIT] Actualizando crédito');
+
+        // Actualizar el crédito a estado Approved usando NOW() de MySQL
         await query(`
             UPDATE credits 
             SET status = 'Approved',
-                approvalDate = ?,
+                approvalDate = NOW(),
                 approvedBy = ?
             WHERE id = ?
-        `, [approvalDate, user.fullName, creditId]);
+        `, [user.fullName, creditId]);
 
         console.log('[APPROVE_CREDIT] Crédito aprobado exitosamente');
 

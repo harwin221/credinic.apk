@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,16 +28,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'No tienes permisos para rechazar' }, { status: 403 });
         }
 
-        // Actualizar el crédito a estado Rejected
-        const approvalDate = nowInNicaragua();
+        console.log('[REJECT_CREDIT] Actualizando crédito');
+
+        // Actualizar el crédito a estado Rejected usando NOW() de MySQL
         await query(`
             UPDATE credits 
             SET status = 'Rejected',
-                approvalDate = ?,
+                approvalDate = NOW(),
                 rejectionReason = ?,
                 rejectedBy = ?
             WHERE id = ?
-        `, [approvalDate, reason || 'Sin motivo especificado', user.fullName, creditId]);
+        `, [reason || 'Sin motivo especificado', user.fullName, creditId]);
 
         console.log('[REJECT_CREDIT] Crédito rechazado exitosamente');
 

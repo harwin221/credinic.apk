@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,16 +41,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'El crédito no está aprobado' }, { status: 400 });
         }
 
-        // Actualizar el crédito a estado Active (desembolsado)
-        const deliveryDate = nowInNicaragua();
+        console.log('[DISBURSE_CREDIT] Actualizando crédito');
+
+        // Actualizar el crédito a estado Active (desembolsado) usando NOW() de MySQL
         await query(`
             UPDATE credits 
             SET status = 'Active',
-                deliveryDate = ?,
+                deliveryDate = NOW(),
                 disbursedBy = ?,
                 disbursedAmount = amount
             WHERE id = ?
-        `, [deliveryDate, user.fullName, creditId]);
+        `, [user.fullName, creditId]);
 
         console.log('[DISBURSE_CREDIT] Crédito desembolsado exitosamente');
 
