@@ -147,9 +147,14 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
     console.log('[MANAGER_DASHBOARD] Gestores encontrados:', gestoresRows.length);
 
-    // Total de cartera activa de la sucursal
+    // Total de cartera activa de la sucursal (calculando pagos registrados)
     const carteraRows: any = await query(`
-        SELECT SUM(c.amount - COALESCE(c.totalPaid, 0)) as totalCartera
+        SELECT 
+            SUM(c.amount - COALESCE((
+                SELECT SUM(pr.amount) 
+                FROM payments_registered pr 
+                WHERE pr.creditId = c.id AND pr.status != 'ANULADO'
+            ), 0)) as totalCartera
         FROM credits c
         WHERE c.branch COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci 
           AND c.status = 'Active'

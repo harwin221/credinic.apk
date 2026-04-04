@@ -81,9 +81,16 @@ export async function GET(request: Request) {
         for (const credit of credits) {
             // Buscar si el cliente tiene créditos activos (saldo pendiente)
             const activeCredits: any[] = await query(`
-                SELECT id, amount, COALESCE(totalPaid, 0) as totalPaid
-                FROM credits
-                WHERE clientId = ? AND status = 'Active'
+                SELECT 
+                    c.id, 
+                    c.amount,
+                    COALESCE((
+                        SELECT SUM(pr.amount) 
+                        FROM payments_registered pr 
+                        WHERE pr.creditId = c.id AND pr.status != 'ANULADO'
+                    ), 0) as totalPaid
+                FROM credits c
+                WHERE c.clientId = ? AND c.status = 'Active'
                 LIMIT 1
             `, [credit.clientId]);
 
