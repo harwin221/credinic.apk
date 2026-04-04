@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createCreditImproved } from '@/services/credit-service-improved';
+import { addCredit } from '@/services/credit-service-server';
 import { getUser } from '@/services/user-service-server';
+import { getClient } from '@/services/client-service-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * Endpoint para crear una nueva solicitud de crédito desde la app móvil
  * POST /api/mobile/mobile_create_credit
  * 
- * USA EL MISMO SERVICIO QUE LA APP WEB: credit-service-improved.ts
+ * USA EXACTAMENTE EL MISMO SERVICIO QUE LA APP WEB: credit-service-server.ts
  */
 export async function POST(request: Request) {
     try {
@@ -46,9 +47,19 @@ export async function POST(request: Request) {
             }, { status: 404 });
         }
 
+        // Obtener información del cliente
+        const client = await getClient(clientId);
+        if (!client) {
+            return NextResponse.json({ 
+                success: false, 
+                message: 'Cliente no encontrado' 
+            }, { status: 404 });
+        }
+
         // Preparar datos para el servicio (mismo formato que la web)
         const creditData = {
             clientId,
+            clientName: client.name,
             productType,
             subProduct,
             productDestination,
@@ -62,8 +73,10 @@ export async function POST(request: Request) {
             guarantors,
         };
 
-        // Usar el mismo servicio que la app web
-        const result = await createCreditImproved(creditData, creator);
+        console.log('[MOBILE_CREATE_CREDIT] Usando addCredit de credit-service-server.ts');
+
+        // Usar EXACTAMENTE el mismo servicio que la app web
+        const result = await addCredit(creditData, creator);
 
         if (!result.success) {
             return NextResponse.json({ 
@@ -72,11 +85,13 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
+        console.log('[MOBILE_CREATE_CREDIT] Crédito creado exitosamente:', result.creditId);
+
         return NextResponse.json({
             success: true,
             message: 'Solicitud de crédito creada exitosamente',
             data: {
-                creditId: result.data,
+                creditId: result.creditId,
                 status: creator.role.toUpperCase() === 'ADMINISTRADOR' || creator.role.toUpperCase() === 'OPERATIVO' ? 'Approved' : 'Pending'
             }
         });

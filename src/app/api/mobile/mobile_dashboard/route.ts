@@ -54,7 +54,7 @@ async function getGestorDashboard(gestorName: string) {
         SELECT SUM(amount) as totalRecuperacion, COUNT(DISTINCT creditId) as totalClientesCobrados
         FROM payments_registered 
         WHERE managedBy = ? AND status != 'ANULADO'
-          AND DATE(CONVERT_TZ(paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
+          AND DATE(paymentDate) = CURDATE()
     `, [gestorName]);
 
     const totalRecuperacion = Number(todayRows[0]?.totalRecuperacion || 0);
@@ -75,7 +75,7 @@ async function getGestorDashboard(gestorName: string) {
             COALESCE((
                 SELECT SUM(pp.amount) FROM payment_plan pp 
                 WHERE pp.creditId = pr.creditId 
-                AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) < DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
+                AND DATE(pp.paymentDate) < DATE(pr.paymentDate)
             ), 0) as amountDueBefore,
             COALESCE((
                 SELECT SUM(pr2.amount) FROM payments_registered pr2 
@@ -85,12 +85,12 @@ async function getGestorDashboard(gestorName: string) {
             COALESCE((
                 SELECT SUM(pp3.amount) FROM payment_plan pp3 
                 WHERE pp3.creditId = pr.creditId 
-                AND DATE(CONVERT_TZ(pp3.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
+                AND DATE(pp3.paymentDate) = DATE(pr.paymentDate)
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-          AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
+          AND DATE(pr.paymentDate) = CURDATE()
     `, [gestorName]);
 
     let diaRecaudado = 0;
@@ -169,7 +169,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         FROM payments_registered pr
         WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND active = 1)
           AND pr.status != 'ANULADO'
-          AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
+          AND DATE(pr.paymentDate) = CURDATE()
     `, [sucursalId]);
 
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
@@ -206,7 +206,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
                 MAX(pr.paymentDate) as ultimaCuota
             FROM payments_registered pr
             WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-              AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
+              AND DATE(pr.paymentDate) = CURDATE()
         `, [gestor.fullName]);
 
         const total = Number(gestorRecaudacion[0]?.total || 0);
@@ -234,7 +234,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             COALESCE((
                 SELECT SUM(pp.amount) FROM payment_plan pp 
                 WHERE pp.creditId = pr.creditId 
-                AND DATE(CONVERT_TZ(pp.paymentDate, '+00:00', '-06:00')) < DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
+                AND DATE(pp.paymentDate) < DATE(pr.paymentDate)
             ), 0) as amountDueBefore,
             COALESCE((
                 SELECT SUM(pr2.amount) FROM payments_registered pr2 
@@ -244,13 +244,13 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             COALESCE((
                 SELECT SUM(pp3.amount) FROM payment_plan pp3 
                 WHERE pp3.creditId = pr.creditId 
-                AND DATE(CONVERT_TZ(pp3.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
+                AND DATE(pp3.paymentDate) = DATE(pr.paymentDate)
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND active = 1)
           AND pr.status != 'ANULADO'
-          AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
+          AND DATE(pr.paymentDate) = CURDATE()
     `, [sucursalId]);
 
     console.log('[MANAGER_DASHBOARD] Pagos del día:', paymentRows.length);

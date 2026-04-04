@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { addPaymentImproved } from '@/services/credit-service-improved';
+import { addPayment } from '@/services/credit-service-server';
 import { getUser } from '@/services/user-service-server';
-import { getNextSequenceValue } from '@/lib/mysql';
 import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * Endpoint para registrar pagos desde la app móvil
  * POST /api/mobile/mobile_payments
  * 
- * USA EL MISMO SERVICIO QUE LA APP WEB: credit-service-improved.ts
+ * USA EXACTAMENTE EL MISMO SERVICIO QUE LA APP WEB: credit-service-server.ts
  */
 export async function POST(request: Request) {
     try {
@@ -27,9 +26,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'Usuario no encontrado' }, { status: 404 });
         }
 
-        // Generar número de transacción
-        const sequence = await getNextSequenceValue('reciboNumber');
-        const transactionNumber = `REC-${String(sequence).padStart(6, '0')}`;
         const paymentDate = nowInNicaragua();
 
         // Preparar datos del pago (mismo formato que la web)
@@ -37,14 +33,16 @@ export async function POST(request: Request) {
             paymentDate,
             amount: Number(amount),
             managedBy: user.fullName,
-            transactionNumber,
-            status: 'VALIDO',
+            transactionNumber: '', // addPayment genera el número automáticamente
+            status: 'VALIDO' as const,
             paymentType,
             notes: notes || null
         };
 
-        // Usar el mismo servicio que la app web
-        const result = await addPaymentImproved(creditId, paymentData, user);
+        console.log('[MOBILE_PAYMENTS] Usando addPayment de credit-service-server.ts');
+
+        // Usar EXACTAMENTE el mismo servicio que la app web
+        const result = await addPayment(creditId, paymentData, user);
 
         if (!result.success) {
             return NextResponse.json({ 
@@ -53,11 +51,13 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
+        console.log('[MOBILE_PAYMENTS] Pago registrado exitosamente:', result.paymentId);
+
         return NextResponse.json({
             success: true,
             message: 'Pago registrado con éxito',
-            paymentId: result.data,
-            transactionNumber
+            paymentId: result.paymentId,
+            transactionNumber: result.transactionNumber
         });
 
     } catch (error: any) {
