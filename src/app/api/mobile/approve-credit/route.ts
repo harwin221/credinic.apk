@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/mysql';
-import { nowInNicaragua, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
+import { updateCredit } from '@/services/credit-service-server';
+import { getUser } from '@/services/user-service-server';
+import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Endpoint para aprobar créditos desde la app móvil
+ * USA EXACTAMENTE EL MISMO SERVICIO QUE LA WEB: updateCredit de credit-service-server.ts
+ */
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -15,13 +20,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'Faltan parámetros' }, { status: 400 });
         }
 
-        // Obtener información del usuario
-        const userRows: any = await query('SELECT fullName, role FROM users WHERE id = ? LIMIT 1', [userId]);
-        if (!userRows || userRows.length === 0) {
+        // Obtener información del usuario completo
+        const user = await getUser(userId);
+        if (!user) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
 
-        const user = userRows[0];
         const userRole = user.role.toUpperCase();
 
         // Solo gerentes, admins, finanzas y operativos pueden aprobar
@@ -29,20 +33,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'No tienes permisos para aprobar' }, { status: 403 });
         }
 
-        console.log('[APPROVE_CREDIT] Actualizando crédito');
+        console.log('[APPROVE_CREDIT] Usando updateCredit de la web');
 
-        // Usar la misma lógica que la web: nowInNicaragua() + isoToMySQLDateTimeNoon()
-        const approvalDateISO = nowInNicaragua();
-        const approvalDateMySQL = isoToMySQLDateTimeNoon(approvalDateISO);
+        // Usar EXACTAMENTE el mismo servicio que la web
+        const result = await updateCredit(creditId, {
+            status: 'Approved',
+            approvalDate: nowInNicaragua(),
+            approvedBy: user.fullName
+        }, user);
 
-        // Actualizar el crédito a estado Approved
-        await query(`
-            UPDATE credits 
-            SET status = 'Approved',
-                approvalDate = ?,
-                approvedBy = ?
-            WHERE id = ?
-        `, [approvalDateMySQL, user.fullName, creditId]);
+        if (!result.success) {
+            return NextResponse.json({ 
+                success: false, 
+                message: result.error || 'No se pudo aprobar el crédito' 
+            }, { status: 400 });
+        }
 
         console.log('[APPROVE_CREDIT] Crédito aprobado exitosamente');
 

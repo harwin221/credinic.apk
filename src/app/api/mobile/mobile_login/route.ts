@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
 import * as bcrypt from 'bcryptjs';
 
+/**
+ * Endpoint de login para la app móvil
+ * USA EXACTAMENTE LA MISMA LÓGICA QUE LA WEB: login/actions.ts
+ * 
+ * Diferencias con la web:
+ * - No usa cookies/JWT (la app móvil maneja su propia sesión)
+ * - Devuelve los datos del usuario directamente
+ * - Registra en auditoría con device: 'mobile'
+ */
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -14,41 +23,63 @@ export async function POST(request: Request) {
             );
         }
 
-        // Buscar al usuario solo por username (igual que la app web)
-        const rows: any = await query(
-            'SELECT * FROM users WHERE username = ? AND active = true LIMIT 1',
-            [username.toLowerCase()]
-        );
+        // LÓGICA IDÉNTICA A LA WEB: Buscar usuario por username
+        const rows: any = await query('SELECT * FROM users WHERE username = ?', [username.toLowerCase()]);
 
-        if (!rows || rows.length === 0) {
+        if (rows.length === 0) {
+            console.error(`[Login Móvil Fallido] Usuario no encontrado: ${username.toLowerCase()}`);
             return NextResponse.json(
-                { success: false, message: 'Usuario incorrecto o cuenta desactivada' },
+                { success: false, message: 'Credenciales incorrectas.' },
                 { status: 401 }
             );
         }
 
         const user = rows[0];
 
-        // Válidar contraseña con bcrypt
-        const isValid = await bcrypt.compare(password, user.hashed_password);
-
-        if (!isValid) {
+        // LÓGICA IDÉNTICA A LA WEB: Verificar si la cuenta está activa
+        if (!user.active) {
+            console.error(`[Login Móvil Fallido] Cuenta inactiva: ${username.toLowerCase()}`);
             return NextResponse.json(
-                { success: false, message: 'Contraseña incorrecta' },
+                { success: false, message: 'La cuenta de usuario está inactiva.' },
                 { status: 401 }
             );
         }
 
-        // Lista de roles con permiso de acceso móvil (Admin se deja momentáneamente para que puedas hacer pruebas)
-        const validRoles = ['GESTOR', 'GERENTE', 'ADMINISTRADOR'];
-        if (!validRoles.includes(user.role.toUpperCase())) {
+        // LÓGICA IDÉNTICA A LA WEB: Verificar que tenga contraseña
+        if (!user.hashed_password) {
+            console.error(`[Login Móvil Fallido] Usuario sin contraseña: ${username.toLowerCase()}`);
             return NextResponse.json(
-                { success: false, message: 'Rol de usuario sin acceso a la aplicación móvil' },
+                { success: false, message: 'Cuenta de usuario corrupta. Contacte al administrador.' },
+                { status: 401 }
+            );
+        }
+
+        // LÓGICA IDÉNTICA A LA WEB: Validar contraseña con bcrypt
+        const passwordsMatch = await bcrypt.compare(password, user.hashed_password);
+
+        if (!passwordsMatch) {
+            console.error(`[Login Móvil Fallido] Contraseña incorrecta: ${username.toLowerCase()}`);
+            return NextResponse.json(
+                { success: false, message: 'Credenciales incorrectas.' },
+                { status: 401 }
+            );
+        }
+
+        // LÓGICA IDÉNTICA A LA WEB: Verificar control de acceso
+        const { checkAccess } = await import('@/services/settings-service');
+        const accessCheck = await checkAccess(user.role, user.sucursal_id);
+
+        if (!accessCheck.allowed) {
+            console.warn(`[Login Móvil Denegado] Usuario ${username} bloqueado: ${accessCheck.reason}`);
+            return NextResponse.json(
+                { success: false, message: accessCheck.reason },
                 { status: 403 }
             );
         }
 
-        // Registrar el inicio de sesión en el log de auditoría
+        console.log(`[Login Móvil Exitoso] Usuario autenticado: ${username.toLowerCase()}`);
+
+        // LÓGICA IDÉNTICA A LA WEB: Registrar en auditoría
         try {
             const { createLog } = await import('@/services/audit-log-service');
             const appUser = {
@@ -59,6 +90,9 @@ export async function POST(request: Request) {
                 role: user.role,
                 sucursal: user.sucursal_id,
                 sucursalName: user.sucursal_name,
+                active: user.active,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
             };
             await createLog(appUser, 'user:login', 'Inicio de sesión desde app móvil', { 
                 targetId: user.id,
@@ -69,7 +103,7 @@ export async function POST(request: Request) {
             // No fallar el login si el log falla
         }
 
-        // Si todo salió bien, respondemos con éxito y los datos limpios
+        // Devolver datos del usuario (la app móvil maneja su propia sesión)
         return NextResponse.json({
             success: true,
             user: {
@@ -80,13 +114,14 @@ export async function POST(request: Request) {
                 role: user.role,
                 sucursal: user.sucursal_id,
                 sucursalName: user.sucursal_name,
+                mustChangePassword: user.mustChangePassword
             }
         });
 
     } catch (error) {
-        console.error('Error in mobile login API:', error);
+        console.error('[Login Móvil Error] Error inesperado:', error);
         return NextResponse.json(
-            { success: false, message: 'Error interno del servidor conectando con BD' },
+            { success: false, message: 'Error del servidor al intentar iniciar sesión.' },
             { status: 500 }
         );
     }

@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/mysql';
-import { nowInNicaragua, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
+import { updateCredit } from '@/services/credit-service-server';
+import { getUser } from '@/services/user-service-server';
+import { nowInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Endpoint para denegar desembolsos desde la app móvil
+ * USA EXACTAMENTE EL MISMO SERVICIO QUE LA WEB: updateCredit de credit-service-server.ts
+ */
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -15,13 +20,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'Faltan parámetros' }, { status: 400 });
         }
 
-        // Obtener información del usuario
-        const userRows: any = await query('SELECT fullName, role FROM users WHERE id = ? LIMIT 1', [userId]);
-        if (!userRows || userRows.length === 0) {
+        // Obtener información del usuario completo
+        const user = await getUser(userId);
+        if (!user) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
 
-        const user = userRows[0];
         const userRole = user.role.toUpperCase();
 
         // Solo gerentes, admins y operativos pueden denegar desembolsos
@@ -29,34 +33,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: 'No tienes permisos para denegar' }, { status: 403 });
         }
 
-        // Obtener el crédito
-        const creditRows: any = await query('SELECT * FROM credits WHERE id = ? LIMIT 1', [creditId]);
-        if (!creditRows || creditRows.length === 0) {
-            return NextResponse.json({ success: false, message: 'Crédito no encontrado' }, { status: 404 });
+        console.log('[DENY_DISBURSEMENT] Usando updateCredit de la web');
+
+        // Usar EXACTAMENTE el mismo servicio que la web
+        const result = await updateCredit(creditId, {
+            status: 'Rejected',
+            approvalDate: nowInNicaragua(),
+            rejectionReason: `Rechazado en etapa de desembolso: ${reason || 'Sin motivo especificado'}`,
+            rejectedBy: user.fullName
+        }, user);
+
+        if (!result.success) {
+            return NextResponse.json({ 
+                success: false, 
+                message: result.error || 'No se pudo denegar el desembolso' 
+            }, { status: 400 });
         }
-
-        const credit = creditRows[0];
-
-        // Verificar que el crédito esté en estado Approved
-        if (credit.status !== 'Approved') {
-            return NextResponse.json({ success: false, message: 'El crédito no está aprobado' }, { status: 400 });
-        }
-
-        console.log('[DENY_DISBURSEMENT] Denegando desembolso');
-
-        // Usar la misma lógica que la web: nowInNicaragua() + isoToMySQLDateTimeNoon()
-        const approvalDateISO = nowInNicaragua();
-        const approvalDateMySQL = isoToMySQLDateTimeNoon(approvalDateISO);
-
-        // Cambiar el estado a Rejected (denegar desembolso) y actualizar approvalDate
-        await query(`
-            UPDATE credits 
-            SET status = 'Rejected',
-                approvalDate = ?,
-                rejectionReason = ?,
-                rejectedBy = ?
-            WHERE id = ?
-        `, [approvalDateMySQL, reason || 'Desembolso denegado desde app móvil', user.fullName, creditId]);
 
         console.log('[DENY_DISBURSEMENT] Desembolso denegado exitosamente');
 
