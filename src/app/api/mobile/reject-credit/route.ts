@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { nowInNicaragua, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,15 +31,19 @@ export async function POST(request: Request) {
 
         console.log('[REJECT_CREDIT] Actualizando crédito');
 
-        // Actualizar el crédito a estado Rejected usando NOW() de MySQL
+        // Usar la misma lógica que la web: nowInNicaragua() + isoToMySQLDateTimeNoon()
+        const approvalDateISO = nowInNicaragua();
+        const approvalDateMySQL = isoToMySQLDateTimeNoon(approvalDateISO);
+
+        // Actualizar el crédito a estado Rejected
         await query(`
             UPDATE credits 
             SET status = 'Rejected',
-                approvalDate = NOW(),
+                approvalDate = ?,
                 rejectionReason = ?,
                 rejectedBy = ?
             WHERE id = ?
-        `, [reason || 'Sin motivo especificado', user.fullName, creditId]);
+        `, [approvalDateMySQL, reason || 'Sin motivo especificado', user.fullName, creditId]);
 
         console.log('[REJECT_CREDIT] Crédito rechazado exitosamente');
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { nowInNicaragua, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,14 +44,19 @@ export async function POST(request: Request) {
 
         console.log('[DENY_DISBURSEMENT] Denegando desembolso');
 
-        // Cambiar el estado a Rejected (denegar desembolso)
+        // Usar la misma lógica que la web: nowInNicaragua() + isoToMySQLDateTimeNoon()
+        const approvalDateISO = nowInNicaragua();
+        const approvalDateMySQL = isoToMySQLDateTimeNoon(approvalDateISO);
+
+        // Cambiar el estado a Rejected (denegar desembolso) y actualizar approvalDate
         await query(`
             UPDATE credits 
             SET status = 'Rejected',
+                approvalDate = ?,
                 rejectionReason = ?,
                 rejectedBy = ?
             WHERE id = ?
-        `, [reason || 'Desembolso denegado desde app móvil', user.fullName, creditId]);
+        `, [approvalDateMySQL, reason || 'Desembolso denegado desde app móvil', user.fullName, creditId]);
 
         console.log('[DENY_DISBURSEMENT] Desembolso denegado exitosamente');
 

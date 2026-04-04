@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { nowInNicaragua, isoToMySQLDateTimeNoon } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,15 +44,19 @@ export async function POST(request: Request) {
 
         console.log('[DISBURSE_CREDIT] Actualizando crédito');
 
-        // Actualizar el crédito a estado Active (desembolsado) usando hora de Nicaragua
+        // Usar la misma lógica que la web: nowInNicaragua() + isoToMySQLDateTimeNoon()
+        const deliveryDateISO = nowInNicaragua();
+        const deliveryDateMySQL = isoToMySQLDateTimeNoon(deliveryDateISO);
+
+        // Actualizar el crédito a estado Active (desembolsado)
         await query(`
             UPDATE credits 
             SET status = 'Active',
-                deliveryDate = CONVERT_TZ(NOW(), '+00:00', '-06:00'),
+                deliveryDate = ?,
                 disbursedBy = ?,
                 disbursedAmount = amount
             WHERE id = ?
-        `, [user.fullName, creditId]);
+        `, [deliveryDateMySQL, user.fullName, creditId]);
 
         console.log('[DISBURSE_CREDIT] Crédito desembolsado exitosamente');
 

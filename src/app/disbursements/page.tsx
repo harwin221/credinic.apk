@@ -62,10 +62,23 @@ export default function DisbursementsPage() {
       const disbursedToday = activeCredits.filter(c => {
         if (!c.deliveryDate) return false;
         try {
-          // Convertir la fecha UTC a Nicaragua antes de comparar (igual que el reporte)
-          const deliveryDateNic = formatDateForUser(c.deliveryDate, 'yyyy-MM-dd');
-          console.log('[DISBURSEMENTS] Credit:', c.creditNumber, 'deliveryDate:', c.deliveryDate, 'in Nicaragua:', deliveryDateNic, 'matches today?', deliveryDateNic === todayStr);
-          return deliveryDateNic === todayStr;
+          // Manejar diferentes tipos de fecha
+          let dateToCheck: Date;
+          if (typeof c.deliveryDate === 'string') {
+            dateToCheck = parseISO(c.deliveryDate);
+          } else {
+            // Si es Date object, timestamp u otro formato
+            dateToCheck = new Date(c.deliveryDate);
+          }
+
+          if (!isValid(dateToCheck)) {
+            console.error('Invalid deliveryDate:', c.deliveryDate);
+            return false;
+          }
+
+          const formattedDate = format(dateToCheck, 'yyyy-MM-dd');
+          console.log('[DISBURSEMENTS] Checking credit:', c.creditNumber, 'deliveryDate:', c.deliveryDate, 'formatted:', formattedDate, 'matches today?', formattedDate === todayStr);
+          return formattedDate === todayStr;
         } catch (error) {
           console.error('Error parsing deliveryDate:', c.deliveryDate, error);
           return false;
@@ -75,9 +88,21 @@ export default function DisbursementsPage() {
       const deniedToday = rejectedCredits.filter(c => {
         if (!c.approvalDate) return false;
         try {
-          // Convertir la fecha UTC a Nicaragua antes de comparar
-          const approvalDateNic = formatDateForUser(c.approvalDate, 'yyyy-MM-dd');
-          return approvalDateNic === todayStr;
+          // Manejar diferentes tipos de fecha
+          let dateToCheck: Date;
+          if (typeof c.approvalDate === 'string') {
+            dateToCheck = parseISO(c.approvalDate);
+          } else {
+            // Si es Date object, timestamp u otro formato
+            dateToCheck = new Date(c.approvalDate);
+          }
+
+          if (!isValid(dateToCheck)) {
+            console.error('Invalid approvalDate:', c.approvalDate);
+            return false;
+          }
+
+          return format(dateToCheck, 'yyyy-MM-dd') === todayStr;
         } catch (error) {
           console.error('Error parsing approvalDate:', c.approvalDate, error);
           return false;

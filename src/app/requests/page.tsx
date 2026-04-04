@@ -49,7 +49,7 @@ function CreditApprovalTabs({ user }: { user: User }) {
     setIsLoading(true);
 
     try {
-      const todayNicaragua = todayInNicaragua();
+      const todayNicaragua = format(new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Managua' })), 'yyyy-MM-dd');
 
       const { credits: pendingCredits } = await getCreditsAdmin({ status: 'Pending', user });
       const { credits: rejectedCreditsToday } = await getCreditsAdmin({ status: 'Rejected', user, dateFrom: todayNicaragua, dateTo: todayNicaragua });

@@ -47,19 +47,16 @@ export async function GET(request: Request) {
         console.log('[DISBURSEMENTS] whereClause:', whereClause);
         console.log('[DISBURSEMENTS] params:', params);
 
-        // Obtener créditos según su estado:
-        // - Approved: Todos (sin filtro de fecha)
-        // - Active: Solo los desembolsados HOY en Nicaragua
-        // - Rejected: Solo los rechazados HOY en Nicaragua
-        const todayNicaragua = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Managua' }); // formato YYYY-MM-DD
-        console.log('[DISBURSEMENTS] Today in Nicaragua:', todayNicaragua);
+        // Obtener TODOS los créditos Approved, Active y Rejected sin filtrar por fecha
+        // El filtrado por fecha se hará en el cliente (app móvil)
+        console.log('[DISBURSEMENTS] Fetching all credits without date filter');
         
         let allWhereClause = `WHERE (
-            (c.status = 'Approved')
-            OR (c.status = 'Active' AND DATE(CONVERT_TZ(c.deliveryDate, '+00:00', '-06:00')) = ?)
-            OR (c.status = 'Rejected' AND DATE(CONVERT_TZ(c.approvalDate, '+00:00', '-06:00')) = ?)
+            c.status = 'Approved'
+            OR c.status = 'Active'
+            OR c.status = 'Rejected'
         )`;
-        const allParams: any[] = [todayNicaragua, todayNicaragua];
+        const allParams: any[] = [];
 
         // Filtrar por sucursal si es gerente u operativo
         if (userRole === 'GERENTE' || userRole === 'OPERATIVO') {
