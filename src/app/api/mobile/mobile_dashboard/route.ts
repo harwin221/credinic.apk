@@ -145,17 +145,16 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
 
-    // Cartera total de la sucursal
+    // Cartera total de la sucursal (convertir sucursalId a string)
     const carteraRows: any = await query(`
         SELECT SUM(c.remainingBalance) as totalCartera
         FROM credits c
-        JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursal_id = ? AND c.status = 'Active'
+        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Active'
     `, [sucursalId]);
 
     const totalCartera = Number(carteraRows[0]?.totalCartera || 0);
 
-    // Total en mora de la sucursal
+    // Total en mora de la sucursal (convertir sucursalId a string)
     const moraRows: any = await query(`
         SELECT SUM(
             COALESCE((
@@ -166,28 +165,25 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             ), 0) - c.totalPaid
         ) as totalMora
         FROM credits c
-        JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursal_id = ? AND c.status = 'Active'
+        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Active'
     `, [sucursalId]);
 
     const totalMora = Math.max(0, Number(moraRows[0]?.totalMora || 0));
 
-    // Solicitudes pendientes
+    // Solicitudes pendientes (convertir sucursalId a string)
     const solicitudesRows: any = await query(`
         SELECT COUNT(*) as count
         FROM credits c
-        JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursal_id = ? AND c.status = 'Pending'
+        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Pending'
     `, [sucursalId]);
 
     const solicitudesPendientes = Number(solicitudesRows[0]?.count || 0);
 
-    // Desembolsos pendientes (aprobados pero no desembolsados)
+    // Desembolsos pendientes (convertir sucursalId a string)
     const desembolsosRows: any = await query(`
         SELECT COUNT(*) as count
         FROM credits c
-        JOIN users u ON c.collectionsManagerId = u.id
-        WHERE u.sucursal_id = ? AND c.status = 'Approved'
+        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Approved'
     `, [sucursalId]);
 
     const desembolsosPendientes = Number(desembolsosRows[0]?.count || 0);
