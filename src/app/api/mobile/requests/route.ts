@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
         // Filtrar por sucursal si es gerente u operativo
         if (userRole === 'GERENTE' || userRole === 'OPERATIVO') {
-            whereClause += " AND c.branch = CAST(? AS CHAR)";
+            whereClause += " AND c.branch COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci";
             params.push(sucursalId);
         }
 

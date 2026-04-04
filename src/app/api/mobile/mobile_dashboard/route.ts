@@ -159,21 +159,23 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
     console.log('[MANAGER_DASHBOARD] Total recuperación:', totalRecuperacion);
 
-    // Solicitudes pendientes (convertir sucursalId a string)
+    // Solicitudes pendientes (convertir sucursalId a string con collation correcta)
     const solicitudesRows: any = await query(`
         SELECT COUNT(*) as count
         FROM credits c
-        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Pending'
+        WHERE c.branch COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci 
+          AND c.status = 'Pending'
     `, [sucursalId]);
 
     const solicitudesPendientes = Number(solicitudesRows[0]?.count || 0);
     console.log('[MANAGER_DASHBOARD] Solicitudes pendientes:', solicitudesPendientes);
 
-    // Desembolsos pendientes (convertir sucursalId a string)
+    // Desembolsos pendientes (convertir sucursalId a string con collation correcta)
     const desembolsosRows: any = await query(`
         SELECT COUNT(*) as count
         FROM credits c
-        WHERE c.branch = CAST(? AS CHAR) AND c.status = 'Approved'
+        WHERE c.branch COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci 
+          AND c.status = 'Approved'
     `, [sucursalId]);
 
     const desembolsosPendientes = Number(desembolsosRows[0]?.count || 0);
