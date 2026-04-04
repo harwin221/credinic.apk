@@ -8,12 +8,16 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const userId = searchParams.get('userId');
 
+        console.log('[REQUESTS] userId:', userId);
+
         if (!userId) {
             return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
         }
 
         // Obtener información del usuario
         const userRows: any = await query('SELECT fullName, role, sucursal_id FROM users WHERE id = ? LIMIT 1', [userId]);
+        console.log('[REQUESTS] userRows:', userRows);
+        
         if (!userRows || userRows.length === 0) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
@@ -21,6 +25,10 @@ export async function GET(request: Request) {
         const user = userRows[0];
         const userRole = user.role.toUpperCase();
         const sucursalId = user.sucursal_id;
+
+        console.log('[REQUESTS] user:', user);
+        console.log('[REQUESTS] userRole:', userRole);
+        console.log('[REQUESTS] sucursalId:', sucursalId);
 
         // Solo gerentes, admins y finanzas pueden ver solicitudes
         if (!['GERENTE', 'ADMINISTRADOR', 'FINANZAS', 'OPERATIVO'].includes(userRole)) {
@@ -35,6 +43,9 @@ export async function GET(request: Request) {
             whereClause += " AND c.branch = CAST(? AS CHAR)";
             params.push(sucursalId);
         }
+
+        console.log('[REQUESTS] whereClause:', whereClause);
+        console.log('[REQUESTS] params:', params);
 
         // Obtener solicitudes pendientes
         const credits: any[] = await query(`
@@ -52,6 +63,9 @@ export async function GET(request: Request) {
             ${whereClause}
             ORDER BY c.applicationDate DESC
         `, params);
+
+        console.log('[REQUESTS] credits found:', credits.length);
+        console.log('[REQUESTS] credits:', JSON.stringify(credits, null, 2));
 
         return NextResponse.json({
             success: true,

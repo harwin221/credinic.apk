@@ -8,12 +8,16 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const userId = searchParams.get('userId');
 
+        console.log('[DISBURSEMENTS] userId:', userId);
+
         if (!userId) {
             return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
         }
 
         // Obtener información del usuario
         const userRows: any = await query('SELECT fullName, role, sucursal_id FROM users WHERE id = ? LIMIT 1', [userId]);
+        console.log('[DISBURSEMENTS] userRows:', userRows);
+        
         if (!userRows || userRows.length === 0) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
@@ -21,6 +25,10 @@ export async function GET(request: Request) {
         const user = userRows[0];
         const userRole = user.role.toUpperCase();
         const sucursalId = user.sucursal_id;
+
+        console.log('[DISBURSEMENTS] user:', user);
+        console.log('[DISBURSEMENTS] userRole:', userRole);
+        console.log('[DISBURSEMENTS] sucursalId:', sucursalId);
 
         // Solo gerentes, admins y operativos pueden ver desembolsos
         if (!['GERENTE', 'ADMINISTRADOR', 'OPERATIVO'].includes(userRole)) {
@@ -35,6 +43,9 @@ export async function GET(request: Request) {
             whereClause += " AND c.branch = CAST(? AS CHAR)";
             params.push(sucursalId);
         }
+
+        console.log('[DISBURSEMENTS] whereClause:', whereClause);
+        console.log('[DISBURSEMENTS] params:', params);
 
         // Obtener desembolsos pendientes (créditos aprobados)
         const credits: any[] = await query(`
@@ -53,6 +64,9 @@ export async function GET(request: Request) {
             ${whereClause}
             ORDER BY c.approvalDate DESC
         `, params);
+
+        console.log('[DISBURSEMENTS] credits found:', credits.length);
+        console.log('[DISBURSEMENTS] credits:', JSON.stringify(credits, null, 2));
 
         return NextResponse.json({
             success: true,
