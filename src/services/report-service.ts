@@ -1311,9 +1311,12 @@ export async function generateFutureInstallmentsReport(filters: ReportFilters): 
 export async function generateRejectionAnalysisReport(filters: ReportFilters): Promise<RejectionAnalysisItem[]> {
     const { sucursales, users, dateFrom, dateTo } = filters;
 
+    console.log('[REJECTION_ANALYSIS] Filters received:', JSON.stringify(filters, null, 2));
+
     let sql = `
         SELECT 
             c.id as creditId,
+            c.creditNumber,
             c.applicationDate,
             c.clientName,
             c.branchName as sucursalName,
