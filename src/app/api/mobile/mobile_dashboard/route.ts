@@ -10,11 +10,15 @@ export async function GET(request: Request) {
         const role = searchParams.get('role');
         const action = searchParams.get('action');
 
+        console.log('[DASHBOARD] userId:', userId, 'role:', role);
+
         if (!userId) {
             return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
         }
 
         const userRows: any = await query('SELECT fullName, role, sucursal_id FROM users WHERE id = ? LIMIT 1', [userId]);
+        console.log('[DASHBOARD] userRows:', userRows);
+        
         if (!userRows || userRows.length === 0) {
             return NextResponse.json({ success: false, message: 'Usuario no existe' }, { status: 404 });
         }
@@ -24,12 +28,17 @@ export async function GET(request: Request) {
         const userRole = user.role;
         const sucursalId = user.sucursal_id;
 
+        console.log('[DASHBOARD] user:', user);
+        console.log('[DASHBOARD] userRole:', userRole, 'sucursalId:', sucursalId);
+
         // Si es gerente o admin, mostrar datos de toda la sucursal
         if (role === 'manager' || userRole === 'Gerente' || userRole === 'Admin') {
+            console.log('[DASHBOARD] Llamando a getManagerDashboard');
             return await getManagerDashboard(userId, gestorName, sucursalId);
         }
 
         // Dashboard normal para gestores
+        console.log('[DASHBOARD] Llamando a getGestorDashboard');
         return await getGestorDashboard(gestorName);
 
     } catch (error: any) {
@@ -126,6 +135,8 @@ async function getGestorDashboard(gestorName: string) {
 
 // Dashboard para gerentes (nueva funcionalidad)
 async function getManagerDashboard(userId: string, managerName: string, sucursalId: number) {
+    console.log('[MANAGER_DASHBOARD] Iniciando para sucursalId:', sucursalId);
+    
     // Obtener gestores de la sucursal
     const gestoresRows: any[] = await query(`
         SELECT id, fullName 
@@ -133,6 +144,8 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         WHERE sucursal_id = ? AND role = 'Gestor' AND active = 1
         ORDER BY fullName
     `, [sucursalId]);
+
+    console.log('[MANAGER_DASHBOARD] Gestores encontrados:', gestoresRows.length);
 
     // Total recaudado hoy de toda la sucursal (usando managedBy como la app web)
     const totalRows: any = await query(`
@@ -144,6 +157,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     `, [sucursalId]);
 
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
+    console.log('[MANAGER_DASHBOARD] Total recuperación:', totalRecuperacion);
 
     // Solicitudes pendientes (convertir sucursalId a string)
     const solicitudesRows: any = await query(`
@@ -153,6 +167,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     `, [sucursalId]);
 
     const solicitudesPendientes = Number(solicitudesRows[0]?.count || 0);
+    console.log('[MANAGER_DASHBOARD] Solicitudes pendientes:', solicitudesPendientes);
 
     // Desembolsos pendientes (convertir sucursalId a string)
     const desembolsosRows: any = await query(`
@@ -162,6 +177,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     `, [sucursalId]);
 
     const desembolsosPendientes = Number(desembolsosRows[0]?.count || 0);
+    console.log('[MANAGER_DASHBOARD] Desembolsos pendientes:', desembolsosPendientes);
 
     // Recaudación por gestor (para el gráfico)
     const recaudacionPorGestor: any[] = [];
@@ -190,6 +206,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
     // Ordenar por total recaudado descendente
     recaudacionPorGestor.sort((a, b) => b.totalRecaudado - a.totalRecaudado);
+    console.log('[MANAGER_DASHBOARD] Recaudación por gestor:', recaudacionPorGestor);
 
     // Detalle de recaudación (clasificación) - usar managedBy como la app web
     const paymentRows: any[] = await query(`
@@ -217,6 +234,8 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
           AND pr.status != 'ANULADO'
           AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00'))
     `, [sucursalId]);
+
+    console.log('[MANAGER_DASHBOARD] Pagos del día:', paymentRows.length);
 
     let diaRecaudado = 0;
     let moraRecaudada = 0;
@@ -248,6 +267,8 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             }
         }
     }
+
+    console.log('[MANAGER_DASHBOARD] Clasificación:', { diaRecaudado, moraRecaudada, vencidoRecaudado, proximoRecaudado });
 
     return NextResponse.json({
         success: true,
