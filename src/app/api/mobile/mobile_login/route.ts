@@ -14,10 +14,10 @@ export async function POST(request: Request) {
             );
         }
 
-        // Buscar al usuario por correo o username
+        // Buscar al usuario solo por username (igual que la app web)
         const rows: any = await query(
-            'SELECT * FROM users WHERE (username = ? OR email = ?) AND active = true LIMIT 1',
-            [username.toLowerCase(), username.toLowerCase()]
+            'SELECT * FROM users WHERE username = ? AND active = true LIMIT 1',
+            [username.toLowerCase()]
         );
 
         if (!rows || rows.length === 0) {
