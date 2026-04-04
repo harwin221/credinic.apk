@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useUser } from '@/hooks/use-user';
 import { updateCredit } from '@/app/credits/actions';
-import { nowInNicaragua } from '@/lib/date-utils';
+import { nowInNicaragua, formatDateForUser } from '@/lib/date-utils';
 import type { CreditDetail, AppUser as User, UserRole } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -130,7 +130,7 @@ function CreditApprovalTabs({ user }: { user: User }) {
               <TableCell className="font-medium">{credit.clientName}</TableCell>
               <TableCell>{formatCurrency(credit.amount)}</TableCell>
               <TableCell>{tabType === 'Denied' ? credit.rejectionReason : credit.collectionsManager}</TableCell>
-              <TableCell>{tabType === 'Denied' ? (credit.approvalDate ? format(typeof credit.approvalDate === 'string' ? parseISO(credit.approvalDate) : credit.approvalDate, 'dd/MM/yyyy') : 'N/A') : credit.branchName}</TableCell>
+              <TableCell>{tabType === 'Denied' ? (credit.approvalDate ? formatDateForUser(credit.approvalDate, 'dd/MM/yyyy') : 'N/A') : credit.branchName}</TableCell>
               {tabType !== 'Denied' && (
                 <TableCell className="text-right">
                   <DropdownMenu>
