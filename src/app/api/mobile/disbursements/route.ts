@@ -81,6 +81,8 @@ export async function GET(request: Request) {
                 c.deliveryDate,
                 c.disbursedBy,
                 c.status,
+                c.rejectionReason,
+                c.rejectedBy,
                 cl.address,
                 cl.department,
                 cl.municipality,
