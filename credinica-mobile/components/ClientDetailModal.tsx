@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, Dimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface ClientDetailModalProps {
@@ -286,3 +286,4 @@ const styles = StyleSheet.create({
     statValue: { fontSize: 11, fontWeight: '700', color: '#1e293b' },
     emptyText: { textAlign: 'center', marginTop: 40, color: '#94a3b8' },
 });
+

@@ -616,3 +616,4 @@ const styles = StyleSheet.create({
     statusValido: { backgroundColor: '#d1fae5', color: '#065f46' },
     statusAnulado: { backgroundColor: '#fee2e2', color: '#991b1b' },
 });
+

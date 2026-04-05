@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, StatusBar, Platform, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { UserSession } from '../../services/session';
 import { useState, useEffect } from 'react';
@@ -382,3 +382,4 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 });
+

@@ -1,9 +1,10 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Image, KeyboardAvoidingView, Platform, Alert, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Image, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { sessionService } from '../services/session';
 import { useAuth } from '../contexts/AuthContext';
+import { Alert } from '../utils/alert';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -252,3 +253,4 @@ const styles = StyleSheet.create({
         color: '#64748b',
     },
 });
+

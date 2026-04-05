@@ -2,6 +2,7 @@ import { Stack, router, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { initDatabase } from "../services/offline-db";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { AlertProvider } from "../components/AlertProvider";
 
 function RootContent() {
   const { user, isLoading } = useAuth();
@@ -29,16 +30,18 @@ function RootContent() {
   }
 
   return (
-    <Stack key={user ? `auth-${user.id}` : 'unauth'} screenOptions={{ headerShown: false }}>
-      {!user ? (
-        <Stack.Screen name="index" />
-      ) : (
-        <>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(manager-tabs)" />
-        </>
-      )}
-    </Stack>
+    <AlertProvider>
+      <Stack key={user ? `auth-${user.id}` : 'unauth'} screenOptions={{ headerShown: false }}>
+        {!user ? (
+          <Stack.Screen name="index" />
+        ) : (
+          <>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(manager-tabs)" />
+          </>
+        )}
+      </Stack>
+    </AlertProvider>
   );
 }
 
@@ -59,3 +62,4 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+

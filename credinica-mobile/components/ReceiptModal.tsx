@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -216,3 +216,4 @@ const styles = StyleSheet.create({
     printButton: { flexDirection: 'row', backgroundColor: '#0ea5e9', margin: 16, padding: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 8 },
     printText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });
+
