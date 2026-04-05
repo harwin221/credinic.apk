@@ -146,6 +146,12 @@ export default function SearchScreen() {
         if (!session) return;
 
         try {
+            console.log('[REPRINT] Intentando reimprimir:', { 
+                creditId: credit.id, 
+                paymentId: payment.id,
+                transactionNumber: payment.transactionNumber || payment.receiptNumber
+            });
+
             // Usar el endpoint de recibo que calcula todo correctamente
             const response = await fetch(API_ENDPOINTS.mobile_receipt, {
                 method: 'POST',
@@ -159,14 +165,17 @@ export default function SearchScreen() {
 
             const result = await response.json();
             
+            console.log('[REPRINT] Respuesta del servidor:', result);
+            
             if (result.success && result.data) {
                 setReceiptData(result.data);
                 setIsReceiptVisible(true);
             } else {
-                Alert.alert('Error', 'No se pudo generar el recibo');
+                console.error('[REPRINT] Error en respuesta:', result);
+                Alert.alert('Error', result.error || 'No se pudo generar el recibo');
             }
         } catch (error) {
-            console.error('Error al reimprimir:', error);
+            console.error('[REPRINT] Error al reimprimir:', error);
             Alert.alert('Error', 'No se pudo conectar con el servidor');
         }
     };

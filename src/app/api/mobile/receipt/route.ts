@@ -5,6 +5,8 @@ import { calculateCreditStatusDetails } from '@/lib/utils';
 import { formatDateTimeForUser, toISOString } from '@/lib/date-utils';
 import { parseISO, isValid } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Endpoint para generar recibos de pago para impresión móvil
  * USA LA MISMA LÓGICA que receipt-html.ts para consistencia total
