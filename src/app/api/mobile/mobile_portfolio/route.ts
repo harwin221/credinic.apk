@@ -34,6 +34,10 @@ export async function GET(request: Request) {
             AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
         `, [gestorName]);
 
+        console.log('🔍 [mobile_portfolio] Gestor:', gestorName);
+        console.log('🔍 [mobile_portfolio] Créditos cobrados hoy:', todayPaymentsRows.length);
+        console.log('🔍 [mobile_portfolio] IDs:', todayPaymentsRows.map(r => r.creditId));
+
         const todayPaymentCreditIds = new Set(todayPaymentsRows.map((r: any) => r.creditId));
         const portfolioCreditIds = new Set(portfolio.map((c: any) => c.id));
 
@@ -115,6 +119,12 @@ export async function GET(request: Request) {
                 categorized.upToDate.push(credit);
             }
         });
+
+        console.log('📊 [mobile_portfolio] Categorizado:');
+        console.log('   - Cobrado Hoy:', categorized.paidToday.length);
+        console.log('   - Cobro Día:', categorized.dueToday.length);
+        console.log('   - Mora:', categorized.overdue.length);
+        console.log('   - Vencido:', categorized.expired.length);
 
         return NextResponse.json({
             success: true,
