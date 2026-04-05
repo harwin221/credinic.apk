@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { todayInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +9,9 @@ export async function GET(request: Request) {
         const userId = searchParams.get('userId');
         const role = searchParams.get('role');
         const action = searchParams.get('action');
+        const today = todayInNicaragua();
 
-        console.log('[DASHBOARD] userId:', userId, 'role:', role);
+        console.log('[DASHBOARD] userId:', userId, 'role:', role, 'today:', today);
 
         if (!userId) {
             return NextResponse.json({ success: false, message: 'Falta userId' }, { status: 400 });
@@ -34,12 +35,12 @@ export async function GET(request: Request) {
         // Si es gerente, admin o finanzas, mostrar datos de toda la sucursal
         if (userRole === 'GERENTE' || userRole === 'ADMINISTRADOR' || userRole === 'FINANZAS') {
             console.log('[DASHBOARD] Llamando a getManagerDashboard');
-            return await getManagerDashboard(userId, gestorName, sucursalId);
+            return await getManagerDashboard(userId, gestorName, sucursalId, today);
         }
 
         // Dashboard normal para gestores
         console.log('[DASHBOARD] Llamando a getGestorDashboard');
-        return await getGestorDashboard(gestorName);
+        return await getGestorDashboard(gestorName, today);
 
     } catch (error: any) {
         console.error('Error mobile_dashboard API:', error);
@@ -48,14 +49,14 @@ export async function GET(request: Request) {
 }
 
 // Dashboard para gestores (código original)
-async function getGestorDashboard(gestorName: string) {
+async function getGestorDashboard(gestorName: string, today: string) {
     // Total del día
     const todayRows: any = await query(`
         SELECT SUM(amount) as totalRecuperacion, COUNT(DISTINCT creditId) as totalClientesCobrados
         FROM payments_registered 
         WHERE managedBy = ? AND status != 'ANULADO'
-          AND DATE(paymentDate) = CURDATE()
-    `, [gestorName]);
+          AND DATE(paymentDate) = ?
+    `, [gestorName, today]);
 
     const totalRecuperacion = Number(todayRows[0]?.totalRecuperacion || 0);
     const totalClientesCobrados = Number(todayRows[0]?.totalClientesCobrados || 0);
@@ -90,8 +91,8 @@ async function getGestorDashboard(gestorName: string) {
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-          AND DATE(pr.paymentDate) = CURDATE()
-    `, [gestorName]);
+          AND DATE(pr.paymentDate) = ?
+    `, [gestorName, today]);
 
     let diaRecaudado = 0;
     let moraRecaudada = 0;
@@ -134,14 +135,14 @@ async function getGestorDashboard(gestorName: string) {
 }
 
 // Dashboard para gerentes (nueva funcionalidad)
-async function getManagerDashboard(userId: string, managerName: string, sucursalId: number) {
-    console.log('[MANAGER_DASHBOARD] Iniciando para sucursalId:', sucursalId);
+async function getManagerDashboard(userId: string, managerName: string, sucursalId: string, today: string) {
+    console.log('[MANAGER_DASHBOARD] Iniciando para sucursalId:', sucursalId, 'today:', today);
     
     // Obtener gestores de la sucursal
     const gestoresRows: any[] = await query(`
         SELECT id, fullName 
         FROM users 
-        WHERE sucursal_id = ? AND role = 'Gestor' AND active = 1
+        WHERE sucursal_id = ? AND role = 'GESTOR' AND active = 1
         ORDER BY fullName
     `, [sucursalId]);
 
@@ -167,10 +168,10 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     const totalRows: any = await query(`
         SELECT SUM(pr.amount) as totalRecuperacion
         FROM payments_registered pr
-        WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND active = 1)
+        WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND role = 'GESTOR' AND active = 1)
           AND pr.status != 'ANULADO'
-          AND DATE(pr.paymentDate) = CURDATE()
-    `, [sucursalId]);
+          AND DATE(pr.paymentDate) = ?
+    `, [sucursalId, today]);
 
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
     console.log('[MANAGER_DASHBOARD] Total recuperación:', totalRecuperacion);
@@ -206,8 +207,8 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
                 MAX(pr.paymentDate) as ultimaCuota
             FROM payments_registered pr
             WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-              AND DATE(pr.paymentDate) = CURDATE()
-        `, [gestor.fullName]);
+              AND DATE(pr.paymentDate) = ?
+        `, [gestor.fullName, today]);
 
         const total = Number(gestorRecaudacion[0]?.total || 0);
         const ultimaCuota = gestorRecaudacion[0]?.ultimaCuota;
@@ -248,10 +249,10 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
-        WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND active = 1)
+        WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND role = 'GESTOR' AND active = 1)
           AND pr.status != 'ANULADO'
-          AND DATE(pr.paymentDate) = CURDATE()
-    `, [sucursalId]);
+          AND DATE(pr.paymentDate) = ?
+    `, [sucursalId, today]);
 
     console.log('[MANAGER_DASHBOARD] Pagos del día:', paymentRows.length);
 
