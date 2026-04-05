@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomAlert from './CustomAlert';
-import { CustomAlert as AlertUtil } from '../utils/alert';
+import { Alert } from '../utils/alert';
 
 interface AlertConfig {
     title: string;
@@ -17,7 +17,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
 
     useEffect(() => {
-        AlertUtil.setCallback((config) => {
+        Alert.setCallback((config) => {
             setAlertConfig(config);
         });
     }, []);

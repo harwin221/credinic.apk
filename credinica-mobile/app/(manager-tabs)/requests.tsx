@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import ReasonModal from '../../components/ReasonModal';
-import { CustomAlert as Alert } from '../../utils/alert';
+import { Alert } from '../../utils/alert';
 
 export default function RequestsScreen() {
     const [isLoading, setIsLoading] = useState(true);

@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { thermalPrinterService } from '../services/thermal-printer';
-import { CustomAlert as Alert } from '../utils/alert';
+import { Alert } from '../utils/alert';
 
 interface ReceiptModalProps {
     visible: boolean;

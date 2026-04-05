@@ -16,7 +16,7 @@ interface AlertConfig {
     }>;
 }
 
-export const CustomAlert = {
+export const Alert = {
     alert: (
         title: string,
         message?: string,
