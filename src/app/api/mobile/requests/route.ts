@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { todayInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +36,9 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: false, message: 'No tienes permisos' }, { status: 403 });
         }
 
-        let whereClause = "WHERE c.status = 'Pending'";
-        const params: any[] = [];
+        const today = todayInNicaragua();
+        let whereClause = `WHERE (c.status = 'Pending' OR (c.status = 'Rejected' AND DATE(DATE_SUB(c.approvalDate, INTERVAL 6 HOUR)) = ?))`;
+        const params: any[] = [today];
 
         // Filtrar por sucursal si es gerente u operativo
         if (userRole === 'GERENTE' || userRole === 'OPERATIVO') {
@@ -63,7 +65,10 @@ export async function GET(request: Request) {
                 c.collectionsManager,
                 c.branchName,
                 c.applicationDate,
-                c.status
+                c.approvalDate,
+                c.status,
+                c.rejectionReason,
+                c.rejectedBy
             FROM credits c
             ${whereClause}
             ORDER BY c.applicationDate DESC
