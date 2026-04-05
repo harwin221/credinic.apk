@@ -26,6 +26,7 @@ export async function GET(request: Request) {
         const { portfolio } = await getPortfolioForGestor(userId);
 
         // Obtener créditos donde el gestor aplicó pagos HOY (aunque no sean de su cartera)
+        // INCLUIR tanto créditos activos como los que se cancelaron hoy
         const todayPaymentsRows: any[] = await query(`
             SELECT DISTINCT pr.creditId
             FROM payments_registered pr
@@ -41,20 +42,25 @@ export async function GET(request: Request) {
         const todayPaymentCreditIds = new Set(todayPaymentsRows.map((r: any) => r.creditId));
         const portfolioCreditIds = new Set(portfolio.map((c: any) => c.id));
 
-        // Créditos que el gestor cobró hoy pero no están en su cartera
+        // Créditos que el gestor cobró hoy pero no están en su cartera activa
+        // Esto incluye créditos de otros gestores Y créditos que se cancelaron hoy
         const externalCreditIds = [...todayPaymentCreditIds].filter(id => !portfolioCreditIds.has(id));
 
         let externalCredits: any[] = [];
         if (externalCreditIds.length > 0) {
             const placeholders = externalCreditIds.map(() => '?').join(',');
             
-            // Obtener los créditos externos
+            // Obtener los créditos externos (pueden estar Active o Paid)
             const externalCreditsRows: any[] = await query(`
                 SELECT c.*, cl.clientNumber as clientCode
                 FROM credits c
                 LEFT JOIN clients cl ON c.clientId = cl.id
                 WHERE c.id IN (${placeholders})
+                AND c.status IN ('Active', 'Paid')
             `, externalCreditIds);
+
+            console.log('🔍 [mobile_portfolio] Créditos externos encontrados:', externalCreditsRows.length);
+            console.log('🔍 [mobile_portfolio] Estados:', externalCreditsRows.map(c => ({ id: c.id, status: c.status })));
 
             // Obtener pagos y planes de estos créditos
             const [externalPayments, externalPlans]: [any[], any[]] = await Promise.all([
