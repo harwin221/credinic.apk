@@ -295,6 +295,11 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
             console.log('🏢 Filtered users by sucursal:', userRows.length);
         }
 
+        if (users && users.length > 0) {
+            userRows = userRows.filter(u => users.includes(u.id));
+            console.log('👥 Filtered users by specific IDs:', userRows.length);
+        }
+
         const reportMap: Record<string, ColocacionRecuperacionItem> = {};
         userRows.forEach(u => {
             reportMap[u.fullName] = {
@@ -448,6 +453,25 @@ export async function generateNonRenewedReport(filters: ReportFilters): Promise<
         paidCreditsSql += ` AND DATE(pr.paymentDate) <= ?`;
         params.push(filters.dateTo);
     }
+
+    if (filters.sucursales && filters.sucursales.length > 0) {
+        const sucursalNamesResult: any = await query(`SELECT name FROM sucursales WHERE id IN (${filters.sucursales.map(() => '?').join(',')})`, [...filters.sucursales]);
+        if (sucursalNamesResult.length > 0) {
+            const sucursalNames = sucursalNamesResult.map((s: { name: string }) => s.name);
+            paidCreditsSql += ` AND c.branchName IN (${sucursalNames.map(() => '?').join(',')})`;
+            params.push(...sucursalNames);
+        }
+    }
+
+    if (filters.users && filters.users.length > 0) {
+        const userNamesResult: any = await query(`SELECT fullName FROM users WHERE id IN (${filters.users.map(() => '?').join(',')})`, [...filters.users]);
+        if (userNamesResult.length > 0) {
+            const userNames = userNamesResult.map((u: { fullName: string }) => u.fullName);
+            paidCreditsSql += ` AND c.collectionsManager IN (${userNames.map(() => '?').join(',')})`;
+            params.push(...userNames);
+        }
+    }
+
     paidCreditsSql += ` GROUP BY c.id`;
 
     const paidCredits = await query(paidCreditsSql, params) as any[];
