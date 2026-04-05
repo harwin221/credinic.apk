@@ -6,7 +6,7 @@ import { API_ENDPOINTS } from '../../config/api';
 import PaymentModal from '../../components/PaymentModal';
 import ReceiptModal, { ReceiptData } from '../../components/ReceiptModal';
 import CustomAlert from '../../components/CustomAlert';
-import { Alert } from '../../utils/alert';
+import { AlertHelper } from '../../utils/alert';
 
 export default function CreditsScreen() {
     const [activeTab, setActiveTab] = useState('Cobro Dia');
@@ -87,12 +87,12 @@ export default function CreditsScreen() {
                 if (result.success) {
                     setSelectedCredit(result.data);
                 } else {
-                    Alert.alert('Error', 'No se pudo cargar el detalle del crédito');
+                    AlertHelper.alert('Error', 'No se pudo cargar el detalle del crédito');
                     return;
                 }
             } catch (error) {
                 console.error('Error loading credit detail:', error);
-                Alert.alert('Error', 'No se pudo cargar el detalle del crédito');
+                AlertHelper.alert('Error', 'No se pudo cargar el detalle del crédito');
                 return;
             }
         } else {
@@ -125,11 +125,11 @@ export default function CreditsScreen() {
                 setReceiptData(result.data);
                 setIsReceiptVisible(true);
             } else {
-                Alert.alert('Error', result.error || 'No se pudo recuperar el recibo histórico');
+                AlertHelper.alert('Error', result.error || 'No se pudo recuperar el recibo histórico');
             }
         } catch (error) {
             console.error('Error fetching receipt:', error);
-            Alert.alert('Error', 'No se pudo conectar con el servidor para la reimpresión');
+            AlertHelper.alert('Error', 'No se pudo conectar con el servidor para la reimpresión');
         } finally {
             setIsLoading(false);
         }
@@ -229,7 +229,7 @@ export default function CreditsScreen() {
 
             const contentType = response.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) {
-                Alert.alert('Error del servidor', `El servidor respondió con un error (${response.status}). Intenta de nuevo.`);
+                AlertHelper.alert('Error del servidor', `El servidor respondió con un error (${response.status}). Intenta de nuevo.`);
                 return;
             }
 
@@ -262,11 +262,11 @@ export default function CreditsScreen() {
                 // Recargar el portfolio para que aparezca en "Cobrado Hoy"
                 fetchPortfolio();
             } else {
-                Alert.alert('Error', result.message || 'No se pudo registrar el abono');
+                AlertHelper.alert('Error', result.message || 'No se pudo registrar el abono');
             }
         } catch (error) {
             console.error('Payment error:', error);
-            Alert.alert('Error de conexión', 'No se pudo conectar con el servidor. Revisa tu internet.');
+            AlertHelper.alert('Error de conexión', 'No se pudo conectar con el servidor. Revisa tu internet.');
         }
     };
 

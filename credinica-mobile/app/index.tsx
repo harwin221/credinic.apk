@@ -4,7 +4,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { sessionService } from '../services/session';
 import { useAuth } from '../contexts/AuthContext';
-import { Alert } from '../utils/alert';
+import { AlertHelper } from '../utils/alert';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Por favor ingresa tu usuario y contraseña');
+            AlertHelper.alert('Error', 'Por favor ingresa tu usuario y contraseña');
             return;
         }
 
@@ -43,7 +43,7 @@ export default function LoginScreen() {
                 const isManager = roleUpper === 'GERENTE' || roleUpper === 'ADMINISTRADOR' || roleUpper === 'FINANZAS';
                 
                 // Mostrar alert y redirigir cuando se cierre
-                Alert.alert(
+                AlertHelper.alert(
                     '¡Bienvenido!', 
                     `Has ingresado como ${data.user.role}`,
                     [
@@ -61,11 +61,11 @@ export default function LoginScreen() {
                 );
             } else {
                 // Credenciales incorrectas, usuario inactivo, o rol no permitido
-                Alert.alert('Acceso Denegado', data.message || 'Credenciales inválidas');
+                AlertHelper.alert('Acceso Denegado', data.message || 'Credenciales inválidas');
             }
         } catch (error) {
             console.error(error);
-            Alert.alert('Error de Conexión', 'No se pudo conectar con el servidor. Revisa tu internet.');
+            AlertHelper.alert('Error de Conexión', 'No se pudo conectar con el servidor. Revisa tu internet.');
         } finally {
             setIsLoading(false);
         }

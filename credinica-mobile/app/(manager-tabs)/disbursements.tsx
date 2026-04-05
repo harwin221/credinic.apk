@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import ReasonModal from '../../components/ReasonModal';
-import { Alert } from '../../utils/alert';
+import { AlertHelper } from '../../utils/alert';
 
 type TabType = 'pending' | 'disbursed' | 'denied';
 
@@ -82,7 +82,7 @@ export default function DisbursementsScreen() {
 
     const handleDisburse = async (creditId: string) => {
         closeModal();
-        Alert.alert(
+        AlertHelper.alert(
             'Confirmar Desembolso',
             '¿Estás seguro de marcar este crédito como desembolsado?',
             [
@@ -103,14 +103,14 @@ export default function DisbursementsScreen() {
                             const result = await resp.json();
                             
                             if (result.success) {
-                                Alert.alert('Éxito', 'Crédito desembolsado correctamente');
+                                AlertHelper.alert('Éxito', 'Crédito desembolsado correctamente');
                                 fetchDisbursements();
                             } else {
-                                Alert.alert('Error', result.message || 'No se pudo desembolsar el crédito');
+                                AlertHelper.alert('Error', result.message || 'No se pudo desembolsar el crédito');
                             }
                         } catch (error) {
                             console.error('Error al desembolsar:', error);
-                            Alert.alert('Error', 'No se pudo conectar con el servidor');
+                            AlertHelper.alert('Error', 'No se pudo conectar con el servidor');
                         }
                     }
                 }
@@ -143,14 +143,14 @@ export default function DisbursementsScreen() {
             const result = await resp.json();
             
             if (result.success) {
-                Alert.alert('Éxito', 'Desembolso denegado correctamente');
+                AlertHelper.alert('Éxito', 'Desembolso denegado correctamente');
                 fetchDisbursements();
             } else {
-                Alert.alert('Error', result.message || 'No se pudo denegar el desembolso');
+                AlertHelper.alert('Error', result.message || 'No se pudo denegar el desembolso');
             }
         } catch (error) {
             console.error('Error al denegar:', error);
-            Alert.alert('Error', 'No se pudo conectar con el servidor');
+            AlertHelper.alert('Error', 'No se pudo conectar con el servidor');
         } finally {
             setCreditToDeny(null);
         }

@@ -6,7 +6,7 @@ import SyncIndicator from '../../components/SyncIndicator';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { thermalPrinterService } from '../../services/thermal-printer';
-import { Alert } from '../../utils/alert';
+import { AlertHelper } from '../../utils/alert';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -35,7 +35,7 @@ export default function ProfileScreen() {
                 console.log('[PROFILE] Solo opción del sistema disponible');
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'No se pudieron buscar impresoras');
+            AlertHelper.alert('Error', error.message || 'No se pudieron buscar impresoras');
         } finally {
             setLoading(false);
         }
@@ -48,11 +48,11 @@ export default function ProfileScreen() {
         }
         setSelectedPrinter(printer.name);
         setShowPrinterModal(false);
-        Alert.alert('Impresora configurada', `${printer.name} configurada correctamente`);
+        AlertHelper.alert('Impresora configurada', `${printer.name} configurada correctamente`);
     };
 
     const handleLogout = async () => {
-        Alert.alert(
+        AlertHelper.alert(
             'Cerrar Sesión',
             '¿Estás seguro de que quieres salir?',
             [
@@ -75,12 +75,12 @@ export default function ProfileScreen() {
             const { fullSync } = await import('../../services/sync-service');
             const result = await fullSync();
             if (result.success) {
-                Alert.alert('Éxito', 'Sincronización completada: ' + result.message);
+                AlertHelper.alert('Éxito', 'Sincronización completada: ' + result.message);
             } else {
-                Alert.alert('Aviso', 'Sincronización parcial: ' + result.message);
+                AlertHelper.alert('Aviso', 'Sincronización parcial: ' + result.message);
             }
         } catch (error: any) {
-            Alert.alert('Error', 'No se pudo sincronizar: ' + error.message);
+            AlertHelper.alert('Error', 'No se pudo sincronizar: ' + error.message);
         } finally {
             setLoading(false);
         }

@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import ReasonModal from '../../components/ReasonModal';
-import { Alert } from '../../utils/alert';
+import { AlertHelper } from '../../utils/alert';
 
 export default function RequestsScreen() {
     const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +51,7 @@ export default function RequestsScreen() {
     const currentList = activeTab === 'pending' ? pendingRequests : rejectedRequests;
 
     const handleApprove = async (requestId: string) => {
-        Alert.alert(
+        AlertHelper.alert(
             'Aprobar Solicitud',
             '¿Estás seguro de aprobar esta solicitud de crédito?',
             [
@@ -72,14 +72,14 @@ export default function RequestsScreen() {
                             const result = await resp.json();
                             
                             if (result.success) {
-                                Alert.alert('Éxito', 'Solicitud aprobada correctamente');
+                                AlertHelper.alert('Éxito', 'Solicitud aprobada correctamente');
                                 fetchRequests();
                             } else {
-                                Alert.alert('Error', result.message || 'No se pudo aprobar la solicitud');
+                                AlertHelper.alert('Error', result.message || 'No se pudo aprobar la solicitud');
                             }
                         } catch (error) {
                             console.error('Error al aprobar:', error);
-                            Alert.alert('Error', 'No se pudo conectar con el servidor');
+                            AlertHelper.alert('Error', 'No se pudo conectar con el servidor');
                         }
                     }
                 }
@@ -111,14 +111,14 @@ export default function RequestsScreen() {
             const result = await resp.json();
             
             if (result.success) {
-                Alert.alert('Éxito', 'Solicitud rechazada correctamente');
+                AlertHelper.alert('Éxito', 'Solicitud rechazada correctamente');
                 fetchRequests();
             } else {
-                Alert.alert('Error', result.message || 'No se pudo rechazar la solicitud');
+                AlertHelper.alert('Error', result.message || 'No se pudo rechazar la solicitud');
             }
         } catch (error) {
             console.error('Error al rechazar:', error);
-            Alert.alert('Error', 'No se pudo conectar con el servidor');
+            AlertHelper.alert('Error', 'No se pudo conectar con el servidor');
         } finally {
             setRequestToReject(null);
         }

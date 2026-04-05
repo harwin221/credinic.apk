@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { thermalPrinterService } from '../services/thermal-printer';
-import { Alert } from '../utils/alert';
+import { AlertHelper } from '../utils/alert';
 
 interface ReceiptModalProps {
     visible: boolean;
@@ -76,7 +76,7 @@ export default function ReceiptModal({ visible, onClose, receipt }: ReceiptModal
             // Usamos el servicio centralizado que ya tiene el HTML optimizado
             await thermalPrinterService.printReceipt(savedPrinter, receipt, savedTarget || undefined);
         } catch (e) {
-            Alert.alert('Error de Impresión', 'No se pudo conectar con la impresora. Asegúrate de que el Bluetooth esté encendido y la impresora vinculada.');
+            AlertHelper.alert('Error de Impresión', 'No se pudo conectar con la impresora. Asegúrate de que el Bluetooth esté encendido y la impresora vinculada.');
         } finally {
             setPrinting(false);
         }

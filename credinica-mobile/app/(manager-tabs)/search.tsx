@@ -8,7 +8,7 @@ import ClientDetailModal from '../../components/ClientDetailModal';
 import { sessionService } from '../../services/session';
 import { thermalPrinterService } from '../../services/thermal-printer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from '../../utils/alert';
+import { AlertHelper } from '../../utils/alert';
 
 export default function SearchScreen() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -70,11 +70,11 @@ export default function SearchScreen() {
                     setIsPaymentVisible(true);
                 }
             } else {
-                Alert.alert('Error', 'No se pudo cargar el detalle del crédito');
+                AlertHelper.alert('Error', 'No se pudo cargar el detalle del crédito');
             }
         } catch (error) {
             console.error('Error loading credit detail:', error);
-            Alert.alert('Error', 'No se pudo cargar el detalle del crédito');
+            AlertHelper.alert('Error', 'No se pudo cargar el detalle del crédito');
         }
     };
 
@@ -134,11 +134,11 @@ export default function SearchScreen() {
                 setSearchQuery('');
                 setSearchResults([]);
             } else {
-                Alert.alert('Error', result.message || 'No se pudo registrar el pago');
+                AlertHelper.alert('Error', result.message || 'No se pudo registrar el pago');
             }
         } catch (error) {
             console.error('Payment error:', error);
-            Alert.alert('Error de conexión', 'No se pudo conectar con el servidor');
+            AlertHelper.alert('Error de conexión', 'No se pudo conectar con el servidor');
         }
     };
 
@@ -160,7 +160,8 @@ export default function SearchScreen() {
                 body: JSON.stringify({
                     creditId: credit.id,
                     paymentId: payment.id,
-                    format: 'json'
+                    format: 'json',
+                    userId: session.id // Enviar userId para autenticación móvil
                 })
             });
 
@@ -173,11 +174,11 @@ export default function SearchScreen() {
                 setIsReceiptVisible(true);
             } else {
                 console.error('[REPRINT] Error en respuesta:', result);
-                Alert.alert('Error', result.error || 'No se pudo generar el recibo');
+                AlertHelper.alert('Error', result.error || 'No se pudo generar el recibo');
             }
         } catch (error) {
             console.error('[REPRINT] Error al reimprimir:', error);
-            Alert.alert('Error', 'No se pudo conectar con el servidor');
+            AlertHelper.alert('Error', 'No se pudo conectar con el servidor');
         }
     };
 

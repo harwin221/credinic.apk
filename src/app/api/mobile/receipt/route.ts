@@ -14,11 +14,12 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const session = await getSession();
-    if (!session) {
+    const { creditId, paymentId, format = 'text', isReprint = false, userId } = await request.json();
+
+    // Autenticación: o bien sesión web o userId desde móvil
+    if (!session && !userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const { creditId, paymentId, format = 'text', isReprint = false } = await request.json();
 
     // Validar datos requeridos
     if (!creditId || !paymentId) {
