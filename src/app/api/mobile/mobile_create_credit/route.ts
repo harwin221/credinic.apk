@@ -39,8 +39,21 @@ export async function POST(request: Request) {
         }
 
         // Obtener información del gestor que está creando el crédito
-        const creator = await getUser(collectionsManager);
+        // collectionsManager puede venir como ID o como fullName desde la app móvil
+        let creator = await getUser(collectionsManager);
+        
+        // Si no se encuentra por ID, intentar buscar por fullName
         if (!creator) {
+            console.log('[MOBILE_CREATE_CREDIT] No se encontró por ID, buscando por fullName:', collectionsManager);
+            const { query } = await import('@/lib/mysql');
+            const userRows: any = await query('SELECT * FROM users WHERE fullName = ? LIMIT 1', [collectionsManager]);
+            if (userRows && userRows.length > 0) {
+                creator = userRows[0];
+            }
+        }
+        
+        if (!creator) {
+            console.error('[MOBILE_CREATE_CREDIT] Gestor no encontrado:', collectionsManager);
             return NextResponse.json({ 
                 success: false, 
                 message: 'Gestor no encontrado' 
