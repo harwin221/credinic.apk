@@ -6,7 +6,7 @@ import { nowInNicaragua } from '@/lib/date-utils';
 export const dynamic = 'force-dynamic';
 
 /**
- * Endpoint para obtener el detalle completo de un crédito con promedios corregidos
+ * Endpoint para obtener el detalle con historial completo de créditos
  */
 export async function GET(request: Request) {
     try {
@@ -17,69 +17,82 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: false, message: 'Falta creditId' }, { status: 400 });
         }
 
-        const credit = await getCredit(creditId);
-        
-        if (!credit) {
+        const currentCredit = await getCredit(creditId);
+        if (!currentCredit) {
             return NextResponse.json({ success: false, message: 'Crédito no encontrado' }, { status: 404 });
         }
 
         const now = nowInNicaragua();
-        const details = calculateCreditStatusDetails(credit, now);
-        const fullStatement = generateFullStatement(credit);
+        const currentDetails = calculateCreditStatusDetails(currentCredit, now);
+        const fullStatement = generateFullStatement(currentCredit);
 
-        // --- LÓGICA DE PROMEDIOS (PARIDAD WEB) ---
-        
-        // 1. Promedio del crédito actual
-        const { avgLateDaysForCredit } = calculateAveragePaymentDelay(credit);
-
-        // 2. Promedio GLOBAL (Histórico de todos los créditos del cliente)
-        const allCredits = await getClientCredits(credit.clientId);
+        // --- HISTORIAL COMPLETO DE CRÉDITOS (Para el Consolidado) ---
+        const allCreditsSummary = await getClientCredits(currentCredit.clientId);
+        const detailedHistory = [];
         let totalAvgAcrossCredits = 0;
-        
-        if (allCredits.length > 0) {
-            // Calculamos el promedio de cada crédito para sacar el promedio de promedios
-            for (const c of allCredits) {
-                // Necesitamos el crédito completo con su plan para calcular su promedio
-                const fullC = await getCredit(c.id);
-                if (fullC) {
-                    const { avgLateDaysForCredit: avgC } = calculateAveragePaymentDelay(fullC);
-                    totalAvgAcrossCredits += avgC;
-                }
+        let totalDisbursed = 0;
+
+        for (const c of allCreditsSummary) {
+            const fullC = await getCredit(c.id);
+            if (fullC) {
+                const { avgLateDaysForCredit } = calculateAveragePaymentDelay(fullC);
+                totalAvgAcrossCredits += avgLateDaysForCredit;
+                totalDisbursed += (fullC.amount || fullC.principalAmount || 0);
+
+                detailedHistory.push({
+                    id: fullC.id,
+                    creditNumber: fullC.creditNumber,
+                    amount: fullC.amount || fullC.principalAmount,
+                    status: fullC.status,
+                    interestRate: fullC.interestRate,
+                    termMonths: fullC.termMonths,
+                    deliveryDate: fullC.deliveryDate,
+                    dueDate: fullC.dueDate,
+                    avgLateDays: avgLateDaysForCredit
+                });
             }
         }
-        const avgLateDaysGlobal = allCredits.length > 0 ? totalAvgAcrossCredits / allCredits.length : avgLateDaysForCredit;
+
+        const globalAverage = detailedHistory.length > 0 ? totalAvgAcrossCredits / detailedHistory.length : 0;
+        const averageAmount = detailedHistory.length > 0 ? totalDisbursed / detailedHistory.length : 0;
+
+        // Obtener actividad económica (como en la web)
+        const { query } = await import('@/lib/mysql');
+        const comercianteInfo: any[] = await query('SELECT economicActivity FROM comerciante_info WHERE clientId = ?', [currentCredit.clientId]);
+        const economicActivity = comercianteInfo.length > 0 ? comercianteInfo[0].economicActivity : 'No especificada';
 
         const response = {
-            id: credit.id,
-            creditNumber: credit.creditNumber,
-            clientName: credit.clientName,
-            clientCode: credit.clientDetails?.clientNumber || 'N/A',
-            collectionsManager: credit.collectionsManager,
-            totalAmount: credit.amount || credit.principalAmount,
-            totalToPay: credit.totalAmount,
-            status: credit.status,
-            interestRate: credit.interestRate || 5,
-            deliveryDate: credit.deliveryDate,
-            dueDate: credit.dueDate,
+            id: currentCredit.id,
+            creditNumber: currentCredit.creditNumber,
+            clientName: currentCredit.clientName,
+            clientCode: currentCredit.clientDetails?.clientNumber || 'N/A',
+            collectionsManager: currentCredit.collectionsManager,
+            totalAmount: currentCredit.amount || currentCredit.principalAmount,
+            interestRate: currentCredit.interestRate || 5,
+            deliveryDate: currentCredit.deliveryDate,
+            dueDate: currentCredit.dueDate,
+            status: currentCredit.status,
+            // Datos del consolidado (Historial completo)
+            history: detailedHistory,
+            summary: {
+                totalCredits: detailedHistory.length,
+                averageAmount: averageAmount,
+                globalAverageLateDays: globalAverage,
+                economicActivity: economicActivity
+            },
+            // Detalle del crédito actual
             details: {
-                remainingBalance: details.remainingBalance,
-                overdueAmount: details.overdueAmount,
-                dueTodayAmount: details.dueTodayAmount,
-                lateDays: details.lateDays,
-                isDueToday: details.isDueToday,
-                isExpired: details.isExpired,
-                paidToday: details.paidToday,
-                avgLateDaysCredit: avgLateDaysForCredit, // Promedio de este crédito
-                avgLateDaysGlobal: avgLateDaysGlobal,   // Promedio global del cliente
+                ...currentDetails,
+                avgLateDaysCredit: calculateAveragePaymentDelay(currentCredit).avgLateDaysForCredit
             },
             fullStatement: fullStatement,
-            clientDetails: credit.clientDetails,
+            clientDetails: currentCredit.clientDetails,
         };
 
         return NextResponse.json({ success: true, data: response });
 
     } catch (error: any) {
-        console.error('Error mobile_credit_detail:', error);
+        console.error('Error mobile_credit_detail history:', error);
         return NextResponse.json({ success: false, message: error?.message }, { status: 500 });
     }
 }
