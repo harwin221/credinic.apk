@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../../config/api';
 import PaymentModal from '../../components/PaymentModal';
 import ReceiptModal, { ReceiptData } from '../../components/ReceiptModal';
 import CustomAlert from '../../components/CustomAlert';
+import { CustomAlert as Alert } from '../../utils/alert';
 
 export default function CreditsScreen() {
     const [activeTab, setActiveTab] = useState('Cobro Dia');
