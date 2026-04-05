@@ -150,7 +150,7 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                 termMonths: parseFloat(formData.termMonths),
                 paymentFrequency: formData.paymentFrequency,
                 firstPaymentDate: formData.firstPaymentDate.toISOString(),
-                collectionsManager: session.fullName,
+                collectionsManager: session.id,
                 guarantees: guarantees.map(g => ({
                     article: g.article,
                     brand: g.brand,
