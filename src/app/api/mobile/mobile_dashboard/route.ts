@@ -1,5 +1,6 @@
+import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { todayInNicaragua } from '@/lib/date-utils';
+import { todayInNicaragua } from '../../../lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
