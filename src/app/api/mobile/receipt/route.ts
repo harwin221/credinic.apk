@@ -244,8 +244,33 @@ GESTOR DE COBRO
       });
     }
 
+    // Generar recibo en formato JSON (para la App Móvil - Reimpresión exacta)
+    if (format === 'json') {
+      return NextResponse.json({
+        success: true,
+        data: {
+          transactionNumber: paymentToPrint.transactionNumber,
+          creditNumber: credit.creditNumber,
+          paymentDate: formatLocalTime(toISOStringSafe(paymentToPrint.paymentDate)),
+          clientName: credit.clientName,
+          clientCode: client?.clientNumber || 'N/A',
+          amountPaid: paymentToPrint.amount,
+          saldoAnterior,
+          nuevoSaldo,
+          diasMora,
+          montoAtrasado,
+          totalAPagar,
+          cuotaDelDia,
+          montoCancelacion: statusBefore.remainingBalance,
+          sucursal: sucursalName,
+          managedBy: paymentToPrint.managedBy,
+          role: 'GESTOR'
+        }
+      });
+    }
+
     return NextResponse.json({ 
-      error: 'Formato no soportado. Use: text o html' 
+      error: 'Formato no soportado. Use: text, html o json' 
     }, { status: 400 });
 
   } catch (error) {
