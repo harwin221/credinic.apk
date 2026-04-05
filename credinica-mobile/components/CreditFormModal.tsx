@@ -5,6 +5,7 @@ import { sessionService } from '../services/session';
 import { API_ENDPOINTS } from '../config/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import CustomAlert from './CustomAlert';
+import GuaranteeFormModal, { GuaranteeData } from './GuaranteeFormModal';
 
 interface CreditFormModalProps {
     visible: boolean;
@@ -15,19 +16,15 @@ interface CreditFormModalProps {
 
 const PAYMENT_FREQUENCIES = ['Diario', 'Semanal', 'Catorcenal', 'Quincenal'];
 
-interface Guarantee {
-    article: string;
-    brand: string;
-    color: string;
-    model: string;
-    series: string;
-    estimatedValue: string;
+interface Guarantee extends GuaranteeData {
+    id: string;
 }
 
 export default function CreditFormModal({ visible, onClose, client, onSuccess }: CreditFormModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [activeTab, setActiveTab] = useState<'credit' | 'guarantees'>('credit');
+    const [isGuaranteeModalOpen, setIsGuaranteeModalOpen] = useState(false);
     const [alert, setAlert] = useState<{
         visible: boolean;
         type: 'success' | 'error' | 'warning' | 'info';
@@ -202,25 +199,16 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
         }
     };
 
-    const addGuarantee = () => {
-        setGuarantees([...guarantees, {
-            article: '',
-            brand: '',
-            color: '',
-            model: '',
-            series: '',
-            estimatedValue: '',
-        }]);
+    const addGuarantee = (data: GuaranteeData) => {
+        const newGuarantee: Guarantee = {
+            ...data,
+            id: `gar_${Date.now()}`,
+        };
+        setGuarantees([...guarantees, newGuarantee]);
     };
 
-    const removeGuarantee = (index: number) => {
-        setGuarantees(guarantees.filter((_, i) => i !== index));
-    };
-
-    const updateGuarantee = (index: number, field: keyof Guarantee, value: string) => {
-        const updated = [...guarantees];
-        updated[index][field] = value;
-        setGuarantees(updated);
+    const removeGuarantee = (id: string) => {
+        setGuarantees(guarantees.filter((g) => g.id !== id));
     };
 
     return (
@@ -347,6 +335,14 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                         ) : (
                             <>
                                 {/* Pestaña de Garantías */}
+                                <TouchableOpacity 
+                                    style={styles.addGuaranteeButton} 
+                                    onPress={() => setIsGuaranteeModalOpen(true)}
+                                >
+                                    <MaterialCommunityIcons name="plus-circle" size={20} color="#0ea5e9" />
+                                    <Text style={styles.addGuaranteeText}>Agregar Garantía</Text>
+                                </TouchableOpacity>
+
                                 {guarantees.length === 0 ? (
                                     <View style={styles.emptyGuarantees}>
                                         <MaterialCommunityIcons name="shield-off" size={64} color="#cbd5e1" />
@@ -354,71 +350,40 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                                         <Text style={styles.emptyHint}>Agrega garantías para respaldar el crédito</Text>
                                     </View>
                                 ) : (
-                                    guarantees.map((guarantee, index) => (
-                                        <View key={index} style={styles.guaranteeCard}>
-                                            <View style={styles.guaranteeHeader}>
-                                                <Text style={styles.guaranteeTitle}>Garantía {index + 1}</Text>
-                                                <TouchableOpacity onPress={() => removeGuarantee(index)}>
-                                                    <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
-                                                </TouchableOpacity>
+                                    <>
+                                        {guarantees.map((guarantee) => (
+                                            <View key={guarantee.id} style={styles.guaranteeCard}>
+                                                <View style={styles.guaranteeHeader}>
+                                                    <View style={styles.guaranteeInfo}>
+                                                        <Text style={styles.guaranteeArticle}>{guarantee.article}</Text>
+                                                        {guarantee.brand ? (
+                                                            <Text style={styles.guaranteeDetail}>
+                                                                {guarantee.brand}
+                                                                {guarantee.model ? ` - ${guarantee.model}` : ''}
+                                                            </Text>
+                                                        ) : null}
+                                                    </View>
+                                                    <TouchableOpacity onPress={() => removeGuarantee(guarantee.id)}>
+                                                        <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <View style={styles.guaranteeValueContainer}>
+                                                    <Text style={styles.guaranteeValueLabel}>Valor:</Text>
+                                                    <Text style={styles.guaranteeValue}>
+                                                        C$ {parseFloat(guarantee.estimatedValue || '0').toLocaleString('es-NI', { minimumFractionDigits: 2 })}
+                                                    </Text>
+                                                </View>
                                             </View>
-
-                                            <Text style={styles.label}>Artículo</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Ej: Televisor"
-                                                value={guarantee.article}
-                                                onChangeText={(text) => updateGuarantee(index, 'article', text)}
-                                            />
-
-                                            <Text style={styles.label}>Marca</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Ej: Samsung"
-                                                value={guarantee.brand}
-                                                onChangeText={(text) => updateGuarantee(index, 'brand', text)}
-                                            />
-
-                                            <Text style={styles.label}>Color</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Ej: Negro"
-                                                value={guarantee.color}
-                                                onChangeText={(text) => updateGuarantee(index, 'color', text)}
-                                            />
-
-                                            <Text style={styles.label}>Modelo</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Ej: UN55AU7000"
-                                                value={guarantee.model}
-                                                onChangeText={(text) => updateGuarantee(index, 'model', text)}
-                                            />
-
-                                            <Text style={styles.label}>Serie</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Ej: 123456789"
-                                                value={guarantee.series}
-                                                onChangeText={(text) => updateGuarantee(index, 'series', text)}
-                                            />
-
-                                            <Text style={styles.label}>Valor Estimado (C$)</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Ej: 15000"
-                                                keyboardType="numeric"
-                                                value={guarantee.estimatedValue}
-                                                onChangeText={(text) => updateGuarantee(index, 'estimatedValue', text)}
-                                            />
+                                        ))}
+                                        
+                                        <View style={styles.totalContainer}>
+                                            <Text style={styles.totalLabel}>Valor Total en Garantías</Text>
+                                            <Text style={styles.totalValue}>
+                                                C$ {guarantees.reduce((sum, g) => sum + parseFloat(g.estimatedValue || '0'), 0).toLocaleString('es-NI', { minimumFractionDigits: 2 })}
+                                            </Text>
                                         </View>
-                                    ))
+                                    </>
                                 )}
-
-                                <TouchableOpacity style={styles.addGuaranteeButton} onPress={addGuarantee}>
-                                    <MaterialCommunityIcons name="plus-circle" size={20} color="#0ea5e9" />
-                                    <Text style={styles.addGuaranteeText}>Agregar Garantía</Text>
-                                </TouchableOpacity>
                             </>
                         )}
                     </ScrollView>
@@ -452,6 +417,12 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                     setAlert({ ...alert, visible: false });
                     if (alert.onConfirm) alert.onConfirm();
                 }}
+            />
+
+            <GuaranteeFormModal
+                visible={isGuaranteeModalOpen}
+                onClose={() => setIsGuaranteeModalOpen(false)}
+                onSave={addGuarantee}
             />
         </Modal>
     );
@@ -571,8 +542,42 @@ const styles = StyleSheet.create({
     guaranteeHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    guaranteeInfo: {
+        flex: 1,
+        marginRight: 12,
+    },
+    guaranteeArticle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1e293b',
+        marginBottom: 4,
+    },
+    guaranteeDetail: {
+        fontSize: 13,
+        color: '#64748b',
+        fontWeight: '500',
+    },
+    guaranteeValueContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#e2e8f0',
+    },
+    guaranteeValueLabel: {
+        fontSize: 13,
+        color: '#64748b',
+        fontWeight: '600',
+    },
+    guaranteeValue: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#0ea5e9',
     },
     guaranteeTitle: {
         fontSize: 14,
@@ -596,5 +601,25 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#0ea5e9',
+    },
+    totalContainer: {
+        backgroundColor: '#0ea5e9',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 8,
+        marginBottom: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    totalLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    totalValue: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#fff',
     },
 });
