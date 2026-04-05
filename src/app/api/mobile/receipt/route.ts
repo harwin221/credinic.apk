@@ -2,51 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/app/(auth)/login/actions';
 import { getCredit } from '@/services/credit-service-server';
 import { calculateCreditStatusDetails } from '@/lib/utils';
-import { formatDateTimeForUser } from '@/lib/date-utils';
+import { formatDateTimeForUser, toISOString } from '@/lib/date-utils';
 import { parseISO, isValid } from 'date-fns';
-
-// Función helper para formatear fechas (igual que en receipt-html.ts)
-const toISOStringSafe = (date: any): string | undefined => {
-    if (!date) return undefined;
-    try {
-        if (date instanceof Date) {
-            if (isValid(date)) return date.toISOString();
-        }
-        if (typeof date === 'string') {
-            const parsed = parseISO(date);
-            if (isValid(parsed)) return parsed.toISOString();
-        }
-         if (typeof date === 'number') {
-            const d = new Date(date);
-            if (isValid(d)) return d.toISOString();
-        }
-    } catch (e) {
-        console.error("toISOStringSafe falló para la fecha:", date, e);
-    }
-    return undefined;
-};
-
-const formatLocalTime = (utcDateString?: string): string => {
-    if(!utcDateString) return 'Fecha inválida';
-    try {
-        const utcDate = parseISO(utcDateString);
-        if (!isValid(utcDate)) return 'Fecha inválida';
-        const formatter = new Intl.DateTimeFormat('es-NI', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-            hour12: true,
-            timeZone: 'America/Managua',
-        });
-        return formatter.format(utcDate);
-    } catch (e){
-        console.error("Error formatting date: ", e);
-        return 'Fecha inválida';
-    }
-};
 
 /**
  * Endpoint para generar recibos de pago para impresión móvil
@@ -91,8 +48,9 @@ export async function POST(request: Request) {
 
     const creditStateBeforePayment = { ...credit, registeredPayments: paymentsBeforeCurrent };
     
-    const statusBefore = calculateCreditStatusDetails(creditStateBeforePayment, paymentToPrint.paymentDate);
-    const statusAfter = calculateCreditStatusDetails(credit, paymentToPrint.paymentDate);
+    const referenceDate = toISOString(paymentToPrint.paymentDate) || paymentToPrint.paymentDate;
+    const statusBefore = calculateCreditStatusDetails(creditStateBeforePayment, referenceDate);
+    const statusAfter = calculateCreditStatusDetails(credit, referenceDate);
 
     const cuotaDelDia = statusBefore.dueTodayAmount || 0;
     const montoAtrasado = statusBefore.overdueAmount;
@@ -117,7 +75,7 @@ COPIA: CLIENTE
 ------------------------------------------
 Recibo: ${paymentToPrint.transactionNumber}
 Credito: ${credit.creditNumber}
-Fecha/Hora: ${formatLocalTime(toISOStringSafe(paymentToPrint.paymentDate))}
+Fecha/Hora: ${formatDateTimeForUser(paymentToPrint.paymentDate)}
 ------------------------------------------
 Cliente:
 ${credit.clientName.toUpperCase()}
@@ -153,7 +111,7 @@ GESTOR DE COBRO
           clientName: credit.clientName,
           amount: paymentToPrint.amount,
           transactionNumber: paymentToPrint.transactionNumber,
-          timestamp: formatLocalTime(toISOStringSafe(paymentToPrint.paymentDate)),
+          timestamp: formatDateTimeForUser(paymentToPrint.paymentDate),
           gestor: paymentToPrint.managedBy
         }
       });
@@ -204,7 +162,7 @@ GESTOR DE COBRO
         <div class="line"></div>
         <div>Recibo: ${sanitize(paymentToPrint.transactionNumber)}</div>
         <div>Credito: ${sanitize(credit.creditNumber)}</div>
-        <div>Fecha/Hora: ${formatLocalTime(toISOStringSafe(paymentToPrint.paymentDate))}</div>
+        <div>Fecha/Hora: ${formatDateTimeForUser(paymentToPrint.paymentDate)}</div>
         <div class="line"></div>
         <div>Cliente:</div>
         <div class="bold uppercase">${sanitize(credit.clientName)}</div>
@@ -238,7 +196,7 @@ GESTOR DE COBRO
           clientName: credit.clientName,
           amount: paymentToPrint.amount,
           transactionNumber: paymentToPrint.transactionNumber,
-          timestamp: formatLocalTime(toISOStringSafe(paymentToPrint.paymentDate)),
+          timestamp: formatDateTimeForUser(paymentToPrint.paymentDate),
           gestor: paymentToPrint.managedBy
         }
       });
@@ -251,7 +209,7 @@ GESTOR DE COBRO
         data: {
           transactionNumber: paymentToPrint.transactionNumber,
           creditNumber: credit.creditNumber,
-          paymentDate: formatLocalTime(toISOStringSafe(paymentToPrint.paymentDate)),
+          paymentDate: formatDateTimeForUser(paymentToPrint.paymentDate),
           clientName: credit.clientName,
           clientCode: client?.clientNumber || 'N/A',
           amountPaid: paymentToPrint.amount,
