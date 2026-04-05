@@ -1,6 +1,6 @@
 /**
- * Custom Alert utility that uses CustomAlert component
- * Drop-in replacement for React Native's Alert.alert
+ * Custom Alert Helper - Sistema de alertas bonitas
+ * Reemplazo completo de React Native Alert.alert
  */
 
 let alertCallback: ((config: CustomAlertConfig) => void) | null = null;
@@ -54,9 +54,7 @@ const setCallback = (callback: (config: CustomAlertConfig) => void) => {
     alertCallback = callback;
 };
 
-// Export as object to avoid naming conflicts
 export const AlertHelper = {
     alert: showAlert,
     setCallback: setCallback,
 };
-

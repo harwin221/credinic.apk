@@ -4,7 +4,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { sessionService } from '../services/session';
 import { useAuth } from '../contexts/AuthContext';
-import { AlertHelper } from '../utils/alert';
+import { AlertHelper } from '../utils/custom-alert-helper';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');

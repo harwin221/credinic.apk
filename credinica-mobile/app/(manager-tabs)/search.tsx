@@ -8,7 +8,7 @@ import ClientDetailModal from '../../components/ClientDetailModal';
 import { sessionService } from '../../services/session';
 import { thermalPrinterService } from '../../services/thermal-printer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AlertHelper } from '../../utils/alert';
+import { AlertHelper } from '../../utils/custom-alert-helper';
 
 export default function SearchScreen() {
     const [searchQuery, setSearchQuery] = useState('');

@@ -6,7 +6,7 @@ import SyncIndicator from '../../components/SyncIndicator';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { thermalPrinterService } from '../../services/thermal-printer';
-import { AlertHelper } from '../../utils/alert';
+import { AlertHelper } from '../../utils/custom-alert-helper';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();

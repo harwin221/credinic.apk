@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomAlert from './CustomAlert';
-import { AlertHelper } from '../utils/alert';
+import { AlertHelper } from '../utils/custom-alert-helper';
 
 interface AlertConfig {
     title: string;

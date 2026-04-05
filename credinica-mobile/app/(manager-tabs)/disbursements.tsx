@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import ReasonModal from '../../components/ReasonModal';
-import { AlertHelper } from '../../utils/alert';
+import { AlertHelper } from '../../utils/custom-alert-helper';
 
 type TabType = 'pending' | 'disbursed' | 'denied';
 
