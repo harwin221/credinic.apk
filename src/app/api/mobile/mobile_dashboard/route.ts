@@ -53,11 +53,15 @@ export async function GET(request: Request) {
 async function getGestorDashboard(gestorName: string, today: string) {
     // Total del día
     const todayRows: any = await query(`
-        SELECT SUM(amount) as totalRecuperacion, COUNT(DISTINCT creditId) as totalClientesCobrados
-        FROM payments_registered 
-        WHERE managedBy = ? AND status != 'ANULADO'
-          AND DATE(CONVERT_TZ(paymentDate, '+00:00', '-06:00')) = ?
-    `, [gestorName, today]);
+        SELECT 
+            SUM(pr.amount) as totalRecuperacion, 
+            COUNT(DISTINCT c.clientName) as totalClientesCobrados
+        FROM payments_registered pr
+        JOIN credits c ON pr.creditId = c.id
+        WHERE pr.managedBy = ? 
+        AND pr.status != 'ANULADO'
+        AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
+    `, [gestorName]);
 
     const totalRecuperacion = Number(todayRows[0]?.totalRecuperacion || 0);
     const totalClientesCobrados = Number(todayRows[0]?.totalClientesCobrados || 0);
@@ -91,9 +95,10 @@ async function getGestorDashboard(gestorName: string, today: string) {
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
-        WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-          AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = ?
-    `, [gestorName, today]);
+        WHERE pr.managedBy = ? 
+        AND pr.status != 'ANULADO'
+        AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
+    `, [gestorName]);
 
     let diaRecaudado = 0;
     let moraRecaudada = 0;

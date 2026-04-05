@@ -45,13 +45,16 @@ export async function generateDailyActivityReport(userId: string): Promise<Daily
     const disbursements: DailyActivitySummary = { totalActivityAmount: 0, transactions: [] };
 
     // Obtener pagos (collections)
+    // IMPORTANTE: Usar DATE_SUB para convertir de UTC a Nicaragua y comparar solo la fecha
     const paymentsSql = `
         SELECT rp.id, rp.amount, c.clientName, rp.paymentDate 
         FROM payments_registered rp
         JOIN credits c ON rp.creditId = c.id
-        WHERE rp.managedBy = ? AND rp.paymentDate >= ? AND rp.paymentDate <= ? AND rp.status != 'ANULADO'
+        WHERE rp.managedBy = ? 
+        AND DATE(DATE_SUB(rp.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
+        AND rp.status != 'ANULADO'
     `;
-    const paymentRows: any = await query(paymentsSql, [userName, startOfDayUTC, endOfDayUTC]);
+    const paymentRows: any = await query(paymentsSql, [userName]);
 
     paymentRows.forEach((p: any) => {
         collections.totalActivityAmount += p.amount;
@@ -64,14 +67,16 @@ export async function generateDailyActivityReport(userId: string): Promise<Daily
         });
     });
 
-    // Obtener desembolsos (disbursements) - CORREGIDO
-    // Se usa 'userName' (fullName) para buscar en la columna `disbursedBy`.
+    // Obtener desembolsos (disbursements)
+    // IMPORTANTE: Usar DATE para comparar solo la fecha en Nicaragua
     const disbursementsSql = `
         SELECT id, creditNumber, clientName, disbursedAmount, deliveryDate 
         FROM credits 
-        WHERE disbursedBy = ? AND deliveryDate >= ? AND deliveryDate <= ? AND status = 'Active'
+        WHERE disbursedBy = ? 
+        AND DATE(deliveryDate) = CURDATE()
+        AND status IN ('Active', 'Paid')
     `;
-    const disbursementRows: any = await query(disbursementsSql, [userName, startOfDayUTC, endOfDayUTC]);
+    const disbursementRows: any = await query(disbursementsSql, [userName]);
 
     disbursementRows.forEach((d: any) => {
         disbursements.totalActivityAmount += d.disbursedAmount || 0;
