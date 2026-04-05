@@ -144,15 +144,18 @@ async function getGestorDashboard(gestorName: string, today: string) {
 async function getManagerDashboard(userId: string, managerName: string, sucursalId: string, today: string) {
     console.log('[MANAGER_DASHBOARD] Iniciando para sucursalId:', sucursalId, 'today:', today);
     
-    // Obtener gestores de la sucursal
-    const gestoresRows: any[] = await query(`
-        SELECT id, fullName 
+    // Obtener TODOS los usuarios activos de la sucursal (no solo gestores)
+    // Igual que en la web: GESTOR, ADMINISTRADOR, GERENTE, FINANZAS, OPERATIVO, CAJERO
+    const usuariosRows: any[] = await query(`
+        SELECT id, fullName, role
         FROM users 
-        WHERE sucursal_id = ? AND role = 'GESTOR' AND active = 1
+        WHERE sucursal_id = ? 
+          AND active = 1
+          AND role IN ('GESTOR', 'ADMINISTRADOR', 'GERENTE', 'FINANZAS', 'OPERATIVO', 'CAJERO')
         ORDER BY fullName
     `, [sucursalId]);
 
-    console.log('[MANAGER_DASHBOARD] Gestores encontrados:', gestoresRows.length);
+    console.log('[MANAGER_DASHBOARD] Usuarios encontrados:', usuariosRows.length);
 
     // Total de cartera activa de la sucursal (calculando pagos registrados)
     const carteraRows: any = await query(`
@@ -204,24 +207,27 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
     const desembolsosPendientes = Number(desembolsosRows[0]?.count || 0);
     console.log('[MANAGER_DASHBOARD] Desembolsos pendientes:', desembolsosPendientes);
 
-    // Recaudación por gestor (para el gráfico)
+    // Recaudación por usuario (para el gráfico) - TODOS los usuarios, no solo gestores
     const recaudacionPorGestor: any[] = [];
-    for (const gestor of gestoresRows) {
-        const gestorRecaudacion: any = await query(`
+    for (const usuario of usuariosRows) {
+        const usuarioRecaudacion: any = await query(`
             SELECT 
                 SUM(pr.amount) as total,
                 MAX(pr.paymentDate) as ultimaCuota
             FROM payments_registered pr
             WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
               AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = ?
-        `, [gestor.fullName, today]);
+        `, [usuario.fullName, today]);
 
-        const total = Number(gestorRecaudacion[0]?.total || 0);
-        const ultimaCuota = gestorRecaudacion[0]?.ultimaCuota;
+        const total = Number(usuarioRecaudacion[0]?.total || 0);
+        const ultimaCuota = usuarioRecaudacion[0]?.ultimaCuota;
 
+        // Incluir TODOS los usuarios, incluso si no recaudaron hoy (total = 0)
+        // Esto permite ver quién no ha trabajado
         recaudacionPorGestor.push({
-            gestorId: gestor.id,
-            gestorName: gestor.fullName,
+            gestorId: usuario.id,
+            gestorName: usuario.fullName,
+            role: usuario.role,
             totalRecaudado: total,
             ultimaCuota: ultimaCuota || null,
             cordobas: total, // Por ahora todo en córdobas
@@ -231,7 +237,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
     // Ordenar por total recaudado descendente
     recaudacionPorGestor.sort((a, b) => b.totalRecaudado - a.totalRecaudado);
-    console.log('[MANAGER_DASHBOARD] Recaudación por gestor:', recaudacionPorGestor);
+    console.log('[MANAGER_DASHBOARD] Recaudación por usuario:', recaudacionPorGestor);
 
     // Detalle de recaudación (clasificación) - usar managedBy como la app web
     const paymentRows: any[] = await query(`
