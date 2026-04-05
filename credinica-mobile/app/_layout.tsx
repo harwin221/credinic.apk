@@ -3,31 +3,42 @@ import { useEffect } from "react";
 import { initDatabase } from "../services/offline-db";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 
-function AuthGuard() {
+function RootContent() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
 
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';
+    const inTabsGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';
 
-    // Si no hay usuario y estamos en una ruta protegida, expulsar al login
-    if (!user && inAuthGroup) {
-      console.log('[AUTH_GUARD] Sin sesión. Expulsando al login...');
+    if (!user && inTabsGroup) {
+      console.log('[AUTH_GUARD] Sin sesión. Forzando ir al login...');
       router.replace('/');
-    } 
-    // Si hay usuario y estamos en el login (root), llevar al dashboard según el rol
-    else if (user && !inAuthGroup) {
-      console.log('[AUTH_GUARD] Sesión activa. Llevando al dashboard...');
+    } else if (user && !inTabsGroup) {
+      console.log('[AUTH_GUARD] Sesión activa. Redirigiendo a tabs...');
       const roleUpper = user.role.toUpperCase();
       const isManager = ['GERENTE', 'ADMINISTRADOR', 'FINANZAS', 'OPERATIVO'].includes(roleUpper);
-      
       router.replace(isManager ? "/(manager-tabs)" : "/(tabs)");
     }
   }, [user, isLoading, segments]);
 
-  return null;
+  if (isLoading) {
+    return null; // Podrías poner una pantalla de carga aquí
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {!user ? (
+        <Stack.Screen name="index" />
+      ) : (
+        <>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(manager-tabs)" />
+        </>
+      )}
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
@@ -43,12 +54,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <AuthGuard />
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(manager-tabs)" options={{ headerShown: false }} />
-      </Stack>
+      <RootContent />
     </AuthProvider>
   );
 }

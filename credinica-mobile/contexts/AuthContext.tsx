@@ -39,6 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AUTH] Logging out...');
         await sessionService.clearSession();
         setUser(null);
+        // Forzamos navegación inmediata al login (root)
+        router.replace('/');
     };
 
     return (
