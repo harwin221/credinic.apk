@@ -51,4 +51,9 @@ public/worker-*.js
 public/worker-*.js.map
 public/fallback-*.js
 public/fallback-*.js.map
-credinica-mobile/
+# credinica-mobile (tracked in root now)
+credinica-mobile/node_modules/
+credinica-mobile/.expo/
+credinica-mobile/dist/
+credinica-mobile/ios/
+credinica-mobile/android/
