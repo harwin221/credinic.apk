@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { todayInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,16 +48,15 @@ export async function GET(request: Request) {
         console.log('[DISBURSEMENTS] whereClause:', whereClause);
         console.log('[DISBURSEMENTS] params:', params);
 
-        // Obtener TODOS los créditos Approved, Active y Rejected sin filtrar por fecha
-        // El filtrado por fecha se hará en el cliente (app móvil)
-        console.log('[DISBURSEMENTS] Fetching all credits without date filter');
+        const today = todayInNicaragua();
+        console.log('[DISBURSEMENTS] Fetching daily activity (Active/Rejected) and all Approved. Today:', today);
         
         let allWhereClause = `WHERE (
             c.status = 'Approved'
-            OR c.status = 'Active'
-            OR c.status = 'Rejected'
+            OR (c.status = 'Active' AND DATE(DATE_SUB(c.deliveryDate, INTERVAL 6 HOUR)) = ?)
+            OR (c.status = 'Rejected' AND DATE(DATE_SUB(c.approvalDate, INTERVAL 6 HOUR)) = ?)
         )`;
-        const allParams: any[] = [];
+        const allParams: any[] = [today, today];
 
         // Filtrar por sucursal si es gerente u operativo
         if (userRole === 'GERENTE' || userRole === 'OPERATIVO') {
