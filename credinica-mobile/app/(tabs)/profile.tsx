@@ -51,6 +51,23 @@ export default function ProfileScreen() {
         Alert.alert('Impresora configurada', `${printer.name} configurada correctamente`);
     };
 
+    const handleManualSync = async () => {
+        setLoading(true);
+        try {
+            const { fullSync } = await import('../../services/sync-service');
+            const result = await fullSync();
+            if (result.success) {
+                Alert.alert('Éxito', 'Sincronización completada: ' + result.message);
+            } else {
+                Alert.alert('Aviso', 'Sincronización parcial: ' + result.message);
+            }
+        } catch (error: any) {
+            Alert.alert('Error', 'No se pudo sincronizar: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleLogout = () => {
         Alert.alert(
             'Cerrar Sesión',
@@ -99,6 +116,20 @@ export default function ProfileScreen() {
                         <Text style={styles.value}>{user?.username || 'N/A'}</Text>
                     </View>
                 </View>
+
+                {/* Sincronización Manual */}
+                <TouchableOpacity 
+                    style={styles.syncCard} 
+                    onPress={handleManualSync}
+                    disabled={loading}
+                >
+                    <MaterialCommunityIcons name="sync" size={24} color="#10b981" />
+                    <View style={styles.infoText}>
+                        <Text style={styles.label}>Sincronización</Text>
+                        <Text style={styles.value}>Descargar datos offline</Text>
+                    </View>
+                    {loading && <ActivityIndicator size="small" color="#10b981" />}
+                </TouchableOpacity>
 
                 {/* Configuración de impresora */}
                 <TouchableOpacity 
@@ -232,10 +263,20 @@ const styles = StyleSheet.create({
     printerButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 15,
         padding: 15,
         backgroundColor: '#f1f5f9',
         borderRadius: 12,
+    },
+    syncCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 10,
+        padding: 15,
+        backgroundColor: '#f0fdf4',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#bbf7d0',
     },
     logoutButton: {
         flexDirection: 'row',

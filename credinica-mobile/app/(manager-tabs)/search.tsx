@@ -145,32 +145,30 @@ export default function SearchScreen() {
         const session = await sessionService.getSession();
         if (!session) return;
 
-        const dateStr = new Date(payment.createdAt).toLocaleString('es-NI', { 
-            day: '2-digit', month: '2-digit', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit', hour12: true 
-        });
+        try {
+            // Usar el endpoint de recibo que calcula todo correctamente
+            const response = await fetch(API_ENDPOINTS.mobile_receipt, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    creditId: credit.id,
+                    paymentId: payment.id,
+                    format: 'json'
+                })
+            });
 
-        const reprintData: ReceiptData = {
-            transactionNumber: payment.receiptNumber || payment.id.substring(0, 8),
-            creditNumber: credit.creditNumber,
-            clientName: credit.clientName,
-            clientCode: credit.clientCode || 'N/A',
-            paymentDate: dateStr,
-            cuotaDelDia: 0, 
-            montoAtrasado: 0, 
-            diasMora: 0, 
-            totalAPagar: payment.amount, 
-            montoCancelacion: 0, 
-            amountPaid: payment.amount,
-            saldoAnterior: 0,
-            nuevoSaldo: 0,
-            managedBy: session.fullName,
-            sucursal: session.sucursalName || 'SUCURSAL',
-            role: session.role,
-        };
-
-        setReceiptData(reprintData);
-        setIsReceiptVisible(true);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                setReceiptData(result.data);
+                setIsReceiptVisible(true);
+            } else {
+                Alert.alert('Error', 'No se pudo generar el recibo');
+            }
+        } catch (error) {
+            console.error('Error al reimprimir:', error);
+            Alert.alert('Error', 'No se pudo conectar con el servidor');
+        }
     };
 
     return (
