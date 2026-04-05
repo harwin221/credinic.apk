@@ -39,8 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AUTH] Logging out...');
         await sessionService.clearSession();
         setUser(null);
-        // Forzamos navegación inmediata al login (root)
-        router.replace('/');
+        // Limpiamos todo el historial de navegación y volvemos al inicio (Login)
+        try {
+            router.dismissAll();
+            router.replace('/');
+        } catch (e) {
+            // Fallback si dismissAll da error en algunas versiones de Expo
+            router.replace('/');
+        }
     };
 
     return (

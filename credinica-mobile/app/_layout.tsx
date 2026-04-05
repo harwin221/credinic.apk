@@ -8,6 +8,7 @@ function RootContent() {
   const segments = useSegments();
 
   useEffect(() => {
+    console.log('[AUTH_DEBUG] User:', !!user, 'Segments:', segments);
     if (isLoading) return;
 
     const inTabsGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';

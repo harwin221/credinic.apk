@@ -35,11 +35,14 @@ export default function ProfileScreen() {
         }
     };
 
-    const handleSelectPrinter = async (printerName: string) => {
+    const handleSelectPrinter = async (printerName: string, target?: string) => {
         await AsyncStorage.setItem('selectedPrinter', printerName);
+        if (target) {
+            await AsyncStorage.setItem('selectedPrinterTarget', target);
+        }
         setSelectedPrinter(printerName);
         setShowPrinterModal(false);
-        Alert.alert('Impresora configurada', 'La impresión usará la impresora Bluetooth emparejada en tu sistema');
+        Alert.alert('Impresora configurada', 'La aplicación intentará imprimir directamente a esta impresora Bluetooth');
     };
 
     const handleLogout = () => {
@@ -146,7 +149,7 @@ export default function ProfileScreen() {
                                             styles.printerItem,
                                             selectedPrinter === item.name && styles.printerItemSelected
                                         ]}
-                                        onPress={() => handleSelectPrinter(item.name)}
+                                        onPress={() => handleSelectPrinter(item.name, item.target)}
                                     >
                                         <MaterialCommunityIcons 
                                             name="printer" 
