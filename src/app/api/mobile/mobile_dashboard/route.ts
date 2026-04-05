@@ -56,7 +56,7 @@ async function getGestorDashboard(gestorName: string, today: string) {
         SELECT SUM(amount) as totalRecuperacion, COUNT(DISTINCT creditId) as totalClientesCobrados
         FROM payments_registered 
         WHERE managedBy = ? AND status != 'ANULADO'
-          AND DATE(paymentDate) = ?
+          AND DATE(DATE_SUB(paymentDate, INTERVAL 6 HOUR)) = ?
     `, [gestorName, today]);
 
     const totalRecuperacion = Number(todayRows[0]?.totalRecuperacion || 0);
@@ -171,7 +171,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         FROM payments_registered pr
         WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND role = 'GESTOR' AND active = 1)
           AND pr.status != 'ANULADO'
-          AND DATE(pr.paymentDate) = ?
+          AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = ?
     `, [sucursalId, today]);
 
     const totalRecuperacion = Number(totalRows[0]?.totalRecuperacion || 0);
@@ -208,7 +208,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
                 MAX(pr.paymentDate) as ultimaCuota
             FROM payments_registered pr
             WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-              AND DATE(pr.paymentDate) = ?
+              AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = ?
         `, [gestor.fullName, today]);
 
         const total = Number(gestorRecaudacion[0]?.total || 0);
@@ -252,7 +252,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy IN (SELECT fullName FROM users WHERE sucursal_id = ? AND role = 'GESTOR' AND active = 1)
           AND pr.status != 'ANULADO'
-          AND DATE(pr.paymentDate) = ?
+          AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = ?
     `, [sucursalId, today]);
 
     console.log('[MANAGER_DASHBOARD] Pagos del día:', paymentRows.length);
