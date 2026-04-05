@@ -310,8 +310,8 @@ export async function generateColocacionVsRecuperacionReport(filters: ReportFilt
 
         let recuperacionSql = `SELECT pr.managedBy, SUM(pr.amount) as total, MAX(pr.paymentDate) as lastDate FROM payments_registered pr WHERE pr.status != 'ANULADO'`;
         const recuperacionParams: any[] = [];
-        if (dateFrom) { recuperacionSql += ` AND DATE(pr.paymentDate) >= ?`; recuperacionParams.push(getReportDateStart(dateFrom)); }
-        if (dateTo) { recuperacionSql += ` AND DATE(pr.paymentDate) <= ?`; recuperacionParams.push(getReportDateEnd(dateTo)); }
+        if (dateFrom) { recuperacionSql += ` AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) >= ?`; recuperacionParams.push(getReportDateStart(dateFrom)); }
+        if (dateTo) { recuperacionSql += ` AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) <= ?`; recuperacionParams.push(getReportDateEnd(dateTo)); }
         recuperacionSql += ' GROUP BY pr.managedBy';
         console.log('💰 Recuperacion SQL:', recuperacionSql, 'Params:', recuperacionParams);
         const recuperacionRows: any[] = await query(recuperacionSql, recuperacionParams);

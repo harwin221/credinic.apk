@@ -77,7 +77,7 @@ async function getGestorDashboard(gestorName: string, today: string) {
             COALESCE((
                 SELECT SUM(pp.amount) FROM payment_plan pp 
                 WHERE pp.creditId = pr.creditId 
-                AND DATE(pp.paymentDate) < DATE(pr.paymentDate)
+                AND DATE(pp.paymentDate) < DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR))
             ), 0) as amountDueBefore,
             COALESCE((
                 SELECT SUM(pr2.amount) FROM payments_registered pr2 
@@ -87,12 +87,12 @@ async function getGestorDashboard(gestorName: string, today: string) {
             COALESCE((
                 SELECT SUM(pp3.amount) FROM payment_plan pp3 
                 WHERE pp3.creditId = pr.creditId 
-                AND DATE(pp3.paymentDate) = DATE(pr.paymentDate)
+                AND DATE(pp3.paymentDate) = DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR))
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy = ? AND pr.status != 'ANULADO'
-          AND DATE(pr.paymentDate) = ?
+          AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = ?
     `, [gestorName, today]);
 
     let diaRecaudado = 0;
@@ -236,7 +236,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             COALESCE((
                 SELECT SUM(pp.amount) FROM payment_plan pp 
                 WHERE pp.creditId = pr.creditId 
-                AND DATE(pp.paymentDate) < DATE(pr.paymentDate)
+                AND DATE(pp.paymentDate) < DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR))
             ), 0) as amountDueBefore,
             COALESCE((
                 SELECT SUM(pr2.amount) FROM payments_registered pr2 
@@ -246,7 +246,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             COALESCE((
                 SELECT SUM(pp3.amount) FROM payment_plan pp3 
                 WHERE pp3.creditId = pr.creditId 
-                AND DATE(pp3.paymentDate) = DATE(pr.paymentDate)
+                AND DATE(pp3.paymentDate) = DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR))
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
