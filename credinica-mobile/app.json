@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "credinica-mobile",
+    "name": "CREDINICA",
     "icon": "./assets/images/logo.png",
-    "slug": "credinica-mobile",
+    "slug": "credinica",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "credinicamobile",
@@ -12,12 +12,21 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/logo.png"
+        "backgroundColor": "#0ea5e9",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.harwin221.credinicamobile"
+      "icon": "./assets/images/icon.png",
+      "package": "com.harwin221.credinicamobile",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT",
+        "ACCESS_FINE_LOCATION",
+        "INTERNET"
+      ],
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "output": "static",

@@ -31,7 +31,7 @@ export async function GET(request: Request) {
             FROM payments_registered pr
             WHERE pr.managedBy = ? 
             AND pr.status != 'ANULADO'
-            AND DATE(pr.paymentDate) = CURDATE()
+            AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
         `, [gestorName]);
 
         const todayPaymentCreditIds = new Set(todayPaymentsRows.map((r: any) => r.creditId));

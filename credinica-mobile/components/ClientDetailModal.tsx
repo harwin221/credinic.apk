@@ -209,12 +209,6 @@ export default function ClientDetailModal({ visible, onClose, credit, onApplyPay
                         )}
                     </ScrollView>
 
-                    <View style={styles.reportFooter}>
-                        <TouchableOpacity style={styles.paymentBtn} onPress={() => onApplyPayment(credit)}>
-                            <MaterialCommunityIcons name="cash-register" size={24} color="#fff" />
-                            <Text style={styles.paymentBtnText}>IR A COBRAR</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
             </View>
         </Modal>

@@ -29,6 +29,11 @@ export default function ProfileScreen() {
         try {
             const found = await thermalPrinterService.findPrinters();
             setPrinters(found);
+            
+            // Si solo hay la opción del sistema, puede ser que no se otorgaron permisos
+            if (found.length === 1 && found[0].name === 'Impresora Térmica (Sistema)') {
+                console.log('[PROFILE] Solo opción del sistema disponible');
+            }
         } catch (error: any) {
             Alert.alert('Error', error.message || 'No se pudieron buscar impresoras');
         } finally {
@@ -36,11 +41,14 @@ export default function ProfileScreen() {
         }
     };
 
-    const handleSelectPrinter = async (printerName: string) => {
-        await AsyncStorage.setItem('selectedPrinter', printerName);
-        setSelectedPrinter(printerName);
+    const handleSelectPrinter = async (printer: any) => {
+        await AsyncStorage.setItem('selectedPrinter', printer.name);
+        if (printer.target) {
+            await AsyncStorage.setItem('selectedPrinterTarget', printer.target);
+        }
+        setSelectedPrinter(printer.name);
         setShowPrinterModal(false);
-        Alert.alert('Impresora configurada', 'La impresión usará la impresora Bluetooth emparejada en tu sistema');
+        Alert.alert('Impresora configurada', `${printer.name} configurada correctamente`);
     };
 
     const handleLogout = () => {
@@ -95,15 +103,16 @@ export default function ProfileScreen() {
                 {/* Configuración de impresora */}
                 <TouchableOpacity 
                     style={styles.printerButton} 
-                    onPress={() => {
+                    onPress={async () => {
                         setShowPrinterModal(true);
-                        handleSearchPrinters();
+                        // Buscar impresoras automáticamente al abrir el modal
+                        await handleSearchPrinters();
                     }}
                 >
                     <MaterialCommunityIcons name="printer-settings" size={24} color="#0ea5e9" />
                     <View style={styles.infoText}>
                         <Text style={styles.label}>Impresora</Text>
-                        <Text style={styles.value}>{selectedPrinter || 'No configurada'}</Text>
+                        <Text style={styles.value}>{selectedPrinter || 'Impresora Térmica (Sistema)'}</Text>
                     </View>
                 </TouchableOpacity>
             </View>
@@ -114,7 +123,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             {/* Modal de selección de impresora */}
-            <Modal visible={showPrinterModal} animationType="slide" transparent>
+            <Modal visible={showPrinterModal} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
                         <View style={styles.modalHeader}>
@@ -134,6 +143,7 @@ export default function ProfileScreen() {
                                 <MaterialCommunityIcons name="printer-off" size={64} color="#cbd5e1" />
                                 <Text style={styles.emptyText}>No se encontraron impresoras</Text>
                                 <Text style={styles.emptyHint}>Empareja tu impresora en Bluetooth</Text>
+                                <Text style={styles.emptyHint}>y otorga los permisos necesarios</Text>
                                 <TouchableOpacity style={styles.retryButton} onPress={handleSearchPrinters}>
                                     <Text style={styles.retryText}>Buscar de nuevo</Text>
                                 </TouchableOpacity>
@@ -148,7 +158,7 @@ export default function ProfileScreen() {
                                             styles.printerItem,
                                             selectedPrinter === item.name && styles.printerItemSelected
                                         ]}
-                                        onPress={() => handleSelectPrinter(item.name)}
+                                        onPress={() => handleSelectPrinter(item)}
                                     >
                                         <MaterialCommunityIcons 
                                             name="printer" 
@@ -249,13 +259,15 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
     },
     modalContainer: {
         backgroundColor: '#ffffff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '80%',
+        borderRadius: 20,
+        width: '100%',
+        maxHeight: '70%',
         paddingBottom: 20,
     },
     modalHeader: {

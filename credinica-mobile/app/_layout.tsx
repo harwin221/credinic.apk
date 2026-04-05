@@ -29,7 +29,7 @@ function RootContent() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack key={user ? `auth-${user.id}` : 'unauth'} screenOptions={{ headerShown: false }}>
       {!user ? (
         <Stack.Screen name="index" />
       ) : (

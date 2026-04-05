@@ -9,6 +9,17 @@ import CustomAlert from '../../components/CustomAlert';
 const TABS = ['Mi Cartera', 'Représtamos', 'Renovaciones'];
 const fmt = (n: number) => n.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const formatDate = (dateValue: any) => {
+    if (!dateValue) return 'N/A';
+    try {
+        const d = typeof dateValue === 'string' ? new Date(dateValue.replace(' ', 'T')) : new Date(dateValue);
+        if (isNaN(d.getTime())) return 'N/A';
+        return d.toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+        return 'N/A';
+    }
+};
+
 export default function ClientsScreen() {
     const [activeTab, setActiveTab] = useState('Mi Cartera');
     const [search, setSearch] = useState('');
@@ -341,15 +352,15 @@ export default function ClientsScreen() {
                                                 </View>
                                                 <View style={styles.creditRow}>
                                                     <Text style={styles.creditLabel}>Fecha de Entrega:</Text>
-                                                    <Text style={styles.creditValue}>{credit.disbursementDate ? new Date(credit.disbursementDate).toLocaleDateString('es-NI') : 'N/A'}</Text>
+                                                    <Text style={styles.creditValue}>{formatDate(credit.disbursementDate)}</Text>
                                                 </View>
                                                 <View style={styles.creditRow}>
                                                     <Text style={styles.creditLabel}>Fecha de Primera Cuota:</Text>
-                                                    <Text style={styles.creditValue}>{credit.firstPaymentDate ? new Date(credit.firstPaymentDate).toLocaleDateString('es-NI') : 'N/A'}</Text>
+                                                    <Text style={styles.creditValue}>{formatDate(credit.firstPaymentDate)}</Text>
                                                 </View>
                                                 <View style={styles.creditRow}>
                                                     <Text style={styles.creditLabel}>Fecha de Vencimiento:</Text>
-                                                    <Text style={styles.creditValue}>{credit.dueDate ? new Date(credit.dueDate).toLocaleDateString('es-NI') : 'N/A'}</Text>
+                                                    <Text style={styles.creditValue}>{formatDate(credit.dueDate)}</Text>
                                                 </View>
 
                                                 {/* Información de Gestión */}
@@ -425,7 +436,7 @@ export default function ClientsScreen() {
                                                 {clientDetail.credits[0].paymentPlan?.map((plan: any, index: number) => (
                                                     <View key={index} style={[styles.tableRow, index % 2 === 0 && styles.tableRowEven]}>
                                                         <Text style={[styles.tableCellText, styles.colNumberFixed]}>{plan.paymentNumber}</Text>
-                                                        <Text style={[styles.tableCellText, styles.colDateFixed]}>{plan.paymentDate ? new Date(plan.paymentDate).toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}</Text>
+                                                        <Text style={[styles.tableCellText, styles.colDateFixed]}>{formatDate(plan.paymentDate)}</Text>
                                                         <Text style={[styles.tableCellText, styles.colAmountFixed]}>C${fmt(plan.principal)}</Text>
                                                         <Text style={[styles.tableCellText, styles.colAmountFixed]}>C${fmt(plan.interest)}</Text>
                                                         <Text style={[styles.tableCellText, styles.colAmountFixed, { fontWeight: '700' }]}>C${fmt(plan.amount)}</Text>
@@ -453,7 +464,7 @@ export default function ClientsScreen() {
                                                 </View>
                                                 <View style={styles.creditRow}>
                                                     <Text style={styles.creditLabel}>Fecha:</Text>
-                                                    <Text style={styles.creditValue}>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('es-NI') : 'N/A'}</Text>
+                                                    <Text style={styles.creditValue}>{formatDate(payment.paymentDate)}</Text>
                                                 </View>
                                                 <View style={styles.creditRow}>
                                                     <Text style={styles.creditLabel}>Recibo:</Text>
