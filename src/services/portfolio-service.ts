@@ -4,7 +4,7 @@ import { query } from '@/lib/mysql';
 import type { Sucursal, CreditDetail, PortfolioCredit, AppUser as User, Client, RegisteredPayment, CreditStatusDetails } from '@/lib/types';
 import { calculateCreditStatusDetails } from '@/lib/utils';
 import { isToday, parseISO, differenceInDays, subDays, startOfDay, endOfDay } from 'date-fns';
-import { toNicaraguaTime, nowInNicaragua } from '@/lib/date-utils';
+import { toNicaraguaTime, nowInNicaragua, todayInNicaragua } from '@/lib/date-utils';
 import { getCreditsAdmin as getCreditsAdminServerSide } from './credit-service-server';
 import { getUser as getUserServerSide } from './user-service-server';
 import { generateDailyActivityReport } from './closure-service';
