@@ -29,23 +29,20 @@ class ThermalPrinterService {
                 ]);
 
                 return (
-                    granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
-                    granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
+                    (granted as any)['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
+                    (granted as any)['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
                 );
             } else {
                 // Para versiones anteriores, necesitamos ubicación y los permisos clásicos
-                const BLUETOOTH = 'android.permission.BLUETOOTH' as any;
-                const BLUETOOTH_ADMIN = 'android.permission.BLUETOOTH_ADMIN' as any;
-                
                 const granted = await PermissionsAndroid.requestMultiple([
-                    BLUETOOTH,
-                    BLUETOOTH_ADMIN,
+                    'android.permission.BLUETOOTH' as any,
+                    'android.permission.BLUETOOTH_ADMIN' as any,
                     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 ]);
 
                 return (
-                    granted[BLUETOOTH] === PermissionsAndroid.RESULTS.GRANTED &&
-                    granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
+                    (granted as any)['android.permission.BLUETOOTH'] === PermissionsAndroid.RESULTS.GRANTED &&
+                    (granted as any)['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
                 );
             }
         } catch (error) {
