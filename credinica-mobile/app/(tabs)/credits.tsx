@@ -102,6 +102,9 @@ export default function CreditsScreen() {
     };
 
     const handleReprint = async (item: any) => {
+        const session = await sessionService.getSession();
+        if (!session) return;
+
         const lastPayment = (item.registeredPayments || [])
             .filter((p: any) => p.status !== 'ANULADO')
             .sort((a: any, b: any) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())[0];
@@ -116,7 +119,8 @@ export default function CreditsScreen() {
                 body: JSON.stringify({ 
                     creditId: item.id, 
                     paymentId: lastPayment.id,
-                    format: 'json' // Necesitamos un formato JSON que me devuelva el objeto ReceiptData
+                    format: 'json',
+                    userId: session.id // Enviar userId para autenticación móvil
                 })
             });
             

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
         // Dashboard normal para gestores
         console.log('[DASHBOARD] Llamando a getGestorDashboard');
-        return await getGestorDashboard(gestorName, today);
+        return await getGestorDashboard(userId, gestorName, today);
 
     } catch (error: any) {
         console.error('Error mobile_dashboard API:', error);
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 }
 
 // Dashboard para gestores (código original)
-async function getGestorDashboard(gestorName: string, today: string) {
+async function getGestorDashboard(userId: string, gestorName: string, today: string) {
     // Total del día
     const todayRows: any = await query(`
         SELECT 
@@ -60,8 +60,8 @@ async function getGestorDashboard(gestorName: string, today: string) {
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy = ? 
         AND pr.status != 'ANULADO'
-        AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
-    `, [gestorName]);
+        AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = ?
+    `, [gestorName, today]);
 
     const totalRecuperacion = Number(todayRows[0]?.totalRecuperacion || 0);
     const totalClientesCobrados = Number(todayRows[0]?.totalClientesCobrados || 0);
@@ -81,7 +81,7 @@ async function getGestorDashboard(gestorName: string, today: string) {
             COALESCE((
                 SELECT SUM(pp.amount) FROM payment_plan pp 
                 WHERE pp.creditId = pr.creditId 
-                AND DATE(pp.paymentDate) < DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR))
+                AND DATE(pp.paymentDate) < DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
             ), 0) as amountDueBefore,
             COALESCE((
                 SELECT SUM(pr2.amount) FROM payments_registered pr2 
@@ -91,14 +91,14 @@ async function getGestorDashboard(gestorName: string, today: string) {
             COALESCE((
                 SELECT SUM(pp3.amount) FROM payment_plan pp3 
                 WHERE pp3.creditId = pr.creditId 
-                AND DATE(pp3.paymentDate) = DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR))
+                AND DATE(pp3.paymentDate) = DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00'))
             ), 0) as dueTodayAmount
         FROM payments_registered pr
         JOIN credits c ON pr.creditId = c.id
         WHERE pr.managedBy = ? 
         AND pr.status != 'ANULADO'
-        AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) = CURDATE()
-    `, [gestorName]);
+        AND DATE(CONVERT_TZ(pr.paymentDate, '+00:00', '-06:00')) = ?
+    `, [gestorName, today]);
 
     let diaRecaudado = 0;
     let moraRecaudada = 0;
