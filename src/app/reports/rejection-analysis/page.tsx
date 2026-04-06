@@ -105,13 +105,13 @@ function RejectionAnalysisReportContent() {
         <Table className="report-table-condensed">
           <TableHeader>
             <TableRow>
-              <TableHead>Fecha Rechazo</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Gestor Solicitante</TableHead>
-              <TableHead>Sucursal</TableHead>
-              <TableHead className="text-right">Monto Solicitado</TableHead>
-              <TableHead>Motivo</TableHead>
-              <TableHead>Rechazado por</TableHead>
+              <TableHead className="w-[10%]">Fecha Rechazo</TableHead>
+              <TableHead className="w-[15%]">Cliente</TableHead>
+              <TableHead className="w-[15%]">Gestor Solicitante</TableHead>
+              <TableHead className="w-[10%]">Sucursal</TableHead>
+              <TableHead className="text-left w-[10%] whitespace-nowrap">Monto Solicitado</TableHead>
+              <TableHead className="w-[25%]">Motivo</TableHead>
+              <TableHead className="w-[15%]">Rechazado por</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -122,8 +122,8 @@ function RejectionAnalysisReportContent() {
                   <TableCell>{item.clientName}</TableCell>
                   <TableCell>{item.gestorName || 'N/A'}</TableCell>
                   <TableCell>{item.sucursalName}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
-                  <TableCell>{item.reason}</TableCell>
+                  <TableCell className="text-left font-medium">{formatCurrency(item.amount)}</TableCell>
+                  <TableCell className="break-words">{item.reason}</TableCell>
                   <TableCell>{item.rejectedBy}</TableCell>
                 </TableRow>
               ))
