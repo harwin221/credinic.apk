@@ -70,7 +70,7 @@ export async function getPortfolioForGestor(gestorId: string): Promise<{
         paymentPlansByCreditId.get(plan.creditId)!.push(plan);
     }
 
-    const asOfDate = toNicaraguaTime(nowInNicaragua());
+    const asOfDate = todayInNicaragua();
 
     // 4. Procesar cada crédito usando los datos ya obtenidos en memoria.
     const portfolioCredits = activeCredits.map(credit => {
@@ -137,7 +137,7 @@ export async function getGestorDashboardData(gestor: User, activeCredits: Credit
     let metaDeCobro = 0;
     const clientsPaidToday = new Set<string>();
 
-    const asOfDate = toNicaraguaTime(nowInNicaragua());
+    const asOfDate = todayInNicaragua();
 
     if (activeCredits.length > 0) {
         const creditIds = activeCredits.map(c => c.id);

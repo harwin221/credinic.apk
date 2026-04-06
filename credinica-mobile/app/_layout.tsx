@@ -15,7 +15,7 @@ function RootContent() {
     const inTabsGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';
 
     if (!user) {
-      if (inTabsGroup) {
+      if (inTabsGroup || segments.length === 0) {
         console.log('[AUTH_GUARD] Sin sesión. Forzando ir al login...');
         router.replace('/');
       }
@@ -36,12 +36,9 @@ function RootContent() {
   return (
     <AlertProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        {!user ? (
-          <Stack.Screen name="index" />
-        ) : (
-          <Stack.Screen name="(tabs)" />
-        )}
-        {user && <Stack.Screen name="(manager-tabs)" />}
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(manager-tabs)" />
       </Stack>
     </AlertProvider>
   );

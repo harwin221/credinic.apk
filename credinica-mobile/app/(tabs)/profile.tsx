@@ -44,8 +44,8 @@ export default function ProfileScreen() {
 
     const handleSelectPrinter = async (printer: any) => {
         await AsyncStorage.setItem('selectedPrinter', printer.name);
-        if (printer.target) {
-            await AsyncStorage.setItem('selectedPrinterTarget', printer.target);
+        if (printer.address) {
+            await AsyncStorage.setItem('selectedPrinterTarget', printer.address);
         }
         setSelectedPrinter(printer.name);
         setShowPrinterModal(false);

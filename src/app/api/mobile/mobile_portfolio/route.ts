@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPortfolioForGestor } from '@/services/portfolio-service';
 import { query } from '@/lib/mysql';
 import { calculateCreditStatusDetails } from '@/lib/utils';
-import { nowInNicaragua, toISOString } from '@/lib/date-utils';
+import { nowInNicaragua, toISOString, todayInNicaragua } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
                 plansByCreditId.get(p.creditId)!.push({ ...p, paymentDate: toISOString(p.paymentDate) });
             });
 
-            const asOfDate = nowInNicaragua();
+            const asOfDate = todayInNicaragua();
             externalCredits = externalCreditsRows.map((credit: any) => {
                 const creditFull = {
                     ...credit,

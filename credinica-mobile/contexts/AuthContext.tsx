@@ -37,14 +37,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         console.log('[AUTH] Cerrando sesión...');
-        // 1. Borrar datos guardados (usuario, contraseña, etc.)
-        await sessionService.clearSession();
-        // 2. Borrar el usuario de la memoria
-        setUser(null);
-        // 3. Limpiar TODO el historial de pantallas
-        router.dismissAll();
-        // 4. Ir al Login y NO permitir volver atrás
-        router.replace('/');
+        try {
+            // 1. Borrar de almacenamiento
+            await sessionService.clearSession();
+            // 2. Limpiar estado de usuario (esto disparará el layout guard)
+            setUser(null);
+            // 3. Forzar el reset de navegación
+            router.dismissAll();
+            setTimeout(() => {
+                router.replace('/');
+            }, 50);
+        } catch (error) {
+            console.error('[AUTH] Error during logout:', error);
+            // Asegurar que al menos el estado local se limpia
+            setUser(null);
+            router.replace('/');
+        }
     };
 
     return (

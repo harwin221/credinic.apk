@@ -56,9 +56,9 @@ export default function ReceiptModal({ visible, onClose, receipt }: ReceiptModal
             const savedPrinter = await AsyncStorage.getItem('selectedPrinter');
             const savedTarget = await AsyncStorage.getItem('selectedPrinterTarget');
             
-            if (savedPrinter) {
-                // Imprimir automáticamente sin mostrar mensajes
-                await thermalPrinterService.printReceipt(savedPrinter, receipt, savedTarget || undefined);
+            if (savedTarget || savedPrinter) {
+                // Imprimir automáticamente usando la dirección (MAC) si existe
+                await thermalPrinterService.printReceipt(savedTarget || savedPrinter || 'Default', receipt);
             }
         } catch (error) {
             console.log('Auto-print failed silently:', error);
@@ -69,12 +69,11 @@ export default function ReceiptModal({ visible, onClose, receipt }: ReceiptModal
     const handlePrint = async () => {
         setPrinting(true);
         try {
-            // Obtenemos la impresora configurada (si existe)
             const savedPrinter = await AsyncStorage.getItem('selectedPrinter') || 'Default';
             const savedTarget = await AsyncStorage.getItem('selectedPrinterTarget');
             
-            // Usamos el servicio centralizado que ya tiene el HTML optimizado
-            await thermalPrinterService.printReceipt(savedPrinter, receipt, savedTarget || undefined);
+            // Usamos la dirección física (MAC) para conectar directamente
+            await thermalPrinterService.printReceipt(savedTarget || savedPrinter, receipt);
         } catch (e) {
             AlertHelper.alert('Error de Impresión', 'No se pudo conectar con la impresora. Asegúrate de que el Bluetooth esté encendido y la impresora vinculada.');
         } finally {
