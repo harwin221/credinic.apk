@@ -164,14 +164,14 @@ export default function ManagerDashboardScreen() {
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>{gestor.gestorName}</Text>
                 <Text style={styles.userLastPayment}>
-                  Última cuota: {gestor.ultimaCuota ? new Date(gestor.ultimaCuota).toLocaleString('es-NI', { 
+                  Última cuota: {gestor.ultimaCuotaFormateada ? gestor.ultimaCuotaFormateada : (gestor.ultimaCuota ? new Date(gestor.ultimaCuota).toLocaleString('es-NI', { 
                     day: '2-digit', 
                     month: '2-digit', 
                     year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
-                  }) : 'Sin pagos'}
+                  }) : 'Sin pagos')}
                 </Text>
                 <View style={styles.userAmounts}>
                   <Text style={styles.userAmountLabel}>Córdobas</Text>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
-import { todayInNicaragua } from '../../../../lib/date-utils';
+import { todayInNicaragua, formatDateTimeForUser } from '../../../../lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -221,6 +221,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
 
         const total = Number(usuarioRecaudacion[0]?.total || 0);
         const ultimaCuota = usuarioRecaudacion[0]?.ultimaCuota;
+        const ultimaCuotaFormateada = ultimaCuota ? formatDateTimeForUser(ultimaCuota) : null;
 
         // Incluir TODOS los usuarios, incluso si no recaudaron hoy (total = 0)
         // Esto permite ver quién no ha trabajado
@@ -230,6 +231,7 @@ async function getManagerDashboard(userId: string, managerName: string, sucursal
             role: usuario.role,
             totalRecaudado: total,
             ultimaCuota: ultimaCuota || null,
+            ultimaCuotaFormateada: ultimaCuotaFormateada,
             cordobas: total, // Por ahora todo en córdobas
             dolares: 0
         });

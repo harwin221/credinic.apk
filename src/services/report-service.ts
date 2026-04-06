@@ -1347,6 +1347,7 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
             c.amount,
             c.rejectionReason as reason,
             c.rejectedBy,
+            c.collectionsManager as gestorName,
             c.approvalDate as rejectionDate
         FROM credits c
         WHERE c.status = 'Rejected'
@@ -1379,7 +1380,7 @@ export async function generateRejectionAnalysisReport(filters: ReportFilters): P
         if (Array.isArray(userNamesResult) && userNamesResult.length > 0) {
             const userNames = userNamesResult.map(u => u.fullName);
             const namePlaceholders = userNames.map(() => '?').join(',');
-            sql += ` AND c.rejectedBy IN (${namePlaceholders})`;
+            sql += ` AND c.collectionsManager IN (${namePlaceholders})`;
             params.push(...userNames);
         }
     }

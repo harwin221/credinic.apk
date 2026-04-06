@@ -14,14 +14,18 @@ function RootContent() {
 
     const inTabsGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';
 
-    if (!user && inTabsGroup) {
-      console.log('[AUTH_GUARD] Sin sesión. Forzando ir al login...');
-      router.replace('/');
-    } else if (user && !inTabsGroup) {
-      console.log('[AUTH_GUARD] Sesión activa. Redirigiendo a tabs...');
-      const roleUpper = user.role.toUpperCase();
-      const isManager = ['GERENTE', 'ADMINISTRADOR', 'FINANZAS', 'OPERATIVO'].includes(roleUpper);
-      router.replace(isManager ? "/(manager-tabs)" : "/(tabs)");
+    if (!user) {
+      if (inTabsGroup) {
+        console.log('[AUTH_GUARD] Sin sesión. Forzando ir al login...');
+        router.replace('/');
+      }
+    } else {
+      if (!inTabsGroup) {
+        console.log('[AUTH_GUARD] Sesión activa. Redirigiendo a tabs...');
+        const roleUpper = user.role.toUpperCase();
+        const isManager = ['GERENTE', 'ADMINISTRADOR', 'FINANZAS', 'OPERATIVO'].includes(roleUpper);
+        router.replace(isManager ? "/(manager-tabs)" : "/(tabs)");
+      }
     }
   }, [user, isLoading, segments]);
 
@@ -31,15 +35,13 @@ function RootContent() {
 
   return (
     <AlertProvider>
-      <Stack key={user ? `auth-${user.id}` : 'unauth'} screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="index" />
         ) : (
-          <>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(manager-tabs)" />
-          </>
+          <Stack.Screen name="(tabs)" />
         )}
+        {user && <Stack.Screen name="(manager-tabs)" />}
       </Stack>
     </AlertProvider>
   );

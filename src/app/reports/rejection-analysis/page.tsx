@@ -107,6 +107,7 @@ function RejectionAnalysisReportContent() {
             <TableRow>
               <TableHead>Fecha Rechazo</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Gestor Solicitante</TableHead>
               <TableHead>Sucursal</TableHead>
               <TableHead className="text-right">Monto Solicitado</TableHead>
               <TableHead>Motivo</TableHead>
@@ -119,6 +120,7 @@ function RejectionAnalysisReportContent() {
                 <TableRow key={item.creditId}>
                   <TableCell>{formatDate(item.rejectionDate || item.applicationDate)}</TableCell>
                   <TableCell>{item.clientName}</TableCell>
+                  <TableCell>{item.gestorName || 'N/A'}</TableCell>
                   <TableCell>{item.sucursalName}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
                   <TableCell>{item.reason}</TableCell>

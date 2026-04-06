@@ -435,6 +435,7 @@ export interface RejectionAnalysisItem {
   amount: number;
   reason: string;
   rejectedBy: string;
+  gestorName?: string;
 }
 
 export interface ProvisionCredit {
