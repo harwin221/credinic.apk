@@ -1,16 +1,13 @@
 import { ReceiptData } from '../components/ReceiptModal';
-import { Platform, PermissionsAndroid, DeviceEventEmitter } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
 
-// Importamos la nueva librería nativa
-let BluetoothManager: any = null;
-let BluetoothEscposPrinter: any = null;
-
+// Importamos la librería moderna
+let EscPosPrinter: any = null;
 try {
-    const printerLib = require('react-native-bluetooth-escpos-printer');
-    BluetoothManager = printerLib.BluetoothManager;
-    BluetoothEscposPrinter = printerLib.BluetoothEscposPrinter;
+    const printerLib = require('react-native-esc-pos-printer');
+    EscPosPrinter = printerLib.default || printerLib;
 } catch (e) {
-    console.log('[PRINT] react-native-bluetooth-escpos-printer no disponible (Expo Go).');
+    console.log('[PRINT] react-native-esc-pos-printer no disponible (Expo Go).');
 }
 
 class ThermalPrinterService {
@@ -25,19 +22,18 @@ class ThermalPrinterService {
         try {
             const apiLevel = Platform.Version;
             
-            if (apiLevel >= 31) {
+            if (typeof apiLevel === 'number' && apiLevel >= 31) {
                 const granted = await PermissionsAndroid.requestMultiple([
                     PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
                     PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 ]);
 
                 return (
                     granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
-                    granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED &&
-                    granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
+                    granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
                 );
             } else {
+                // Para versiones anteriores, necesitamos ubicación y los permisos clásicos
                 const BLUETOOTH = 'android.permission.BLUETOOTH' as any;
                 const BLUETOOTH_ADMIN = 'android.permission.BLUETOOTH_ADMIN' as any;
                 
@@ -63,21 +59,20 @@ class ThermalPrinterService {
      */
     async findPrinters(): Promise<any[]> {
         const hasPermissions = await this.requestBluetoothPermissions();
-        if (!hasPermissions) throw new Error('No se otorgaron permisos de Bluetooth.');
+        if (!hasPermissions) {
+            console.warn('[PRINT] Sin permisos de Bluetooth.');
+        }
 
-        if (!BluetoothManager) return [];
+        if (!EscPosPrinter || Platform.OS !== 'android') return [];
 
         try {
-            const isEnabled = await BluetoothManager.isBluetoothEnabled();
-            if (!isEnabled) await BluetoothManager.enableBluetooth();
-
-            // Buscamos dispositivos emparejados previamente
-            const pairedDevices = await BluetoothManager.getPairedDevices();
-            const list = JSON.parse(pairedDevices);
+            console.log('[PRINT] Buscando dispositivos Bluetooth...');
+            // Esta librería usa descubrimiento nativo
+            const devices = await EscPosPrinter.discover({ connectionType: 'Bluetooth' });
             
-            return list.map((d: any) => ({
-                name: d.name || 'Impresora Bluetooth',
-                address: d.address, // MAC Address
+            return devices.map((d: any) => ({
+                name: d.name || 'Impresora Térmica',
+                address: d.target, // En esta librería target es el address/MAC
                 info: 'Bluetooth',
                 isNative: true
             }));
@@ -88,90 +83,91 @@ class ThermalPrinterService {
     }
 
     /**
-     * Imprime un recibo usando la librería nativa.
+     * Imprime un recibo usando la librería moderna.
      */
     async printReceipt(printerAddress: string, receipt: ReceiptData): Promise<void> {
-        if (!BluetoothManager || !BluetoothEscposPrinter) {
-            throw new Error('El motor de impresión nativa no está listo.');
+        if (!EscPosPrinter) {
+            throw new Error('El motor de impresión nativa no está disponible en este entorno.');
         }
 
         try {
-            console.log('[PRINT] Conectando a:', printerAddress);
-            await BluetoothManager.connect(printerAddress);
-            console.log('[PRINT] Conectado. Enviando comandos ESC/POS...');
+            console.log('[PRINT] Iniciando conexión a:', printerAddress);
+            
+            // Inicializar la impresora
+            await EscPosPrinter.init({
+                type: 'Bluetooth',
+                target: printerAddress,
+            });
 
-            const printer = BluetoothEscposPrinter;
+            const printer = new EscPosPrinter.EscPosPrinter();
 
-            // Formateador simple para moneda
+            // Formateador simple
             const fmt = (n: number) => n.toLocaleString('es-NI', { 
                 minimumFractionDigits: 2, 
                 maximumFractionDigits: 2 
-            }).replace(/\xA0/g, ' '); // Limpiar espacios de no-rompimiento
+            }).replace(/\xA0/g, ' ');
 
-            // COMIENZA IMPRESIÓN DIRECTA
-            await printer.printerInit();
-            await printer.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-            await printer.setItalic(false);
-            await printer.printText("CREDINIC\n\r", {
-                encoding: 'GBK',
-                codepage: 0,
-                widthtimes: 1,
-                heigthtimes: 1,
-                fonttype: 1
-            });
-            await printer.printText("ESTADO DE CUENTA / RECIBO\n\r", {});
-            await printer.printText("COPIA: CLIENTE\n\r", {});
-            await printer.printText("--------------------------------\n\r", {});
-            
-            await printer.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
-            await printer.printText(`No. Recibo:  ${receipt.transactionNumber}\n\r`, {});
-            await printer.printText(`No. Credito: ${receipt.creditNumber}\n\r`, {});
-            await printer.printText(`Fecha Pago:  ${receipt.paymentDate}\n\r`, {});
-            await printer.printText("--------------------------------\n\r", {});
-            
-            await printer.printText("CLIENTE:\n\r", {});
-            await printer.printText(`${receipt.clientName.toUpperCase()}\n\r`, {
-                fonttype: 1
-            });
-            await printer.printText(`CÓDIGO: ${receipt.clientCode}\n\r`, {});
-            await printer.printText("--------------------------------\n\r", {});
-            
-            await printer.printText(`Cuota Dia:    C$ ${fmt(receipt.cuotaDelDia)}\n\r`, {});
-            await printer.printText(`Mora/Atraso:  C$ ${fmt(receipt.montoAtrasado)}\n\r`, {});
-            await printer.printText(`Dias Mora:    ${receipt.diasMora}\n\r`, {});
-            await printer.printText("--------------------------------\n\r", { fonttype: 1 });
-            await printer.printText(`TOTAL EXIGIBLE: C$ ${fmt(receipt.totalAPagar)}\n\r`, { fonttype: 1 });
-            await printer.printText("--------------------------------\n\r", {});
-            
-            await printer.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-            await printer.printText("TOTAL RECIBIDO\n\r", { widthtimes: 1 });
-            await printer.printText(`C$ ${fmt(receipt.amountPaid)}\n\r`, { widthtimes: 1, heigthtimes: 1 });
-            await printer.printText("\n\r", {});
-            await printer.printText("CONCEPTO: ABONO DE CREDITO\n\r", {});
-            await printer.printText("--------------------------------\n\r", {});
-            
-            await printer.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
-            await printer.printText(`Saldo Anterior: C$ ${fmt(receipt.saldoAnterior)}\n\r`, {});
-            await printer.printText(`Nuevo Saldo:    C$ ${fmt(receipt.nuevoSaldo)}\n\r`, { fonttype: 1 });
-            await printer.printText("--------------------------------\n\r", {});
-            
-            await printer.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-            await printer.printText("¡GRACIAS POR SU PAGO!\n\r", {});
-            await printer.printText("PROHIBIDO EL PAGO SIN RECIBO\n\r", {});
-            await printer.printText("CONSERVE ESTE DOCUMENTO\n\r", { fonttype: 1 });
-            
-            await printer.printText("\n\r\n\r", {});
-            await printer.printText("__________________________\n\r", {});
-            await printer.printText(`${receipt.sucursal.toUpperCase()}\n\r`, {});
-            await printer.printText(`${receipt.managedBy.toUpperCase()}\n\r`, {});
-            await printer.printText(`${receipt.role.toUpperCase()}\n\r`, {});
-            
-            await printer.printText("\n\r\n\r\n\r", {});
-            console.log('[PRINT] Comandos enviados.');
+            // Generar el ticket con comandos ESC/POS puros
+            await printer
+                .setAlignment('center')
+                .setBold(true)
+                .line('CREDINIC')
+                .setBold(false)
+                .line('ESTADO DE CUENTA / RECIBO')
+                .line('COPIA: CLIENTE')
+                .line('------------------------------------------')
+                .setAlignment('left')
+                .line(`No. Recibo:  ${receipt.transactionNumber}`)
+                .line(`No. Credito: ${receipt.creditNumber}`)
+                .line(`Fecha Pago:  ${receipt.paymentDate}`)
+                .line('------------------------------------------')
+                .line('CLIENTE:')
+                .setBold(true)
+                .line(receipt.clientName.toUpperCase())
+                .setBold(false)
+                .line(`CÓDIGO: ${receipt.clientCode}`)
+                .line('------------------------------------------')
+                .line(`Cuota Día:    C$ ${fmt(receipt.cuotaDelDia)}`)
+                .line(`Mora/Atraso:  C$ ${fmt(receipt.montoAtrasado)}`)
+                .line(`Días Mora:    ${receipt.diasMora}`)
+                .setBold(true)
+                .line(`TOTAL EXIGIBLE: C$ ${fmt(receipt.totalAPagar)}`)
+                .setBold(false)
+                .line('------------------------------------------')
+                .setAlignment('center')
+                .setBold(true)
+                .line('TOTAL RECIBIDO')
+                .line(`C$ ${fmt(receipt.amountPaid)}`)
+                .setBold(false)
+                .line('')
+                .line('CONCEPTO: ABONO DE CREDITO')
+                .line('------------------------------------------')
+                .setAlignment('left')
+                .line(`Saldo Anterior: C$ ${fmt(receipt.saldoAnterior)}`)
+                .setBold(true)
+                .line(`Nuevo Saldo:    C$ ${fmt(receipt.nuevoSaldo)}`)
+                .setBold(false)
+                .line('------------------------------------------')
+                .setAlignment('center')
+                .line('¡GRACIAS POR SU PAGO!')
+                .line('PROHIBIDO EL PAGO SIN RECIBO')
+                .setBold(true)
+                .line('CONSERVE ESTE DOCUMENTO')
+                .setBold(false)
+                .feed(3)
+                .line('__________________________')
+                .line(receipt.sucursal.toUpperCase())
+                .line(receipt.managedBy.toUpperCase())
+                .line(receipt.role.toUpperCase())
+                .feed(3)
+                .cut()
+                .print();
+
+            console.log('[PRINT] Recibo enviado con éxito.');
 
         } catch (error) {
-            console.error('[PRINT] Fallo en impresión:', error);
-            throw new Error('Error al conectar o imprimir. Verifica que la impresora esté encendida.');
+            console.error('[PRINT] Error en impresión nativa:', error);
+            throw new Error('No se pudo imprimir. Verifica la conexión con la impresora PT-210.');
         }
     }
 }

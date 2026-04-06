@@ -60,8 +60,7 @@
             "buildToolsVersion": "35.0.0"
           }
         }
-      ],
-      "./plugins/withInsecureMaven.js"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
