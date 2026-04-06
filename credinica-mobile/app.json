@@ -2,8 +2,9 @@
   "expo": {
     "name": "CREDINICA",
     "icon": "./assets/images/logo.png",
-    "slug": "credinica",
+    "slug": "credinica-mobile",
     "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
     "orientation": "portrait",
     "scheme": "credinicamobile",
     "userInterfaceStyle": "automatic",
