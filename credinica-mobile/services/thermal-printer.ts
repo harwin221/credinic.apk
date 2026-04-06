@@ -1,5 +1,5 @@
 import { ReceiptData } from '../components/ReceiptModal';
-import { Platform, PermissionsAndroid } from 'react-native';
+import { Platform, PermissionsAndroid, Alert, Linking } from 'react-native';
 
 // Importamos la librería moderna
 let EscPosPrinter: any = null;
@@ -7,90 +7,97 @@ try {
     const printerLib = require('react-native-esc-pos-printer');
     EscPosPrinter = printerLib.default || printerLib;
 } catch (e) {
-    console.log('[PRINT] react-native-esc-pos-printer no disponible (Expo Go).');
+    console.log('[PRINT] react-native-esc-pos-printer no disponible.');
 }
 
 class ThermalPrinterService {
     /**
-     * Solicita permisos de Bluetooth necesarios para Android 12+
+     * Solicita permisos de Bluetooth agresivamente (Android 12+)
      */
     async requestBluetoothPermissions(): Promise<boolean> {
-        if (Platform.OS !== 'android') {
-            return true;
-        }
+        if (Platform.OS !== 'android') return true;
 
         try {
             const apiLevel = Platform.Version;
             
             if (typeof apiLevel === 'number' && apiLevel >= 31) {
+                // EXPLICITO: Usar los nombres de permiso de Android 12
                 const granted = await PermissionsAndroid.requestMultiple([
-                    PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-                    PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+                    'android.permission.BLUETOOTH_SCAN' as any,
+                    'android.permission.BLUETOOTH_CONNECT' as any,
+                    'android.permission.ACCESS_FINE_LOCATION' as any,
                 ]);
 
-                return (
+                const isOk = (
                     (granted as any)['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
                     (granted as any)['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
                 );
+
+                if (!isOk) {
+                    Alert.alert(
+                        "Permisos Necesarios",
+                        "Para imprimir, Android exige permiso de 'Dispositivos Cercanos'. Por favor, actívalo en ajustes.",
+                        [
+                            { text: "Abrir Ajustes", onPress: () => Linking.openSettings() },
+                            { text: "Cancelar", style: "cancel" }
+                        ]
+                    );
+                }
+                return isOk;
             } else {
-                // Para versiones anteriores, necesitamos ubicación y los permisos clásicos
+                // Versiones anteriores
                 const granted = await PermissionsAndroid.requestMultiple([
-                    'android.permission.BLUETOOTH' as any,
                     'android.permission.BLUETOOTH_ADMIN' as any,
                     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 ]);
 
-                return (
-                    (granted as any)['android.permission.BLUETOOTH'] === PermissionsAndroid.RESULTS.GRANTED &&
-                    (granted as any)['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
-                );
+                return granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED;
             }
         } catch (error) {
-            console.error('[PRINT] Error permisos:', error);
+            console.error('[PRINT] Permission Error:', error);
             return false;
         }
     }
 
     /**
-     * Busca impresoras Bluetooth emparejadas.
+     * Busca impresoras Bluetooth vinculadas.
      */
     async findPrinters(): Promise<any[]> {
         const hasPermissions = await this.requestBluetoothPermissions();
-        if (!hasPermissions) {
-            console.warn('[PRINT] Sin permisos de Bluetooth.');
-        }
+        if (!hasPermissions) return [];
 
         if (!EscPosPrinter || Platform.OS !== 'android') return [];
 
         try {
-            console.log('[PRINT] Buscando dispositivos Bluetooth...');
-            // Esta librería usa descubrimiento nativo
+            console.log('[PRINT] Buscando dispositivos PT-210...');
+            // IMPORTANTE: EscPosPrinter.discover busca dispositivos visibles/vinculados
             const devices = await EscPosPrinter.discover({ connectionType: 'Bluetooth' });
             
+            if (devices.length === 0) {
+                console.log('[PRINT] No se hallaron dispositivos por descubrimiento simple.');
+            }
+
             return devices.map((d: any) => ({
                 name: d.name || 'Impresora Térmica',
-                address: d.target, // En esta librería target es el address/MAC
+                address: d.target, // MAC Address
                 info: 'Bluetooth',
                 isNative: true
             }));
         } catch (error) {
-            console.error('[PRINT] Error buscando impresoras:', error);
+            console.error('[PRINT] Discovery Error:', error);
             return [];
         }
     }
 
     /**
-     * Imprime un recibo usando la librería moderna.
+     * Imprime un recibo usando comandos ESC/POS optimizados para PT-210
      */
     async printReceipt(printerAddress: string, receipt: ReceiptData): Promise<void> {
-        if (!EscPosPrinter) {
-            throw new Error('El motor de impresión nativa no está disponible en este entorno.');
-        }
+        if (!EscPosPrinter) throw new Error('Driver de impresión no cargado');
 
         try {
-            console.log('[PRINT] Iniciando conexión a:', printerAddress);
+            console.log('[PRINT] Conectando a:', printerAddress);
             
-            // Inicializar la impresora
             await EscPosPrinter.init({
                 type: 'Bluetooth',
                 target: printerAddress,
@@ -98,73 +105,65 @@ class ThermalPrinterService {
 
             const printer = new EscPosPrinter.EscPosPrinter();
 
-            // Formateador simple
             const fmt = (n: number) => n.toLocaleString('es-NI', { 
                 minimumFractionDigits: 2, 
                 maximumFractionDigits: 2 
             }).replace(/\xA0/g, ' ');
 
-            // Generar el ticket con comandos ESC/POS puros
+            // Generar el ticket optimizado para 58mm (32 chars)
+            // Usamos .width(384) si la librería lo soporta, o simplemente texto alineado
             await printer
                 .setAlignment('center')
                 .setBold(true)
                 .line('CREDINIC')
                 .setBold(false)
-                .line('ESTADO DE CUENTA / RECIBO')
-                .line('COPIA: CLIENTE')
-                .line('------------------------------------------')
+                .line('RECIBO DE ABONO')
+                .line('--------------------------------')
                 .setAlignment('left')
-                .line(`No. Recibo:  ${receipt.transactionNumber}`)
-                .line(`No. Credito: ${receipt.creditNumber}`)
-                .line(`Fecha Pago:  ${receipt.paymentDate}`)
-                .line('------------------------------------------')
+                .line(`RECIBO:  ${receipt.transactionNumber}`)
+                .line(`CREDITO: ${receipt.creditNumber}`)
+                .line(`FECHA:   ${receipt.paymentDate}`)
+                .line('--------------------------------')
                 .line('CLIENTE:')
                 .setBold(true)
-                .line(receipt.clientName.toUpperCase())
+                .line(receipt.clientName.substring(0, 31).toUpperCase()) // Truncar para 58mm
                 .setBold(false)
-                .line(`CÓDIGO: ${receipt.clientCode}`)
-                .line('------------------------------------------')
-                .line(`Cuota Día:    C$ ${fmt(receipt.cuotaDelDia)}`)
-                .line(`Mora/Atraso:  C$ ${fmt(receipt.montoAtrasado)}`)
-                .line(`Días Mora:    ${receipt.diasMora}`)
+                .line(`CODIGO:  ${receipt.clientCode}`)
+                .line('--------------------------------')
+                .line(`CUOTA DIA:    C$ ${fmt(receipt.cuotaDelDia)}`)
+                .line(`MORA/ATRASO:  C$ ${fmt(receipt.montoAtrasado)}`)
                 .setBold(true)
-                .line(`TOTAL EXIGIBLE: C$ ${fmt(receipt.totalAPagar)}`)
+                .line(`EXIGIBLE:     C$ ${fmt(receipt.totalAPagar)}`)
                 .setBold(false)
-                .line('------------------------------------------')
+                .line('--------------------------------')
                 .setAlignment('center')
                 .setBold(true)
-                .line('TOTAL RECIBIDO')
+                .line('MONTO RECIBIDO')
                 .line(`C$ ${fmt(receipt.amountPaid)}`)
                 .setBold(false)
-                .line('')
-                .line('CONCEPTO: ABONO DE CREDITO')
-                .line('------------------------------------------')
+                .line('--------------------------------')
                 .setAlignment('left')
-                .line(`Saldo Anterior: C$ ${fmt(receipt.saldoAnterior)}`)
+                .line(`SALDO ANT:    C$ ${fmt(receipt.saldoAnterior)}`)
                 .setBold(true)
-                .line(`Nuevo Saldo:    C$ ${fmt(receipt.nuevoSaldo)}`)
+                .line(`NUEVO SALDO:  C$ ${fmt(receipt.nuevoSaldo)}`)
                 .setBold(false)
-                .line('------------------------------------------')
+                .line('--------------------------------')
                 .setAlignment('center')
-                .line('¡GRACIAS POR SU PAGO!')
-                .line('PROHIBIDO EL PAGO SIN RECIBO')
-                .setBold(true)
+                .line('GRACIAS POR SU PAGO')
                 .line('CONSERVE ESTE DOCUMENTO')
-                .setBold(false)
-                .feed(3)
+                .feed(4)
                 .line('__________________________')
-                .line(receipt.sucursal.toUpperCase())
                 .line(receipt.managedBy.toUpperCase())
-                .line(receipt.role.toUpperCase())
+                .line('GESTOR DE COBRO')
                 .feed(3)
                 .cut()
                 .print();
 
-            console.log('[PRINT] Recibo enviado con éxito.');
+            console.log('[PRINT] Todo enviado.');
 
         } catch (error) {
-            console.error('[PRINT] Error en impresión nativa:', error);
-            throw new Error('No se pudo imprimir. Verifica la conexión con la impresora PT-210.');
+            console.error('[PRINT] Internal Error:', error);
+            throw new Error('Error al conectar con PT-210. Asegúrate de que esté encendida y vinculada.');
         }
     }
 }

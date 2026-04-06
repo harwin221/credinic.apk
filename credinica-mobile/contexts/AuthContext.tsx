@@ -36,21 +36,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        console.log('[AUTH] Cerrando sesión...');
+        console.log('[AUTH] Cerrando sesión (Modo Atómico)...');
+        // 1. Limpiar estado de usuario INMEDIATAMENTE (para que reaccione el layout)
+        setUser(null);
+        
         try {
-            // 1. Borrar de almacenamiento
-            await sessionService.clearSession();
-            // 2. Limpiar estado de usuario (esto disparará el layout guard)
-            setUser(null);
-            // 3. Forzar el reset de navegación
-            router.dismissAll();
+            // 2. Ejecutar limpieza de almacenamiento (fire and forget o espera corta)
+            // No dejamos que esto bloquee la navegación
+            sessionService.clearSession().catch(e => console.error('[AUTH] Error async clear:', e));
+            
+            // 3. Forzar el reset de navegación con un pequeño retraso para asegurar el ciclo de React
             setTimeout(() => {
                 router.replace('/');
-            }, 50);
+            }, 10);
+            
         } catch (error) {
-            console.error('[AUTH] Error during logout:', error);
-            // Asegurar que al menos el estado local se limpia
-            setUser(null);
+            console.error('[AUTH] Fatal Logout Error:', error);
             router.replace('/');
         }
     };

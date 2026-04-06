@@ -41,6 +41,13 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
             return;
         }
 
+        // --- VALIDACIÓN DE SALDO ---
+        const remaining = detail.remainingBalance || 0;
+        if (Number(amount) > remaining + 0.01) {
+            alert(`ATENCION: El abono (C$ ${Number(amount).toFixed(2)}) no puede ser mayor al saldo actual (C$ ${remaining.toFixed(2)}).`);
+            return;
+        }
+
         setLoading(true);
         try {
             const session = await sessionService.getSession();
