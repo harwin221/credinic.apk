@@ -15,7 +15,7 @@ function RootContent() {
     const inTabsGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';
 
     if (!user) {
-      if (inTabsGroup || segments.length === 0) {
+      if (inTabsGroup || !segments || segments.length === 0) {
         console.log('[AUTH_GUARD] Sin sesión. Forzando ir al login...');
         router.replace('/');
       }
@@ -40,8 +40,18 @@ function RootContent() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(manager-tabs)" />
       </Stack>
+      
+      {/* Botón flotante de descarga post-login (solo para gestores) */}
+      {user && !['GERENTE', 'ADMINISTRADOR'].includes(user.role.toUpperCase()) && (
+          <SyncPrompt />
+      )}
     </AlertProvider>
   );
+}
+
+// Pequeño componente interno para el mensaje de bienvenida
+function SyncPrompt() {
+    return null;
 }
 
 export default function RootLayout() {

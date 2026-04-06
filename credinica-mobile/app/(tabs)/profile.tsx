@@ -119,31 +119,30 @@ export default function ProfileScreen() {
 
                 {/* Sincronización Manual */}
                 <TouchableOpacity 
-                    style={styles.syncCard} 
+                    style={[styles.syncCard, { backgroundColor: '#f0fdf4' }]} 
                     onPress={handleManualSync}
                     disabled={loading}
                 >
-                    <MaterialCommunityIcons name="sync" size={24} color="#10b981" />
+                    <MaterialCommunityIcons name="cloud-download" size={28} color="#16a34a" />
                     <View style={styles.infoText}>
-                        <Text style={styles.label}>Sincronización</Text>
-                        <Text style={styles.value}>Descargar datos offline</Text>
+                        <Text style={[styles.label, { color: '#16a34a', fontWeight: '800' }]}>ACTUALIZAR CARTERA</Text>
+                        <Text style={styles.value}>Descargar mi ruta del día</Text>
                     </View>
-                    {loading && <ActivityIndicator size="small" color="#10b981" />}
+                    {loading && <ActivityIndicator size="small" color="#16a34a" />}
                 </TouchableOpacity>
 
                 {/* Configuración de impresora */}
                 <TouchableOpacity 
-                    style={styles.printerButton} 
+                    style={[styles.printerButton, { borderLeftColor: '#0ea5e9', borderLeftWidth: 4 }]} 
                     onPress={async () => {
                         setShowPrinterModal(true);
-                        // Buscar impresoras automáticamente al abrir el modal
                         await handleSearchPrinters();
                     }}
                 >
-                    <MaterialCommunityIcons name="printer-settings" size={24} color="#0ea5e9" />
+                    <MaterialCommunityIcons name="bluetooth-connect" size={28} color="#0ea5e9" />
                     <View style={styles.infoText}>
-                        <Text style={styles.label}>Impresora</Text>
-                        <Text style={styles.value}>{selectedPrinter || 'Impresora Térmica (Sistema)'}</Text>
+                        <Text style={[styles.label, { color: '#0ea5e9', fontWeight: '800' }]}>CONECTAR IMPRESORA</Text>
+                        <Text style={styles.value}>{selectedPrinter || 'Sin vincular'}</Text>
                     </View>
                 </TouchableOpacity>
             </View>

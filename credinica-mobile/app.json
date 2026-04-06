@@ -61,7 +61,8 @@
             "buildToolsVersion": "35.0.0"
           }
         }
-      ]
+      ],
+      "./plugins/withFixedPrinter.js"
     ],
     "experiments": {
       "typedRoutes": true

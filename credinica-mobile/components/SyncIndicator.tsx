@@ -11,12 +11,12 @@ export default function SyncIndicator() {
     const [pendingItems, setPendingItems] = useState(0);
 
     useEffect(() => {
-        checkConnectionStatus();
         loadSyncInfo();
         
-        // Verificar conexión cada 30 segundos
-        const interval = setInterval(checkConnectionStatus, 30000);
-        return () => clearInterval(interval);
+        // Sincronización manual ahora es la norma para mayor estabilidad
+        // const interval = setInterval(checkConnectionStatus, 30000);
+        // return () => clearInterval(interval);
+        checkConnectionStatus();
     }, []);
 
     const checkConnectionStatus = async () => {

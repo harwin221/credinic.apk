@@ -53,9 +53,9 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
             const session = await sessionService.getSession();
             if (!session) return;
 
-            // Si no hay conexión, guardar offline
+            // Si no hay conexión, guardar offline y MOSTRAR RECIBO
             if (!isOnline) {
-                const paymentId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const paymentId = `OFFLINE-${Date.now()}`;
                 await savePendingPayment({
                     id: paymentId,
                     creditId: credit.id,
@@ -65,7 +65,15 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
                     managedBy: session.id,
                 });
                 
-                alert('Pago guardado offline. Se sincronizará cuando haya conexión.');
+                // Disparar el flujo de recibo con datos locales
+                await onPay({
+                    amount: Number(amount),
+                    notes,
+                    paymentType,
+                    isOffline: true,
+                    offlineId: paymentId
+                });
+
                 setAmount('');
                 setNotes('');
                 onClose();

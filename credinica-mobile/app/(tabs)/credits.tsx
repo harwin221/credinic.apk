@@ -220,6 +220,34 @@ export default function CreditsScreen() {
         const session = await sessionService.getSession();
         if (!session) return;
 
+        // --- CASO OFFLINE ---
+        if (paymentData.isOffline) {
+            setIsModalVisible(false);
+            const detail = selectedCredit.details || {};
+            const now = new Date().toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            setReceiptData({
+                transactionNumber: paymentData.offlineId,
+                creditNumber: selectedCredit.creditNumber || selectedCredit.id,
+                clientName: selectedCredit.clientName,
+                clientCode: selectedCredit.clientCode || 'N/A',
+                paymentDate: now,
+                cuotaDelDia: detail.dueTodayAmount || 0,
+                montoAtrasado: detail.overdueAmount || 0,
+                diasMora: detail.lateDays || 0,
+                totalAPagar: (detail.dueTodayAmount || 0) + (detail.overdueAmount || 0),
+                montoCancelacion: detail.remainingBalance || 0,
+                amountPaid: paymentData.amount,
+                saldoAnterior: detail.remainingBalance || 0,
+                nuevoSaldo: Math.max(0, (detail.remainingBalance || 0) - paymentData.amount),
+                managedBy: session.fullName,
+                sucursal: session.sucursalName || 'SUCURSAL',
+                role: session.role,
+            });
+            setIsReceiptVisible(true);
+            return;
+        }
+
         try {
             const response = await fetch(API_ENDPOINTS.mobile_payments, {
                 method: 'POST',
