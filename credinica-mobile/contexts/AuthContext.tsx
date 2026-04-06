@@ -36,17 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        console.log('[AUTH] Logging out...');
+        console.log('[AUTH] Cerrando sesión...');
+        // 1. Borrar datos guardados (usuario, contraseña, etc.)
         await sessionService.clearSession();
+        // 2. Borrar el usuario de la memoria
         setUser(null);
-        // Limpiamos todo el historial de navegación y volvemos al inicio (Login)
-        try {
-            router.dismissAll();
-            router.replace('/');
-        } catch (e) {
-            // Fallback si dismissAll da error en algunas versiones de Expo
-            router.replace('/');
-        }
+        // 3. Limpiar TODO el historial de pantallas
+        router.dismissAll();
+        // 4. Ir al Login y NO permitir volver atrás
+        router.replace('/');
     };
 
     return (
