@@ -185,8 +185,18 @@ export async function updateCredit(id: string, creditData: Partial<CreditDetail>
                 // approvalDate usa mediodía (consistente con el resto de fechas de crédito)
                 filteredFields.approvalDate = isoToMySQLDateTimeNoon(filteredFields.approvalDate);
             }
-            // lastModifiedDate se maneja automáticamente por updatedAt en la base de datos
 
+            // Bloquear cambios de términos si el crédito ya tiene pagos aplicados
+            const keyFields = ['amount', 'principalAmount', 'interestRate', 'termMonths', 'paymentFrequency', 'firstPaymentDate'];
+            const hasTermChange = keyFields.some(field => filteredFields.hasOwnProperty(field));
+            if (hasTermChange) {
+                const paymentCount: any = await query('SELECT COUNT(*) as count FROM payments_registered WHERE creditId = ? AND status != "ANULADO"', [id]);
+                if (paymentCount[0].count > 0) {
+                    return { success: false, error: 'No se puede editar este crédito porque ya tiene pagos aplicados. Modifica sólo créditos sin abonos registrados.' };
+                }
+            }
+
+            // lastModifiedDate se maneja automáticamente por updatedAt en la base de datos
             const updateFields = Object.keys(filteredFields).map(key => `${key} = ?`).join(', ');
             const updateValues = Object.values(filteredFields);
             await query(`UPDATE credits SET ${updateFields} WHERE id = ?`, [...updateValues, id]);
