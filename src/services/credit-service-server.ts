@@ -222,6 +222,48 @@ export async function updateCredit(id: string, creditData: Partial<CreditDetail>
             }
         }
 
+        // Regenerar plan de pagos si se cambiaron campos clave y no hay pagos aplicados
+        const keyFields = ['interestRate', 'paymentFrequency', 'firstPaymentDate', 'principalAmount', 'termMonths'];
+        const hasKeyChanges = keyFields.some(field => fieldsToUpdate.hasOwnProperty(field));
+
+        if (hasKeyChanges) {
+            // Verificar si hay pagos aplicados
+            const paymentCount: any = await query('SELECT COUNT(*) as count FROM payments_registered WHERE creditId = ? AND status != "ANULADO"', [id]);
+            if (paymentCount[0].count === 0) {
+                // Obtener el crédito actualizado
+                const updatedCreditRows: any = await query('SELECT * FROM credits WHERE id = ? LIMIT 1', [id]);
+                if (updatedCreditRows.length > 0) {
+                    const updatedCredit = updatedCreditRows[0];
+
+                    // Obtener holidays
+                    const holidays = (await query("SELECT date FROM holidays")) as any[];
+                    const holidayDates = holidays.map((h: any) => formatDateForUser(h.date, 'yyyy-MM-dd'));
+
+                    // Generar nuevo plan
+                    const scheduleData = generatePaymentSchedule({
+                        loanAmount: updatedCredit.principalAmount,
+                        monthlyInterestRate: updatedCredit.interestRate,
+                        termMonths: updatedCredit.termMonths,
+                        paymentFrequency: updatedCredit.paymentFrequency,
+                        startDate: formatDateForUser(updatedCredit.firstPaymentDate, 'yyyy-MM-dd'),
+                        holidays: holidayDates
+                    });
+
+                    if (scheduleData) {
+                        // Actualizar dueDate
+                        const newDueDate = scheduleData.schedule[scheduleData.schedule.length - 1].paymentDate;
+                        await query('UPDATE credits SET dueDate = ? WHERE id = ?', [`${newDueDate} 12:00:00`, id]);
+
+                        // Borrar y volver a insertar el plan de pagos
+                        await query('DELETE FROM payment_plan WHERE creditId = ?', [id]);
+                        for (const p of scheduleData.schedule) {
+                            await query('INSERT INTO payment_plan (creditId, paymentNumber, paymentDate, amount, principal, interest, balance) VALUES (?, ?, ?, ?, ?, ?, ?)', [id, p.paymentNumber, `${p.paymentDate} 12:00:00`, p.amount, p.principal, p.interest, p.balance]);
+                        }
+                    }
+                }
+            }
+        }
+
         await createLog(actor, 'credit:update', `Actualizó el crédito ${creditData.creditNumber || id}.`, { targetId: id, details: fieldsToUpdate });
 
         revalidatePath(`/credits/${id}`);
