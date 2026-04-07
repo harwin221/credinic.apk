@@ -131,6 +131,8 @@ class ThermalPrinterService {
             receiptText += '--------------------------------\n';
             receiptText += leftRight('Total a pagar:', 'C$ ' + fmt(receipt.totalAPagar)) + '\n';
             receiptText += '--------------------------------\n';
+            receiptText += leftRight('Cancelacion Total:', 'C$ ' + fmt(receipt.montoCancelacion)) + '\n';
+            receiptText += '--------------------------------\n';
             receiptText += center('MONTO RECIBIDO') + '\n';
             receiptText += center('C$ ' + fmt(receipt.amountPaid)) + '\n';
             receiptText += center('CONCEPTO: ABONO DE CREDITO') + '\n';
