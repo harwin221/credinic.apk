@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { sessionService } from '../services/session';
@@ -254,7 +254,12 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                        style={{ flex: 1 }}
+                    >
+                        <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
                         {activeTab === 'credit' ? (
                             <>
                         {/* Destino del Producto */}
@@ -387,6 +392,7 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                             </>
                         )}
                     </ScrollView>
+                    </KeyboardAvoidingView>
 
                     {/* Botón de submit fuera del ScrollView para que esté visible en ambas pestañas */}
                     <View style={styles.buttonContainer}>
