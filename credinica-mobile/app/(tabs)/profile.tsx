@@ -285,7 +285,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 100,
+        position: 'absolute',
+        bottom: 100,
+        left: 0,
+        right: 0,
     },
     logoutText: {
         color: '#ffffff',
