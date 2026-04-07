@@ -1,21 +1,13 @@
 import { ReceiptData } from '../components/ReceiptModal';
 import { Platform, PermissionsAndroid, Alert, Linking } from 'react-native';
 
-// Cargamos la librería que soporta dispositivos vinculados directamente
-let BluetoothManager: any = null;
-let BluetoothEscposPrinter: any = null;
-
-try {
-    const lib = require('react-native-bluetooth-escpos-printer');
-    BluetoothManager = lib.BluetoothManager;
-    BluetoothEscposPrinter = lib.BluetoothEscposPrinter;
-} catch (e) {
-    console.log('[PRINT] react-native-bluetooth-escpos-printer no disponible.');
-}
+// Importar la nueva librería
+import { BLEPrinter } from 'react-native-thermal-receipt-printer';
 
 class ThermalPrinterService {
+    private initialized = false;
     /**
-     * Solicita permisos de Bluetooth agresivamente (Android 12+)
+     * Inicializa la impresora BLE y solicita permisos si es necesario
      */
     async requestBluetoothPermissions(): Promise<boolean> {
         if (Platform.OS !== 'android') return true;
@@ -38,7 +30,7 @@ class ThermalPrinterService {
                 if (!isOk) {
                     Alert.alert(
                         "Permisos Necesarios",
-                        "Para conectar la PT-210, activa el permiso de 'Dispositivos Cercanos'.",
+                        "Para conectar la impresora, activa el permiso de 'Dispositivos Cercanos'.",
                         [{ text: "Abrir Ajustes", onPress: () => Linking.openSettings() }, { text: "OK" }]
                     );
                 }
@@ -57,101 +49,92 @@ class ThermalPrinterService {
     }
 
     /**
-     * Obtiene SOLO los dispositivos que el usuario ya vinculó en los ajustes del teléfono.
+     * Inicializa la librería BLE
+     */
+    async initPrinter(): Promise<void> {
+        if (this.initialized) return;
+        const hasPermissions = await this.requestBluetoothPermissions();
+        if (!hasPermissions) throw new Error('Permisos de Bluetooth no concedidos');
+        
+        await BLEPrinter.init();
+        this.initialized = true;
+        console.log('[PRINT] BLE Printer initialized');
+    }
+
+    /**
+     * Obtiene la lista de impresoras BLE disponibles
      */
     async findPrinters(): Promise<any[]> {
-        const hasPermissions = await this.requestBluetoothPermissions();
-        if (!hasPermissions || !BluetoothManager) return [];
-
+        await this.initPrinter();
+        
         try {
-            console.log('[PRINT] Obteniendo dispositivos vinculados...');
-            // Esta función devuelve lo que ya está en el sistema
-            const bondedJson = await BluetoothManager.pairedDevices();
-            const devices = JSON.parse(bondedJson);
+            console.log('[PRINT] Buscando impresoras BLE...');
+            const devices = await BLEPrinter.getDeviceList();
             
             return devices.map((d: any) => ({
-                name: d.name || 'Dispositivo BT',
-                address: d.address, // MAC Address
-                info: 'Vinculado',
+                name: d.device_name || 'Impresora BT',
+                address: d.inner_mac_address, // Usar inner_mac_address
+                info: 'BLE',
                 isNative: true
             }));
         } catch (error) {
-            console.error('[PRINT] Error listando vinculados:', error);
+            console.error('[PRINT] Error listando impresoras:', error);
             return [];
         }
     }
 
     /**
-     * Imprime un recibo usando la conexión directa por MAC Address.
+     * Imprime un recibo usando BLE
      */
     async printReceipt(printerAddress: string, receipt: ReceiptData): Promise<void> {
-        if (!BluetoothManager || !BluetoothEscposPrinter) throw new Error('Motor de impresión no disponible.');
+        await this.initPrinter();
 
         try {
             console.log('[PRINT] Conectando a:', printerAddress);
-            await BluetoothManager.connect(printerAddress);
+            await BLEPrinter.connectPrinter(printerAddress);
 
             const fmt = (n: number) => n.toLocaleString('es-NI', { 
                 minimumFractionDigits: 2, 
                 maximumFractionDigits: 2 
             }).replace(/\xA0/g, ' ');
 
-            // Comandos ESC/POS directos
-            await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-            await BluetoothEscposPrinter.setBlob(1);
-            await BluetoothEscposPrinter.printText("CREDINIC\n", { encoding: 'GBK', codepage: 0, widthtimes: 1, heigthtimes: 1, fonttype: 0 });
-            await BluetoothEscposPrinter.setBlob(0);
-            await BluetoothEscposPrinter.printText("RECIBO DE ABONO\n", {});
-            await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-            
-            await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
-            await BluetoothEscposPrinter.printText(`RECIBO:  ${receipt.transactionNumber}\n`, {});
-            await BluetoothEscposPrinter.printText(`CREDITO: ${receipt.creditNumber}\n`, {});
-            await BluetoothEscposPrinter.printText(`FECHA:   ${receipt.paymentDate}\n`, {});
-            await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-            
-            await BluetoothEscposPrinter.printText("CLIENTE:\n", {});
-            await BluetoothEscposPrinter.setBlob(1);
-            await BluetoothEscposPrinter.printText(`${receipt.clientName.toUpperCase()}\n`, {});
-            await BluetoothEscposPrinter.setBlob(0);
-            await BluetoothEscposPrinter.printText(`CODIGO:  ${receipt.clientCode}\n`, {});
-            await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-            
-            await BluetoothEscposPrinter.printText(`CUOTA DIA:    C$ ${fmt(receipt.cuotaDelDia)}\n`, {});
-            await BluetoothEscposPrinter.printText(`MORA/ATRASO:  C$ ${fmt(receipt.montoAtrasado)}\n`, {});
-            await BluetoothEscposPrinter.setBlob(1);
-            await BluetoothEscposPrinter.printText(`EXIGIBLE:     C$ ${fmt(receipt.totalAPagar)}\n`, {});
-            await BluetoothEscposPrinter.setBlob(0);
-            await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-            
-            await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-            await BluetoothEscposPrinter.setBlob(1);
-            await BluetoothEscposPrinter.printText("MONTO RECIBIDO\n", {});
-            await BluetoothEscposPrinter.printText(`C$ ${fmt(receipt.amountPaid)}\n`, {});
-            await BluetoothEscposPrinter.setBlob(0);
-            await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-            
-            await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
-            await BluetoothEscposPrinter.printText(`SALDO ANT:    C$ ${fmt(receipt.saldoAnterior)}\n`, {});
-            await BluetoothEscposPrinter.setBlob(1);
-            await BluetoothEscposPrinter.printText(`NUEVO SALDO:  C$ ${fmt(receipt.nuevoSaldo)}\n`, {});
-            await BluetoothEscposPrinter.setBlob(0);
-            await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-            
-            await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-            await BluetoothEscposPrinter.printText("¡GRACIAS POR SU PAGO!\n", {});
-            await BluetoothEscposPrinter.printText("CONSERVE ESTE DOCUMENTO\n", {});
-            await BluetoothEscposPrinter.printText("\n\n\n", {});
-            await BluetoothEscposPrinter.printText("__________________________\n", {});
-            await BluetoothEscposPrinter.printText(`${receipt.managedBy.toUpperCase()}\n`, {});
-            await BluetoothEscposPrinter.printText("GESTOR DE COBRO\n", {});
-            await BluetoothEscposPrinter.printText("\n\n\n\n", {});
+            // Formatear el recibo con tags
+            let receiptText = '<C>CREDINIC\n</C>';
+            receiptText += '<C>RECIBO DE ABONO\n</C>';
+            receiptText += '--------------------------------\n';
+            receiptText += `RECIBO:  ${receipt.transactionNumber}\n`;
+            receiptText += `CREDITO: ${receipt.creditNumber}\n`;
+            receiptText += `FECHA:   ${receipt.paymentDate}\n`;
+            receiptText += '--------------------------------\n';
+            receiptText += 'CLIENTE:\n';
+            receiptText += `<B>${receipt.clientName.toUpperCase()}\n</B>`;
+            receiptText += `CODIGO:  ${receipt.clientCode}\n`;
+            receiptText += '--------------------------------\n';
+            receiptText += `CUOTA DIA:    C$ ${fmt(receipt.cuotaDelDia)}\n`;
+            receiptText += `MORA/ATRASO:  C$ ${fmt(receipt.montoAtrasado)}\n`;
+            receiptText += `<B>EXIGIBLE:     C$ ${fmt(receipt.totalAPagar)}\n</B>`;
+            receiptText += '--------------------------------\n';
+            receiptText += '<C><B>MONTO RECIBIDO\n</B></C>';
+            receiptText += `<C>C$ ${fmt(receipt.amountPaid)}\n</C>`;
+            receiptText += '--------------------------------\n';
+            receiptText += `SALDO ANT:    C$ ${fmt(receipt.saldoAnterior)}\n`;
+            receiptText += `<B>NUEVO SALDO:  C$ ${fmt(receipt.nuevoSaldo)}\n</B>`;
+            receiptText += '--------------------------------\n';
+            receiptText += '<C>¡GRACIAS POR SU PAGO!\n</C>';
+            receiptText += '<C>CONSERVE ESTE DOCUMENTO\n</C>';
+            receiptText += '\n\n\n';
+            receiptText += '__________________________\n';
+            receiptText += `${receipt.managedBy.toUpperCase()}\n`;
+            receiptText += 'GESTOR DE COBRO\n';
+            receiptText += '\n\n\n\n';
+
+            await BLEPrinter.printText(receiptText);
 
             console.log('[PRINT] Impresión finalizada.');
 
         } catch (error: any) {
-            console.error('[PRINT] Connect Error:', error);
-            throw new Error('Error de conexión con la impresora. Verifica que esté encendida y vinculada.');
+            console.error('[PRINT] Error de impresión:', error);
+            throw new Error('Error de conexión con la impresora. Verifica que esté encendida y cerca.');
         }
     }
 }
