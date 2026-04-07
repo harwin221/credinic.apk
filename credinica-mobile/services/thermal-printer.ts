@@ -152,8 +152,6 @@ class ThermalPrinterService {
 
             await BLEPrinter.printText(receiptText);
 
-            await BLEPrinter.printText(receiptText);
-
             console.log('[PRINT] Impresión finalizada.');
 
         } catch (error: any) {

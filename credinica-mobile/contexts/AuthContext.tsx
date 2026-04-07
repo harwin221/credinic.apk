@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { sessionService, UserSession } from '../services/session';
 import { router } from 'expo-router';
+import { router } from 'expo-router';
 
 interface AuthContextType {
     user: UserSession | null;
@@ -46,11 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             
             // 3. Forzar navegación inmediata al login
+            router.dismissAll();
             router.replace('/');
             
         } catch (error) {
             console.error('[AUTH] Fatal Logout Error:', error);
             setUser(null);
+            router.dismissAll();
             router.replace('/');
         }
     };

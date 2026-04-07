@@ -35,36 +35,8 @@ const fmt = (n: number) => n.toLocaleString('es-NI', { minimumFractionDigits: 2,
 
 export default function ReceiptModal({ visible, onClose, receipt }: ReceiptModalProps) {
     const [printing, setPrinting] = React.useState(false);
-    const [autoPrinted, setAutoPrinted] = React.useState(false);
-
-    // Imprimir automáticamente cuando se abre el modal
-    React.useEffect(() => {
-        if (visible && receipt && !autoPrinted) {
-            setAutoPrinted(true);
-            handleAutoPrint();
-        }
-        if (!visible) {
-            setAutoPrinted(false);
-        }
-    }, [visible, receipt, autoPrinted]);
 
     if (!receipt) return null;
-
-    const handleAutoPrint = async () => {
-        try {
-            // Obtener impresora guardada
-            const savedPrinter = await AsyncStorage.getItem('selectedPrinter');
-            const savedTarget = await AsyncStorage.getItem('selectedPrinterTarget');
-            
-            if (savedTarget || savedPrinter) {
-                // Imprimir automáticamente usando la dirección (MAC) si existe
-                await thermalPrinterService.printReceipt(savedTarget || savedPrinter || 'Default', receipt);
-            }
-        } catch (error) {
-            console.log('Auto-print failed silently:', error);
-            // No mostrar error al usuario, solo fallar silenciosamente
-        }
-    };
 
     const handlePrint = async () => {
         setPrinting(true);

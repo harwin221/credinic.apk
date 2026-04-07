@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: 'bold',
         color: '#334155',
+        textAlign: 'center',
     },
     userRole: {
         fontSize: 16,
@@ -289,6 +290,7 @@ const styles = StyleSheet.create({
         bottom: 40,
         left: 0,
         right: 0,
+        marginTop: 20,
     },
     logoutText: {
         color: '#ffffff',
