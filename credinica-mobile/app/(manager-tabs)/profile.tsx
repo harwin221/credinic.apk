@@ -9,7 +9,7 @@ import { thermalPrinterService } from '../../services/thermal-printer';
 import { AlertHelper } from '../../utils/custom-alert-helper';
 
 export default function ProfileScreen() {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const [showPrinterModal, setShowPrinterModal] = useState(false);
     const [printers, setPrinters] = useState<any[]>([]);
     const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
@@ -146,11 +146,6 @@ export default function ProfileScreen() {
                     </View>
                 </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <MaterialCommunityIcons name="logout" size={24} color="#ffffff" />
-                <Text style={styles.logoutText}>CERRAR SESIÓN</Text>
-            </TouchableOpacity>
 
             {/* Modal de selección de impresora */}
             <Modal visible={showPrinterModal} animationType="fade" transparent>

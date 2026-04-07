@@ -6,6 +6,7 @@ import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import ReasonModal from '../../components/ReasonModal';
 import { AlertHelper } from '../../utils/custom-alert-helper';
+import { useAuth } from '../../contexts/AuthContext';
 
 type TabType = 'pending' | 'disbursed' | 'denied';
 
@@ -18,6 +19,7 @@ export default function DisbursementsScreen() {
     const [activeTab, setActiveTab] = useState<TabType>('pending');
     const [showReasonModal, setShowReasonModal] = useState(false);
     const [creditToDeny, setCreditToDeny] = useState<{ id: string; name: string } | null>(null);
+    const { logout } = useAuth();
 
     useFocusEffect(
         useCallback(() => {
@@ -78,6 +80,23 @@ export default function DisbursementsScreen() {
     const closeModal = () => {
         setIsModalVisible(false);
         setSelectedCredit(null);
+    };
+
+    const handleLogout = () => {
+        AlertHelper.alert(
+            'Cerrar Sesión',
+            '¿Estás seguro de que quieres salir?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Salir',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await logout();
+                    }
+                }
+            ]
+        );
     };
 
     const handleDisburse = async (creditId: string) => {
@@ -185,6 +204,11 @@ export default function DisbursementsScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
+            
+            {/* Botón de cerrar sesión en la esquina superior derecha */}
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <MaterialCommunityIcons name="power-off" size={24} color="#e11d48" />
+            </TouchableOpacity>
             
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Desembolsos</Text>
@@ -755,6 +779,20 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#7f1d1d',
         lineHeight: 20,
+    },
+    logoutButton: {
+        position: 'absolute',
+        top: 10,
+        right: 20,
+        zIndex: 10,
+        padding: 8,
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
 });
 
