@@ -289,6 +289,16 @@ export function ClosureForm() {
                                 />
                             </div>
                         </div>
+                        <div>
+                            <Label htmlFor="exchange-rate">Tipo de Cambio (T.C.)</Label>
+                            <Input
+                                id="exchange-rate"
+                                type="number"
+                                placeholder="37.50"
+                                value={exchangeRate || ''}
+                                onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)}
+                            />
+                        </div>
                     </div>
                     {renderSystemSummary()}
                 </CardContent>
@@ -335,10 +345,7 @@ export function ClosureForm() {
                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-4 border-t">
                         <div><Label>Total Físico C$</Label><Input readOnly value={formatCurrency(totalNIO)} className="font-bold text-lg h-11" /></div>
                         <div><Label>Total Físico U$</Label><Input readOnly value={formatCurrency(totalUSD, 'USD')} className="font-bold text-lg h-11" /></div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div><Label>T.C.</Label><Input type="number" value={exchangeRate} onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)} className="h-11"/></div>
-                            <div><Label>Conversión a C$</Label><Input readOnly value={formatCurrency(totalUSDinNIO)} className="font-bold text-lg h-11 bg-muted" /></div>
-                        </div>
+                        <div><Label>Conversión a C$</Label><Input readOnly value={formatCurrency(totalUSDinNIO)} className="font-bold text-lg h-11 bg-muted" /></div>
                         <div><Label>Subtotal C$ + U$ + Dep.</Label><Input readOnly value={formatCurrency(physicalTotal)} className="font-bold text-lg h-11 bg-blue-100" /></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-center pt-4 border-t">
