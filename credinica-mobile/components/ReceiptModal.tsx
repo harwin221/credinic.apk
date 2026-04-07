@@ -1,7 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { thermalPrinterService } from '../services/thermal-printer';
 import { AlertHelper } from '../utils/custom-alert-helper';

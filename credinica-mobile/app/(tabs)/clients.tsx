@@ -5,6 +5,7 @@ import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import CreditFormModal from '../../components/CreditFormModal';
 import CustomAlert from '../../components/CustomAlert';
+import { AlertHelper } from '../../utils/custom-alert-helper';
 
 const TABS = ['Mi Cartera', 'Représtamos', 'Renovaciones'];
 const fmt = (n: number) => n.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -81,7 +82,7 @@ export default function ClientsScreen() {
             const contentType = resp.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 console.error('La respuesta no es JSON:', await resp.text());
-                alert('Error: El servidor no respondió correctamente. Verifica tu conexión.');
+                AlertHelper.alert('Error', 'El servidor no respondió correctamente. Verifica tu conexión.');
                 setLoadingDetail(false);
                 return;
             }
@@ -90,11 +91,11 @@ export default function ClientsScreen() {
             if (result.success) {
                 setClientDetail(result.data);
             } else {
-                alert(`Error: ${result.message || 'No se pudo cargar el detalle del cliente'}`);
+                AlertHelper.alert('Error', result.message || 'No se pudo cargar el detalle del cliente');
             }
         } catch (e) { 
             console.error('Error al cargar detalle del cliente:', e); 
-            alert('Error de conexión. Verifica tu internet o la URL del servidor.');
+            AlertHelper.alert('Error de conexión', 'Verifica tu internet o la URL del servidor.');
         }
         finally { setLoadingDetail(false); }
     };

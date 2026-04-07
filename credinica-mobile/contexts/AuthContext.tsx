@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { sessionService, UserSession } from '../services/session';
 import { router } from 'expo-router';
-import { router } from 'expo-router';
 
 interface AuthContextType {
     user: UserSession | null;

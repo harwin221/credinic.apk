@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
-import { BarChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
 
 export default function ManagerDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);

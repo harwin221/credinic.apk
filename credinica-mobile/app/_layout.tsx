@@ -14,12 +14,9 @@ function RootContent() {
 
     const inTabsGroup = segments[0] === '(tabs)' || segments[0] === '(manager-tabs)';
 
-    if (!user) {
-      if (inTabsGroup || !segments || segments.length === 0) {
-        console.log('[AUTH_GUARD] Sin sesión. Forzando ir al login...');
-        router.replace('/');
-      }
-    } else {
+    if (!user && !isLoading) {
+      router.replace('/');
+    } else if (user && !isLoading) {
       if (!inTabsGroup) {
         console.log('[AUTH_GUARD] Sesión activa. Redirigiendo a tabs...');
         const roleUpper = user.role.toUpperCase();

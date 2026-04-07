@@ -150,6 +150,9 @@ class ThermalPrinterService {
             receiptText += center(receipt.role.toUpperCase()) + '\n';
             receiptText += '\n\n\n\n';
 
+            // Comando de corte para detener el papel
+            receiptText += '\x1b\x69';
+
             await BLEPrinter.printText(receiptText);
 
             console.log('[PRINT] Impresión finalizada.');
