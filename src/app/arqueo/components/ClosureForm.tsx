@@ -10,8 +10,7 @@ import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { BilletajeForm } from './BilletajeForm';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { generateDailyActivityReport, getPendingClosureStatus, type DailyActivityReport } from '@/services/closure-service';
+import { generateDailyActivityReport, type DailyActivityReport } from '@/services/closure-service';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,7 +41,6 @@ export function ClosureForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [reportData, setReportData] = React.useState<DailyActivityReport | null>(null);
-  const [pendingClosureStatus, setPendingClosureStatus] = React.useState<{ hasPendingClosure: boolean; pendingDates: string[]; lastClosureDate?: string | null } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
@@ -112,16 +110,10 @@ export function ClosureForm() {
       const fetchData = async () => {
         setIsLoading(true);
         try {
-          const [data, pendingStatus] = await Promise.all([
-            generateDailyActivityReport(selectedUserId),
-            getPendingClosureStatus(selectedUserId),
-          ]);
-
+          const data = await generateDailyActivityReport(selectedUserId);
           setReportData(data);
-          setPendingClosureStatus(pendingStatus);
         } catch (error) {
           toast({ title: 'Error', description: 'No se pudo cargar la actividad del día para este usuario.', variant: 'destructive' });
-          setPendingClosureStatus(null);
         }
         setIsLoading(false);
       };
@@ -276,15 +268,6 @@ export function ClosureForm() {
             </div>
         ) : reportData && (
             <>
-            {pendingClosureStatus?.hasPendingClosure && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Arqueos pendientes detectados</AlertTitle>
-                    <AlertDescription>
-                        Se encontraron transacciones sin cierre de caja para las fechas: {pendingClosureStatus.pendingDates.join(', ')}.
-                        Revisa estos días antes de guardar un nuevo arqueo.
-                    </AlertDescription>
-                </Alert>
-            )}
             <Card>
                 <CardHeader>
                     <CardTitle>Resumen de Actividad del Sistema</CardTitle>

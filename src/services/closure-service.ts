@@ -3,7 +3,7 @@
 
 import { query } from '@/lib/mysql';
 import type { AppUser } from '@/lib/types';
-import { startOfDay, endOfDay, subDays, format } from 'date-fns';
+import { startOfDay, endOfDay } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { toISOString, nowInNicaragua, toNicaraguaTime } from '@/lib/date-utils';
 
@@ -23,12 +23,6 @@ export interface DailyActivitySummary {
 export interface DailyActivityReport {
     collections: DailyActivitySummary;
     disbursements: DailyActivitySummary;
-}
-
-export interface PendingClosureStatus {
-    hasPendingClosure: boolean;
-    pendingDates: string[];
-    lastClosureDate?: string | null;
 }
 
 export async function generateDailyActivityReport(userId: string): Promise<DailyActivityReport> {
@@ -114,63 +108,6 @@ export async function deleteClosure(id: string): Promise<{ success: boolean; err
     } catch (error) {
         console.error('Error deleting closure:', error);
         return { success: false, error: 'Ocurrió un error al eliminar el arqueo.' };
-    }
-}
-
-export async function getPendingClosureStatus(userId: string, lookbackDays: number = 3): Promise<PendingClosureStatus> {
-    try {
-        const userResult: any = await query('SELECT fullName FROM users WHERE id = ?', [userId]);
-        if (userResult.length === 0) {
-            throw new Error('Usuario no encontrado para verificar cierres pendientes.');
-        }
-
-        const userName = userResult[0].fullName;
-        const timeZone = 'America/Managua';
-        const nowInManagua = toNicaraguaTime(nowInNicaragua());
-        const pendingDates: string[] = [];
-
-        for (let offset = 1; offset <= lookbackDays; offset++) {
-            const targetDate = subDays(nowInManagua, offset);
-            const start = fromZonedTime(startOfDay(targetDate), timeZone);
-            const end = fromZonedTime(endOfDay(targetDate), timeZone);
-
-            const closureRows: any = await query(
-                'SELECT id FROM closures WHERE userId = ? AND closureDate >= ? AND closureDate <= ? LIMIT 1',
-                [userId, start, end]
-            );
-
-            if (closureRows.length > 0) {
-                continue;
-            }
-
-            const targetDateString = format(targetDate, 'yyyy-MM-dd');
-            const paymentCount: any = await query(
-                `SELECT COUNT(*) as count FROM payments_registered rp
-                 WHERE rp.managedBy = ? AND rp.status != 'ANULADO'
-                 AND DATE(DATE_SUB(rp.paymentDate, INTERVAL 6 HOUR)) = ?`,
-                [userName, targetDateString]
-            );
-            const disbursementCount: any = await query(
-                `SELECT COUNT(*) as count FROM credits
-                 WHERE disbursedBy = ? AND DATE(deliveryDate) = ?
-                 AND status IN ('Active', 'Paid')`,
-                [userName, targetDateString]
-            );
-
-            if ((paymentCount[0]?.count || 0) > 0 || (disbursementCount[0]?.count || 0) > 0) {
-                pendingDates.push(targetDateString);
-            }
-        }
-
-        const lastClosureRow: any = await query('SELECT MAX(closureDate) as lastClosureDate FROM closures WHERE userId = ?', [userId]);
-        return {
-            hasPendingClosure: pendingDates.length > 0,
-            pendingDates,
-            lastClosureDate: lastClosureRow[0]?.lastClosureDate || null,
-        };
-    } catch (error) {
-        console.error('Error checking pending closures:', error);
-        return { hasPendingClosure: false, pendingDates: [], lastClosureDate: null };
     }
 }
 
