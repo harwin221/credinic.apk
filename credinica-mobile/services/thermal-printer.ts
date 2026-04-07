@@ -98,35 +98,57 @@ class ThermalPrinterService {
                 maximumFractionDigits: 2 
             }).replace(/\xA0/g, ' ');
 
-            // Formatear el recibo con tags
-            let receiptText = '<C>CREDINIC\n</C>';
-            receiptText += '<C>RECIBO DE ABONO\n</C>';
+            // Formatear el recibo como texto plano alineado
+            const center = (text: string, width = 32) => {
+                const spaces = Math.max(0, width - text.length);
+                const left = Math.floor(spaces / 2);
+                const right = spaces - left;
+                return ' '.repeat(left) + text + ' '.repeat(right);
+            };
+
+            const leftRight = (left: string, right: string, width = 32) => {
+                const total = left + right;
+                if (total.length >= width) return left + ' ' + right;
+                const spaces = width - total.length;
+                return left + ' '.repeat(spaces) + right;
+            };
+
+            let receiptText = center('CREDINIC') + '\n';
+            receiptText += center('ESTADO DE CUENTA / RECIBO') + '\n';
+            receiptText += center('COPIA: CLIENTE') + '\n';
             receiptText += '--------------------------------\n';
-            receiptText += `RECIBO:  ${receipt.transactionNumber}\n`;
-            receiptText += `CREDITO: ${receipt.creditNumber}\n`;
-            receiptText += `FECHA:   ${receipt.paymentDate}\n`;
+            receiptText += leftRight('No. Recibo:', receipt.transactionNumber) + '\n';
+            receiptText += leftRight('No. Credito:', receipt.creditNumber) + '\n';
+            receiptText += leftRight('Fecha Pago:', receipt.paymentDate) + '\n';
             receiptText += '--------------------------------\n';
             receiptText += 'CLIENTE:\n';
-            receiptText += `<B>${receipt.clientName.toUpperCase()}\n</B>`;
-            receiptText += `CODIGO:  ${receipt.clientCode}\n`;
+            receiptText += receipt.clientName.toUpperCase() + '\n';
+            receiptText += leftRight('CODIGO:', receipt.clientCode) + '\n';
             receiptText += '--------------------------------\n';
-            receiptText += `CUOTA DIA:    C$ ${fmt(receipt.cuotaDelDia)}\n`;
-            receiptText += `MORA/ATRASO:  C$ ${fmt(receipt.montoAtrasado)}\n`;
-            receiptText += `<B>EXIGIBLE:     C$ ${fmt(receipt.totalAPagar)}\n</B>`;
+            receiptText += leftRight('Cuota del Dia:', 'C$ ' + fmt(receipt.cuotaDelDia)) + '\n';
+            receiptText += leftRight('Mora / Atraso:', 'C$ ' + fmt(receipt.montoAtrasado)) + '\n';
+            receiptText += leftRight('Dias Mora:', receipt.diasMora.toString()) + '\n';
             receiptText += '--------------------------------\n';
-            receiptText += '<C><B>MONTO RECIBIDO\n</B></C>';
-            receiptText += `<C>C$ ${fmt(receipt.amountPaid)}\n</C>`;
+            receiptText += leftRight('Total a pagar:', 'C$ ' + fmt(receipt.totalAPagar)) + '\n';
             receiptText += '--------------------------------\n';
-            receiptText += `SALDO ANT:    C$ ${fmt(receipt.saldoAnterior)}\n`;
-            receiptText += `<B>NUEVO SALDO:  C$ ${fmt(receipt.nuevoSaldo)}\n</B>`;
+            receiptText += center('MONTO RECIBIDO') + '\n';
+            receiptText += center('C$ ' + fmt(receipt.amountPaid)) + '\n';
+            receiptText += center('CONCEPTO: ABONO DE CREDITO') + '\n';
             receiptText += '--------------------------------\n';
-            receiptText += '<C>¡GRACIAS POR SU PAGO!\n</C>';
-            receiptText += '<C>CONSERVE ESTE DOCUMENTO\n</C>';
+            receiptText += leftRight('Saldo Anterior:', 'C$ ' + fmt(receipt.saldoAnterior)) + '\n';
+            receiptText += leftRight('Nuevo Saldo:', 'C$ ' + fmt(receipt.nuevoSaldo)) + '\n';
+            receiptText += '--------------------------------\n';
+            receiptText += center('¡GRACIAS POR SU PAGO!') + '\n';
+            receiptText += center('PROHIBIDO EL PAGO SIN RECIBO') + '\n';
+            receiptText += center('CONSERVE ESTE DOCUMENTO') + '\n';
             receiptText += '\n\n\n';
-            receiptText += '__________________________\n';
-            receiptText += `${receipt.managedBy.toUpperCase()}\n`;
-            receiptText += 'GESTOR DE COBRO\n';
+            receiptText += center('__________________________') + '\n';
+            receiptText += center(receipt.sucursal.toUpperCase()) + '\n';
+            receiptText += center(receipt.managedBy.toUpperCase()) + '\n';
+            receiptText += center(receipt.role.toUpperCase()) + '\n';
             receiptText += '\n\n\n\n';
+
+            await BLEPrinter.printText(receiptText);
 
             await BLEPrinter.printText(receiptText);
 
