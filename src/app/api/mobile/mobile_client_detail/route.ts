@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
 import { toISOString, nowInNicaragua } from '@/lib/date-utils';
+import { calculateCreditStatusDetails, calculateAveragePaymentDelay } from '@/lib/utils';
+import type { CreditDetail } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,83 +43,69 @@ export async function GET(request: Request) {
                 query('SELECT * FROM payment_plan WHERE creditId = ? ORDER BY paymentNumber', [credit.id]),
             ]);
 
-            const totalPaid = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-            const remainingBalance = Math.max(0, Number(credit.totalAmount || 0) - totalPaid);
+            // Construir el objeto CreditDetail completo para usar las funciones de utils
+            const creditFull: CreditDetail = {
+                ...credit,
+                registeredPayments: payments.map((p: any) => ({
+                    ...p,
+                    paymentDate: toISOString(p.paymentDate)
+                })),
+                paymentPlan: plans.map((p: any) => ({
+                    ...p,
+                    paymentDate: toISOString(p.paymentDate)
+                }))
+            } as CreditDetail;
 
-            // Calcular días de atraso actuales
-            const today = nowInNicaragua().substring(0, 10);
-            const overdueInstallments = plans.filter((p: any) => {
-                const d = toISOString(p.paymentDate);
-                return d && d.substring(0, 10) < today;
-            });
-            const amountDue = overdueInstallments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-            const overdueAmount = Math.max(0, amountDue - totalPaid);
+            // Usar las mismas funciones que la web para calcular el estado del crédito
+            const currentDetails = calculateCreditStatusDetails(creditFull, nowInNicaragua());
+            
+            // Calcular promedio de atraso del crédito actual usando la función correcta
+            const { avgLateDaysForCredit } = calculateAveragePaymentDelay(creditFull);
 
-            // Días de atraso: desde la primera cuota impaga
-            let lateDays = 0;
-            if (overdueAmount > 0.01) {
-                let cumDue = 0;
-                for (const inst of overdueInstallments) {
-                    cumDue += Number(inst.amount || 0);
-                    if (totalPaid < cumDue - 0.01) {
-                        const instDate = toISOString(inst.paymentDate);
-                        if (instDate) {
-                            const diff = Math.floor((new Date(today).getTime() - new Date(instDate.substring(0, 10)).getTime()) / 86400000);
-                            lateDays = Math.max(0, diff);
-                        }
-                        break;
-                    }
-                }
-            }
-
-            // Promedio de días de atraso del CRÉDITO ACTUAL
-            let currentCreditLateDaysSum = 0;
-            let currentCreditPaymentCount = 0;
-            payments.forEach((p: any, i: number) => {
-                const plan = plans[i];
-                if (!plan) return;
-                const payDate = toISOString(p.paymentDate);
-                const planDate = toISOString(plan.paymentDate);
-                if (payDate && planDate) {
-                    const diff = Math.floor((new Date(payDate.substring(0, 10)).getTime() - new Date(planDate.substring(0, 10)).getTime()) / 86400000);
-                    if (diff > 0) { 
-                        currentCreditLateDaysSum += diff; 
-                        currentCreditPaymentCount++; 
-                    }
-                }
-            });
-            const avgLateDaysCurrentCredit = currentCreditPaymentCount > 0 
-                ? (currentCreditLateDaysSum / currentCreditPaymentCount).toFixed(1) 
-                : '0.0';
-
-            // Promedio GLOBAL de días de atraso (histórico de TODOS los créditos del cliente)
+            // Calcular promedio GLOBAL de días de atraso (histórico de TODOS los créditos del cliente)
             const allCredits: any[] = await query(
-                "SELECT id FROM credits WHERE clientId = ?",
+                "SELECT * FROM credits WHERE clientId = ?",
                 [clientId]
             );
-            let totalLateDaysSum = 0;
-            let paymentCount = 0;
+            
+            let totalAvgAcrossCredits = 0;
+            let validCreditsCount = 0;
+            
             for (const c of allCredits) {
                 const cPayments: any[] = await query(
-                    "SELECT paymentDate FROM payments_registered WHERE creditId = ? AND status != 'ANULADO'",
+                    "SELECT * FROM payments_registered WHERE creditId = ? AND status != 'ANULADO'",
                     [c.id]
                 );
                 const cPlans: any[] = await query(
-                    'SELECT paymentDate FROM payment_plan WHERE creditId = ? ORDER BY paymentNumber',
+                    'SELECT * FROM payment_plan WHERE creditId = ? ORDER BY paymentNumber',
                     [c.id]
                 );
-                cPayments.forEach((p: any, i: number) => {
-                    const plan = cPlans[i];
-                    if (!plan) return;
-                    const payDate = toISOString(p.paymentDate);
-                    const planDate = toISOString(plan.paymentDate);
-                    if (payDate && planDate) {
-                        const diff = Math.floor((new Date(payDate.substring(0, 10)).getTime() - new Date(planDate.substring(0, 10)).getTime()) / 86400000);
-                        if (diff > 0) { totalLateDaysSum += diff; paymentCount++; }
-                    }
-                });
+                
+                // Construir CreditDetail para cada crédito histórico
+                const historicCredit: CreditDetail = {
+                    ...c,
+                    registeredPayments: cPayments.map((p: any) => ({
+                        ...p,
+                        paymentDate: toISOString(p.paymentDate)
+                    })),
+                    paymentPlan: cPlans.map((p: any) => ({
+                        ...p,
+                        paymentDate: toISOString(p.paymentDate)
+                    }))
+                } as CreditDetail;
+                
+                // Calcular promedio de este crédito usando la función correcta
+                const { avgLateDaysForCredit: avgForThisCredit } = calculateAveragePaymentDelay(historicCredit);
+                
+                if (cPlans.length > 0) {
+                    totalAvgAcrossCredits += avgForThisCredit;
+                    validCreditsCount++;
+                }
             }
-            const avgLateDaysGlobal = paymentCount > 0 ? (totalLateDaysSum / paymentCount).toFixed(1) : '0.0';
+            
+            const avgLateDaysGlobal = validCreditsCount > 0 
+                ? (totalAvgAcrossCredits / validCreditsCount).toFixed(1) 
+                : '0.0';
 
             // Formatear plan de pago para el móvil
             const paymentPlan = plans.map((p: any) => ({
@@ -169,13 +157,13 @@ export async function GET(request: Request) {
                 collectionsManager: credit.collectionsManager,
                 branchName: credit.branchName,
                 
-                // Estado actual del crédito
-                totalPaid,
-                remainingBalance,
-                overdueAmount,
-                lateDays,
-                avgLateDaysCurrentCredit, // Promedio del crédito actual
-                avgLateDaysGlobal, // Promedio global de todos los créditos
+                // Estado actual del crédito (calculado con las funciones correctas)
+                totalPaid: currentDetails.totalPaid,
+                remainingBalance: currentDetails.remainingBalance,
+                overdueAmount: currentDetails.overdueAmount,
+                lateDays: currentDetails.lateDays,
+                avgLateDaysCurrentCredit: avgLateDaysForCredit.toFixed(1), // Promedio del crédito actual (CORRECTO)
+                avgLateDaysGlobal, // Promedio global de todos los créditos (CORRECTO)
                 
                 // Plan de pago y historial
                 paymentPlan,
