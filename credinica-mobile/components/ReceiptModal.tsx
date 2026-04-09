@@ -68,7 +68,7 @@ export default function ReceiptModal({ visible, onClose, receipt }: ReceiptModal
                         {/* Receipt Body */}
                         <View style={styles.receipt}>
                             <Text style={styles.brand}>CREDINIC</Text>
-                            <Text style={styles.subtitle}>ESTADO DE CUENTA / RECIBO</Text>
+                            <Text style={styles.subtitle}>RECIBO</Text>
                             <Text style={styles.copy}>COPIA: CLIENTE</Text>
 
                             <View style={styles.divider} />

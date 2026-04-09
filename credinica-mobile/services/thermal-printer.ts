@@ -146,7 +146,7 @@ class ThermalPrinterService {
             receiptText += center('__________________________') + '\n';
             receiptText += center(receipt.sucursal.toUpperCase()) + '\n';
             receiptText += center(receipt.managedBy.toUpperCase()) + '\n';
-            receiptText += center(receipt.role.toUpperCase()) + '\n';
+            receiptText += center(receipt.role.toUpperCase());
 
             // Comando de corte para detener el papel
             receiptText += '\x1b\x69';
