@@ -449,16 +449,15 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20, 
         borderTopRightRadius: 20, 
         padding: 20, 
-        maxHeight: '95%',
-        width: '100%',
-        paddingBottom: Platform.OS === 'android' ? 80 : 20,
+        height: '95%', 
+        width: '100%' 
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     modalTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     clientInfo: { fontSize: 14, color: '#64748b', marginBottom: 16, fontWeight: '600' },
     keyboardView: { flex: 1 },
     formScroll: { flex: 1 },
-    formScrollContent: { paddingBottom: 100 },
+    formScrollContent: { paddingBottom: 20 },
     label: { fontSize: 14, fontWeight: '700', color: '#334155', marginTop: 16, marginBottom: 8 },
     input: {
         backgroundColor: '#f8fafc',
@@ -504,8 +503,7 @@ const styles = StyleSheet.create({
     },
     buttonContainer: { 
         marginTop: 20, 
-        marginBottom: Platform.OS === 'android' ? 20 : 10,
-        paddingBottom: Platform.OS === 'android' ? 10 : 0,
+        marginBottom: 60,
     },
     submitButton: {
         flexDirection: 'row',
