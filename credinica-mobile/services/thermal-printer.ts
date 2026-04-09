@@ -143,12 +143,10 @@ class ThermalPrinterService {
             receiptText += center('¡GRACIAS POR SU PAGO!') + '\n';
             receiptText += center('PROHIBIDO EL PAGO SIN RECIBO') + '\n';
             receiptText += center('CONSERVE ESTE DOCUMENTO') + '\n';
-            receiptText += '\n\n\n';
             receiptText += center('__________________________') + '\n';
             receiptText += center(receipt.sucursal.toUpperCase()) + '\n';
             receiptText += center(receipt.managedBy.toUpperCase()) + '\n';
             receiptText += center(receipt.role.toUpperCase()) + '\n';
-            receiptText += '\n\n\n\n';
 
             // Comando de corte para detener el papel
             receiptText += '\x1b\x69';

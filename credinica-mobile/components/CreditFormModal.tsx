@@ -49,7 +49,9 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
 
     // Resetear formulario cuando se abre el modal
     useEffect(() => {
+        console.log('[CREDIT_FORM] Modal visible:', visible);
         if (visible) {
+            console.log('[CREDIT_FORM] Resetting form for client:', client?.name);
             // Calcular fecha de primer pago (7 días desde hoy)
             const nextWeek = new Date();
             nextWeek.setDate(nextWeek.getDate() + 7);
@@ -64,6 +66,7 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
             });
             setGuarantees([]);
             setActiveTab('credit');
+            console.log('[CREDIT_FORM] Form reset complete');
         }
     }, [visible]);
 
@@ -255,11 +258,16 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
                     </View>
 
                     <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+                        behavior="padding"
+                        style={styles.keyboardView}
                         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-                        style={{ flex: 1 }}
                     >
-                        <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
+                        <ScrollView 
+                            showsVerticalScrollIndicator={false} 
+                            style={styles.formScroll}
+                            contentContainerStyle={styles.formScrollContent}
+                            keyboardShouldPersistTaps="handled"
+                        >
                         {activeTab === 'credit' ? (
                             <>
                         {/* Destino del Producto */}
@@ -435,22 +443,33 @@ export default function CreditFormModal({ visible, onClose, client, onSuccess }:
 }
 
 const styles = StyleSheet.create({
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-    modalContainer: { backgroundColor: '#fff', borderRadius: 20, padding: 20, maxHeight: '90%', width: '95%' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' },
+    modalContainer: { 
+        backgroundColor: '#fff', 
+        borderTopLeftRadius: 20, 
+        borderTopRightRadius: 20, 
+        padding: 20, 
+        maxHeight: '95%',
+        width: '100%',
+        paddingBottom: Platform.OS === 'android' ? 80 : 20,
+    },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    modalTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     clientInfo: { fontSize: 14, color: '#64748b', marginBottom: 16, fontWeight: '600' },
-    formScroll: { marginBottom: 20 },
-    label: { fontSize: 13, fontWeight: '700', color: '#334155', marginTop: 12, marginBottom: 6 },
+    keyboardView: { flex: 1 },
+    formScroll: { flex: 1 },
+    formScrollContent: { paddingBottom: 100 },
+    label: { fontSize: 14, fontWeight: '700', color: '#334155', marginTop: 16, marginBottom: 8 },
     input: {
         backgroundColor: '#f8fafc',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontSize: 14,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
         color: '#334155',
         borderWidth: 1,
         borderColor: '#e2e8f0',
+        minHeight: 48,
     },
     pickerContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     pickerOption: {
@@ -483,7 +502,11 @@ const styles = StyleSheet.create({
         color: '#334155',
         fontWeight: '600',
     },
-    buttonContainer: { marginTop: 20, marginBottom: 10 },
+    buttonContainer: { 
+        marginTop: 20, 
+        marginBottom: Platform.OS === 'android' ? 20 : 10,
+        paddingBottom: Platform.OS === 'android' ? 10 : 0,
+    },
     submitButton: {
         flexDirection: 'row',
         alignItems: 'center',
