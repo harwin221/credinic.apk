@@ -106,11 +106,20 @@ export async function GET(request: Request) {
             }
         }
 
-        // Lógica de Renovación: Créditos pagados con promedio de atraso <= 2.5 días Y sin crédito activo EN NINGÚN GESTOR
-        const paidCredits: any[] = await query(
-            "SELECT id, clientId, totalAmount FROM credits WHERE collectionsManager = ? AND status = 'Paid'",
-            [gestorName]
-        );
+        // Lógica de Renovación: Créditos pagados en los últimos 30 días con promedio de atraso <= 2.5 días Y sin crédito activo EN NINGÚN GESTOR
+        // Usar la fecha del último pago para determinar cuándo se pagó el crédito (más preciso que updatedAt)
+        const paidCreditsQuery = `
+            SELECT c.id, c.clientId, c.totalAmount, MAX(pr.paymentDate) as lastPaymentDate
+            FROM credits c
+            INNER JOIN payments_registered pr ON c.id = pr.creditId
+            WHERE c.collectionsManager = ? 
+            AND c.status = 'Paid'
+            AND pr.status != 'ANULADO'
+            GROUP BY c.id, c.clientId, c.totalAmount
+            HAVING lastPaymentDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        `;
+        
+        const paidCredits: any[] = await query(paidCreditsQuery, [gestorName]);
         
         // Obtener TODOS los clientes que tienen créditos activos con CUALQUIER gestor (no solo el actual)
         const allActiveClientsGlobal: any[] = await query(
@@ -154,9 +163,14 @@ export async function GET(request: Request) {
 
                 const { avgLateDaysForCredit } = calculateAveragePaymentDelay(creditFull);
                 
+                // LOG para depuración: mostrar el promedio calculado
+                console.log(`[RENOVACION] Cliente ${credit.clientId}, Crédito ${credit.id}: Promedio atraso = ${avgLateDaysForCredit.toFixed(2)} días`);
+                
                 // VALIDACIÓN: Solo si el promedio de atraso es <= 2.5 días
                 if (avgLateDaysForCredit <= 2.5) {
                     renewalClientIds.add(credit.clientId);
+                } else {
+                    console.log(`[RENOVACION] Cliente ${credit.clientId} RECHAZADO: Promedio ${avgLateDaysForCredit.toFixed(2)} > 2.5 días`);
                 }
             }
         }
