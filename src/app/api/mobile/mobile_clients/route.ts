@@ -106,13 +106,18 @@ export async function GET(request: Request) {
             }
         }
 
-        // Lógica de Renovación: Créditos pagados con promedio de atraso <= 2.5 días Y sin crédito activo
+        // Lógica de Renovación: Créditos pagados con promedio de atraso <= 2.5 días Y sin crédito activo EN NINGÚN GESTOR
         const paidCredits: any[] = await query(
             "SELECT id, clientId, totalAmount FROM credits WHERE collectionsManager = ? AND status = 'Paid'",
             [gestorName]
         );
         
-        const activeClientIds = new Set(activeCredits.map((c: any) => c.clientId));
+        // Obtener TODOS los clientes que tienen créditos activos con CUALQUIER gestor (no solo el actual)
+        const allActiveClientsGlobal: any[] = await query(
+            "SELECT DISTINCT clientId FROM credits WHERE status = 'Active'"
+        );
+        const globalActiveClientIds = new Set(allActiveClientsGlobal.map((c: any) => c.clientId));
+        
         const renewalClientIds = new Set<string>();
 
         if (paidCredits.length > 0) {
@@ -138,8 +143,8 @@ export async function GET(request: Request) {
             });
 
             for (const credit of paidCredits) {
-                // Solo clientes sin crédito activo
-                if (activeClientIds.has(credit.clientId)) continue;
+                // VALIDACIÓN CRÍTICA: Solo clientes sin crédito activo con NINGÚN gestor
+                if (globalActiveClientIds.has(credit.clientId)) continue;
 
                 const creditFull: CreditDetail = {
                     ...credit,
@@ -148,6 +153,8 @@ export async function GET(request: Request) {
                 } as CreditDetail;
 
                 const { avgLateDaysForCredit } = calculateAveragePaymentDelay(creditFull);
+                
+                // VALIDACIÓN: Solo si el promedio de atraso es <= 2.5 días
                 if (avgLateDaysForCredit <= 2.5) {
                     renewalClientIds.add(credit.clientId);
                 }
