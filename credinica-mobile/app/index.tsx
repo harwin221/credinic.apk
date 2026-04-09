@@ -35,6 +35,8 @@ export default function LoginScreen() {
             const data = await response.json();
 
             if (data.success) {
+                console.log('[LOGIN] Login exitoso, guardando sesión...', data.user.role);
+                
                 // Persistimos los datos reales del usuario que devolvió Vercel
                 await login(data.user);
 
@@ -42,23 +44,14 @@ export default function LoginScreen() {
                 const roleUpper = data.user.role.toUpperCase();
                 const isManager = roleUpper === 'GERENTE' || roleUpper === 'ADMINISTRADOR' || roleUpper === 'FINANZAS';
                 
-                // Mostrar alert y redirigir cuando se cierre
-                AlertHelper.alert(
-                    '¡Bienvenido!', 
-                    `Has ingresado como ${data.user.role}`,
-                    [
-                        {
-                            text: 'OK',
-                            onPress: () => {
-                                if (isManager) {
-                                    router.replace('/(manager-tabs)');
-                                } else {
-                                    router.replace('/(tabs)');
-                                }
-                            }
-                        }
-                    ]
-                );
+                console.log('[LOGIN] Redirigiendo...', { role: roleUpper, isManager });
+                
+                // Redirigir directamente sin alert
+                if (isManager) {
+                    router.replace('/(manager-tabs)');
+                } else {
+                    router.replace('/(tabs)');
+                }
             } else {
                 // Credenciales incorrectas, usuario inactivo, o rol no permitido
                 AlertHelper.alert('Acceso Denegado', data.message || 'Credenciales inválidas');

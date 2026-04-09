@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
+import { AlertHelper } from '../../utils/custom-alert-helper';
 
 export default function ManagerDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
     gestorName: user?.fullName || 'Cargando...',
@@ -73,6 +74,10 @@ export default function ManagerDashboardScreen() {
     setRefreshing(false);
   };
 
+  const handleLogout = async () => {
+    await logout();
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -88,6 +93,9 @@ export default function ManagerDashboardScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <MaterialCommunityIcons name="logout" size={22} color="#dc2626" />
+      </TouchableOpacity>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0ea5e9']} />}
@@ -610,6 +618,20 @@ const styles = StyleSheet.create({
   consultationSubtitle: {
     fontSize: 12,
     color: '#64748b',
+  },
+  logoutButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 15 : 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: '#fee2e2',
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
 

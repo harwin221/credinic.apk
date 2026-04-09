@@ -18,11 +18,13 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         AlertHelper.setCallback((config) => {
+            console.log('[ALERT_PROVIDER] Setting alert config:', config.title);
             setAlertConfig(config);
         });
     }, []);
 
     const handleClose = () => {
+        console.log('[ALERT_PROVIDER] Closing alert');
         setAlertConfig(null);
     };
 
@@ -38,9 +40,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
                     onClose={handleClose}
                     buttons={alertConfig.buttons?.map(btn => ({
                         text: btn.text,
-                        onPress: () => {
-                            if (btn.onPress) btn.onPress();
-                        },
+                        onPress: btn.onPress || (() => {}),
                         style: btn.style,
                     }))}
                 />

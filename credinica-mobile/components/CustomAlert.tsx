@@ -70,7 +70,14 @@ export default function CustomAlert({ visible, type, title, message, onClose, bu
                                     defaultButtons.length === 1 && styles.buttonSingle,
                                 ]}
                                 onPress={() => {
-                                    button.onPress();
+                                    console.log('[CUSTOM_ALERT] Button pressed:', button.text);
+                                    console.log('[CUSTOM_ALERT] Has onPress:', !!button.onPress);
+                                    if (button.onPress) {
+                                        console.log('[CUSTOM_ALERT] Executing onPress...');
+                                        button.onPress();
+                                        console.log('[CUSTOM_ALERT] onPress executed');
+                                    }
+                                    console.log('[CUSTOM_ALERT] Closing alert...');
                                     onClose();
                                 }}
                             >

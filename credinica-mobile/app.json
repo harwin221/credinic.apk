@@ -70,8 +70,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "26675856-6bc3-45d3-ac4e-8e0143b2ffff"
+        "projectId": "875c49f5-7bab-42b7-bcb5-c07098101cf1"
       }
-    }
+    },
+    "owner": "harwin02"
   }
 }

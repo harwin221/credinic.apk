@@ -6,7 +6,6 @@ import { sessionService } from '../../services/session';
 import { API_ENDPOINTS } from '../../config/api';
 import ReasonModal from '../../components/ReasonModal';
 import { AlertHelper } from '../../utils/custom-alert-helper';
-import { useAuth } from '../../contexts/AuthContext';
 
 type TabType = 'pending' | 'disbursed' | 'denied';
 
@@ -19,7 +18,6 @@ export default function DisbursementsScreen() {
     const [activeTab, setActiveTab] = useState<TabType>('pending');
     const [showReasonModal, setShowReasonModal] = useState(false);
     const [creditToDeny, setCreditToDeny] = useState<{ id: string; name: string } | null>(null);
-    const { logout } = useAuth();
 
     useFocusEffect(
         useCallback(() => {
@@ -82,44 +80,47 @@ export default function DisbursementsScreen() {
         setSelectedCredit(null);
     };
 
-    const handleLogout = () => {
-        AlertHelper.alert(
-            'Cerrar Sesión',
-            '¿Estás seguro de que quieres salir?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Salir',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await logout();
-                    }
-                }
-            ]
-        );
-    };
-
     const handleDisburse = async (creditId: string) => {
+        console.log('[DISBURSEMENTS] handleDisburse called with creditId:', creditId);
         closeModal();
+        
+        console.log('[DISBURSEMENTS] Showing confirmation alert...');
         AlertHelper.alert(
             'Confirmar Desembolso',
             '¿Estás seguro de marcar este crédito como desembolsado?',
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { 
+                    text: 'Cancelar', 
+                    style: 'cancel',
+                    onPress: () => {
+                        console.log('[DISBURSEMENTS] Cancelado por el usuario');
+                    }
+                },
                 {
                     text: 'Desembolsar',
                     onPress: async () => {
+                        console.log('[DISBURSEMENTS] ¡Botón Desembolsar presionado!');
+                        console.log('[DISBURSEMENTS] Confirmado, enviando petición...');
                         try {
                             const session = await sessionService.getSession();
+                            console.log('[DISBURSEMENTS] Session:', session?.id);
+                            
+                            const payload = {
+                                creditId,
+                                userId: session?.id
+                            };
+                            console.log('[DISBURSEMENTS] Payload:', payload);
+                            console.log('[DISBURSEMENTS] Endpoint:', API_ENDPOINTS.disburse_credit);
+                            
                             const resp = await fetch(API_ENDPOINTS.disburse_credit, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    creditId,
-                                    userId: session?.id
-                                })
+                                body: JSON.stringify(payload)
                             });
+                            
+                            console.log('[DISBURSEMENTS] Response status:', resp.status);
                             const result = await resp.json();
+                            console.log('[DISBURSEMENTS] Response:', result);
                             
                             if (result.success) {
                                 AlertHelper.alert('Éxito', 'Crédito desembolsado correctamente');
@@ -128,13 +129,14 @@ export default function DisbursementsScreen() {
                                 AlertHelper.alert('Error', result.message || 'No se pudo desembolsar el crédito');
                             }
                         } catch (error) {
-                            console.error('Error al desembolsar:', error);
+                            console.error('[DISBURSEMENTS] Error al desembolsar:', error);
                             AlertHelper.alert('Error', 'No se pudo conectar con el servidor');
                         }
                     }
                 }
             ]
         );
+        console.log('[DISBURSEMENTS] Alert should be visible now');
     };
 
     const handleDeny = (creditId: string, clientName: string) => {
@@ -204,11 +206,6 @@ export default function DisbursementsScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
-            
-            {/* Botón de cerrar sesión en la esquina superior derecha */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <MaterialCommunityIcons name="power-off" size={24} color="#e11d48" />
-            </TouchableOpacity>
             
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Desembolsos</Text>
@@ -779,20 +776,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#7f1d1d',
         lineHeight: 20,
-    },
-    logoutButton: {
-        position: 'absolute',
-        top: 10,
-        right: 20,
-        zIndex: 10,
-        padding: 8,
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
 });
 

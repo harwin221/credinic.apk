@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { checkConnection, savePendingPayment } from '../services/offline-db';
+import { savePendingPayment } from '../services/offline-db';
+import { checkConnection } from '../services/sync-service';
 import { sessionService } from '../services/session';
 
 interface PaymentModalProps {
@@ -38,6 +39,7 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
 
     const handlePay = async () => {
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+            alert('Por favor ingresa un monto válido');
             return;
         }
 
@@ -51,32 +53,58 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
         setLoading(true);
         try {
             const session = await sessionService.getSession();
-            if (!session) return;
+            if (!session) {
+                alert('No se pudo obtener la sesión del usuario');
+                setLoading(false);
+                return;
+            }
 
             // Si no hay conexión, guardar offline y MOSTRAR RECIBO
             if (!isOnline) {
-                const paymentId = `OFFLINE-${Date.now()}`;
-                await savePendingPayment({
-                    id: paymentId,
-                    creditId: credit.id,
-                    amount: Number(amount),
-                    paymentDate: new Date().toISOString(),
-                    notes,
-                    managedBy: session.id,
-                });
-                
-                // Disparar el flujo de recibo con datos locales
-                await onPay({
-                    amount: Number(amount),
-                    notes,
-                    paymentType,
-                    isOffline: true,
-                    offlineId: paymentId
-                });
-
-                setAmount('');
-                setNotes('');
-                onClose();
+                try {
+                    const paymentId = `OFFLINE-${Date.now()}`;
+                    const paymentAmount = Number(amount);
+                    const paymentNotes = notes || '';
+                    
+                    const paymentData = {
+                        amount: paymentAmount,
+                        paymentDate: new Date().toISOString(),
+                        notes: paymentNotes,
+                        paymentType,
+                    };
+                    
+                    // Guardar en base de datos offline
+                    await savePendingPayment(credit.id, paymentData, session.id);
+                    
+                    // Cerrar el modal primero
+                    setAmount('');
+                    setNotes('');
+                    setLoading(false);
+                    onClose();
+                    
+                    // Luego disparar el flujo de recibo con datos locales
+                    setTimeout(async () => {
+                        try {
+                            await onPay({
+                                amount: paymentAmount,
+                                notes: paymentNotes,
+                                paymentType,
+                                isOffline: true,
+                                offlineId: paymentId
+                            });
+                        } catch (receiptError) {
+                            console.error('[PAYMENT_MODAL] Error mostrando recibo:', receiptError);
+                            alert('Pago guardado pero hubo un error al mostrar el recibo');
+                        }
+                    }, 300);
+                    
+                    return;
+                } catch (offlineError) {
+                    console.error('[PAYMENT_MODAL] Error en modo offline:', offlineError);
+                    alert('Error al guardar el pago offline: ' + (offlineError as Error).message);
+                    setLoading(false);
+                    return;
+                }
             } else {
                 // Si hay conexión, procesar normalmente
                 await onPay({
@@ -89,7 +117,8 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
                 onClose();
             }
         } catch (error) {
-            console.error('Error in payment modal:', error);
+            console.error('[PAYMENT_MODAL] Error in payment modal:', error);
+            alert('Error al procesar el pago: ' + (error as Error).message);
         } finally {
             setLoading(false);
         }
@@ -120,13 +149,22 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
                         <View style={styles.statusRow}>
                             <MaterialCommunityIcons 
                                 name={isOnline ? "wifi" : "wifi-off"} 
-                                size={14} 
+                                size={16} 
                                 color={isOnline ? "#10b981" : "#f97316"} 
                             />
-                            <Text style={[styles.statusText, !isOnline && { color: '#f97316' }]}>
-                                {isOnline ? 'Conectado' : 'Modo Offline'}
+                            <Text style={[styles.statusText, !isOnline && { color: '#f97316', fontWeight: '700' }]}>
+                                {isOnline ? 'Conectado' : 'MODO OFFLINE - El pago se guardará localmente'}
                             </Text>
                         </View>
+
+                        {!isOnline && (
+                            <View style={styles.offlineWarning}>
+                                <MaterialCommunityIcons name="information" size={16} color="#f97316" />
+                                <Text style={styles.offlineWarningText}>
+                                    El pago se guardará en tu dispositivo y se sincronizará cuando tengas conexión
+                                </Text>
+                            </View>
+                        )}
 
                         <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollBody}>
                             {/* Metrics */}
@@ -192,7 +230,16 @@ export default function PaymentModal({ visible, onClose, credit, onPay }: Paymen
                                 {loading ? (
                                     <ActivityIndicator color="#fff" size="small" />
                                 ) : (
-                                    <Text style={styles.payButtonText}>PAGAR CUOTA</Text>
+                                    <>
+                                        <MaterialCommunityIcons 
+                                            name={isOnline ? "cash-check" : "content-save"} 
+                                            size={18} 
+                                            color="#fff" 
+                                        />
+                                        <Text style={styles.payButtonText}>
+                                            {isOnline ? 'PAGAR CUOTA' : 'GUARDAR PAGO'}
+                                        </Text>
+                                    </>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -240,12 +287,31 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 15,
-        gap: 5,
+        marginBottom: 12,
+        gap: 6,
     },
     statusText: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#94a3b8',
+        textAlign: 'center',
+        flex: 1,
+    },
+    offlineWarning: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff7ed',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 15,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: '#fed7aa',
+    },
+    offlineWarningText: {
+        fontSize: 11,
+        color: '#c2410c',
+        flex: 1,
+        lineHeight: 16,
     },
     scrollBody: {
         maxHeight: 500,
@@ -352,6 +418,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#10b981',
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 8,
     },
     payButtonText: {
         fontSize: 13,

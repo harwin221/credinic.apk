@@ -7,7 +7,6 @@ import PaymentModal from '../../components/PaymentModal';
 import ReceiptModal, { ReceiptData } from '../../components/ReceiptModal';
 import CustomAlert from '../../components/CustomAlert';
 import { AlertHelper } from '../../utils/custom-alert-helper';
-import { useAuth } from '../../contexts/AuthContext';
 
 export default function CreditsScreen() {
     const [activeTab, setActiveTab] = useState('Cobro Dia');
@@ -15,7 +14,6 @@ export default function CreditsScreen() {
     const [isSearchActive, setIsSearchActive] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const { logout } = useAuth();
     const [portfolio, setPortfolio] = useState<any>({
         dueToday: [],
         overdue: [],
@@ -330,31 +328,19 @@ export default function CreditsScreen() {
         return () => clearTimeout(timer);
     }, [searchQuery, isSearchActive]);
 
-    const handleLogout = () => {
-        AlertHelper.alert(
-            'Cerrar Sesión',
-            '¿Estás seguro de que quieres salir?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Salir',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await logout();
-                    }
-                }
-            ]
-        );
+    const getCategoryColor = (tab: string) => {
+        switch (tab) {
+            case 'Cobro Dia': return '#10b981';
+            case 'Mora': return '#f97316';
+            case 'Vencido': return '#e11d48';
+            case 'Cobrado Hoy': return '#10b981';
+            default: return '#0ea5e9';
+        }
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
-            
-            {/* Botón de cerrar sesión en la esquina superior derecha */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <MaterialCommunityIcons name="power-off" size={24} color="#e11d48" />
-            </TouchableOpacity>
             
             {/* Search bar con margen superior */}
             <View style={styles.searchBarWrapper}>
@@ -781,20 +767,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '700',
         color: '#fff',
-    },
-    logoutButton: {
-        position: 'absolute',
-        top: 10,
-        right: 20,
-        zIndex: 10,
-        padding: 8,
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     emptyText: {
         textAlign: 'center',

@@ -69,7 +69,11 @@ export default function GuaranteeFormModal({ visible, onClose, onSave }: Guarant
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false} 
+                        style={styles.formScroll}
+                        keyboardShouldPersistTaps="handled"
+                    >
                         {error ? (
                             <View style={styles.errorContainer}>
                                 <MaterialCommunityIcons name="alert-circle" size={16} color="#ef4444" />
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         padding: 20,
-        height: '90%',
+        height: '85%',
         width: '100%',
     },
     modalHeader: {
@@ -235,7 +239,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 12,
         marginTop: 8,
-        marginBottom: 60,
+        marginBottom: 100,
+        paddingBottom: 20,
     },
     cancelButton: {
         flex: 1,

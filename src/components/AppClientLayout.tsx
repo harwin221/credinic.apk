@@ -5,7 +5,7 @@ import { useUser, UserProvider } from '@/hooks/use-user';
 import { SidebarLayout } from '@/components/SidebarLayout';
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { getPortfolioForSync } from '@/app/actions/sync-actions';
@@ -22,9 +22,17 @@ function LayoutManager({ children }: { children: React.ReactNode }) {
   const { isOnline } = useOnlineStatus();
   const { toast } = useToast();
   const pathname = usePathname();
+  const router = useRouter();
 
   const isPublicRoute = pathname === '/login' || pathname === '/setup';
   const isReportRoute = pathname.startsWith('/reports/');
+
+  // Forzar redirección al login si el usuario cierra sesión y está en una ruta protegida
+  React.useEffect(() => {
+    if (!loading && !user && !isPublicRoute && !isReportRoute) {
+      router.replace('/login');
+    }
+  }, [user, loading, isPublicRoute, isReportRoute, router]);
 
   // Configurar el offlineSyncManager con el usuario actual
   React.useEffect(() => {
@@ -93,10 +101,13 @@ function LayoutManager({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Si no hay usuario y no es una ruta pública, el middleware ya habrá redirigido.
-  // Mostramos los children, que en caso de not-found, será la página de not-found.
+  // Si no hay usuario y no es una ruta pública, mostramos el loader mientras el useEffect redirige
   if (!user && !isPublicRoute) {
-    return <>{children}</>;
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   // Fallback en caso de que ninguna de las condiciones anteriores se cumpla.

@@ -51,24 +51,6 @@ export default function ProfileScreen() {
         AlertHelper.alert('Impresora configurada', `${printer.name} configurada correctamente`);
     };
 
-    const handleLogout = async () => {
-        AlertHelper.alert(
-            'Cerrar Sesión',
-            '¿Estás seguro de que quieres salir?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Salir',
-                    style: 'destructive',
-                    onPress: async () => {
-                        console.log('[PROFILE] Logout presionado');
-                        await logout();
-                    }
-                }
-            ]
-        );
-    };
-
     const handleManualSync = async () => {
         setLoading(true);
         try {
@@ -272,25 +254,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#bbf7d0',
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        backgroundColor: '#e11d48',
-        marginHorizontal: 25,
-        padding: 18,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'absolute',
-        bottom: 100,
-        left: 0,
-        right: 0,
-    },
-    logoutText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 10,
     },
     modalOverlay: {
         flex: 1,
