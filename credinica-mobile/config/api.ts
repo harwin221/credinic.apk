@@ -11,6 +11,7 @@ export const API_BASE_URL = 'https://credinic-apk.vercel.app';
 // export const API_BASE_URL = 'https://tu-tunel.ngrok.io';
 
 export const API_ENDPOINTS = {
+    base: API_BASE_URL,
     mobile_login: `${API_BASE_URL}/api/mobile/mobile_login`,
     mobile_clients: `${API_BASE_URL}/api/mobile/mobile_clients`,
     mobile_client_detail: `${API_BASE_URL}/api/mobile/mobile_client_detail`,
@@ -28,4 +29,5 @@ export const API_ENDPOINTS = {
     disburse_credit: `${API_BASE_URL}/api/mobile/disburse-credit`,
     deny_disbursement: `${API_BASE_URL}/api/mobile/deny-disbursement`,
     mobile_receipt: `${API_BASE_URL}/api/mobile/receipt`,
+    change_password: `${API_BASE_URL}/api/users/change-password`,
 };

@@ -15,11 +15,15 @@ import { useUser } from '@/hooks/use-user';
 import { updateUserPassword } from '@/services/user-service';
 
 const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, 'La contraseña actual es requerida.'),
   newPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
   confirmPassword: z.string(),
 }).refine(data => data.newPassword === data.confirmPassword, {
   message: "Las contraseñas no coinciden.",
   path: ["confirmPassword"],
+}).refine(data => data.currentPassword !== data.newPassword, {
+  message: "La nueva contraseña no puede ser igual a la actual.",
+  path: ["newPassword"],
 });
 
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
@@ -33,20 +37,21 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
   const { user, setUser } = useUser();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
-    defaultValues: { newPassword: '', confirmPassword: '' },
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   });
 
   const handleSubmit = async (data: PasswordFormValues) => {
     if (!user) return;
     setIsSubmitting(true);
     try {
-      // Ahora esta función se comunica con nuestro backend
-      await updateUserPassword(user.id, data.newPassword);
+      // Ahora esta función se comunica con nuestro backend y valida la contraseña actual
+      await updateUserPassword(user.id, data.newPassword, data.currentPassword);
       
       const updatedUser = { ...user, mustChangePassword: false };
       setUser(updatedUser);
@@ -81,6 +86,30 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-2">
+            <FormField
+              control={form.control}
+              name="currentPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contraseña Actual</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input type={showCurrentPassword ? 'text' : 'password'} {...field} />
+                       <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                          onClick={() => setShowCurrentPassword(prev => !prev)}
+                        >
+                          {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="newPassword"

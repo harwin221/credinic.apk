@@ -43,9 +43,9 @@ export async function updateUserAction(
 
   if (!result.success) return result;
 
-  // 2. Update password if provided
+  // 2. Update password if provided - cuando el admin cambia la contraseña, se marca mustChangePassword
   if (password && password.length >= 6) {
-    const passwordResult = await updateUserPassword(userId, password);
+    const passwordResult = await updateUserPassword(userId, password, undefined, true); // isAdminChange = true
     if (!passwordResult.success) {
       return { success: false, error: "Usuario actualizado, pero falló el cambio de contraseña." };
     }
@@ -64,7 +64,7 @@ export async function updateUserAction(
     }).join(', ');
 
     if (password) {
-      changeDetails += (changeDetails ? ', ' : '') + "se actualizó la contraseña";
+      changeDetails += (changeDetails ? ', ' : '') + "se asignó una nueva contraseña temporal";
     }
 
     await createLog(actor, 'user:update', `Se actualizó el usuario ${userFields.fullName || oldData.fullName}. Cambios: ${changeDetails}.`, { targetId: userId, details: { ...changes, passwordUpdated: !!password } });

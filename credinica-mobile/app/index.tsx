@@ -40,6 +40,27 @@ export default function LoginScreen() {
                 // Persistimos los datos reales del usuario que devolvió Vercel
                 await login(data.user);
 
+                // Verificar si debe cambiar contraseña
+                if (data.user.mustChangePassword) {
+                    console.log('[LOGIN] Usuario debe cambiar contraseña');
+                    AlertHelper.alert(
+                        'Cambio de Contraseña Requerido',
+                        'Por seguridad, debes cambiar tu contraseña antes de continuar. Ve a tu perfil después de iniciar sesión.',
+                        () => {
+                            // Redirigir según el rol
+                            const roleUpper = data.user.role.toUpperCase();
+                            const isManager = roleUpper === 'GERENTE' || roleUpper === 'ADMINISTRADOR' || roleUpper === 'FINANZAS';
+                            
+                            if (isManager) {
+                                router.replace('/(manager-tabs)');
+                            } else {
+                                router.replace('/(tabs)');
+                            }
+                        }
+                    );
+                    return;
+                }
+
                 // Redirigir según el rol (comparar en mayúsculas como la app web)
                 const roleUpper = data.user.role.toUpperCase();
                 const isManager = roleUpper === 'GERENTE' || roleUpper === 'ADMINISTRADOR' || roleUpper === 'FINANZAS';

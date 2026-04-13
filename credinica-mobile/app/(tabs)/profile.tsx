@@ -8,10 +8,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { thermalPrinterService } from '../../services/thermal-printer';
 import { AlertHelper } from '../../utils/custom-alert-helper';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
 
 export default function ProfileScreen() {
     const { user } = useAuth();
     const [showPrinterModal, setShowPrinterModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [printers, setPrinters] = useState<any[]>([]);
     const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -128,7 +130,28 @@ export default function ProfileScreen() {
                         <Text style={styles.value}>{selectedPrinter || 'Sin vincular'}</Text>
                     </View>
                 </TouchableOpacity>
+
+                {/* Cambiar Contraseña */}
+                <TouchableOpacity 
+                    style={[styles.printerButton, { borderLeftColor: '#f59e0b', borderLeftWidth: 4, marginTop: 15 }]} 
+                    onPress={() => setShowPasswordModal(true)}
+                >
+                    <MaterialCommunityIcons name="lock-reset" size={28} color="#f59e0b" />
+                    <View style={styles.infoText}>
+                        <Text style={[styles.label, { color: '#f59e0b', fontWeight: '800' }]}>CAMBIAR CONTRASEÑA</Text>
+                        <Text style={styles.value}>Actualiza tu contraseña de acceso</Text>
+                    </View>
+                </TouchableOpacity>
             </View>
+
+            {/* Modal de cambio de contraseña */}
+            <ChangePasswordModal
+                visible={showPasswordModal}
+                onClose={() => setShowPasswordModal(false)}
+                onSuccess={() => {
+                    AlertHelper.alert('Éxito', 'Tu contraseña ha sido actualizada');
+                }}
+            />
 
             {/* Modal de selección de impresora */}
             <Modal visible={showPrinterModal} animationType="fade" transparent>

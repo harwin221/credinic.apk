@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         loadSession();
+        setupAutoLogout();
     }, []);
 
     const loadSession = async () => {
@@ -32,6 +33,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Configurar cierre de sesión automático a las 00:00:00
+    const setupAutoLogout = () => {
+        const checkAndLogout = async () => {
+            const now = new Date();
+            const midnight = new Date();
+            midnight.setHours(24, 0, 0, 0); // Próxima medianoche
+            
+            const timeUntilMidnight = midnight.getTime() - now.getTime();
+            
+            console.log('[AUTH] Auto-logout configurado para:', midnight.toLocaleString('es-NI'));
+            
+            setTimeout(async () => {
+                console.log('[AUTH] Ejecutando cierre de sesión automático a las 00:00:00');
+                const session = await sessionService.getSession();
+                if (session) {
+                    await logout();
+                }
+                // Reconfigurar para el siguiente día
+                setupAutoLogout();
+            }, timeUntilMidnight);
+        };
+        
+        checkAndLogout();
     };
 
     const login = async (userData: UserSession) => {

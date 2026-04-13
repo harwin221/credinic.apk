@@ -31,10 +31,14 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
   const [branches, setBranches] = React.useState<{ value: string, label: string }[]>([]);
   const [existingUsers, setExistingUsers] = React.useState<AppUser[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [currentPasswordDisplay, setCurrentPasswordDisplay] = React.useState('••••••••');
 
   const formSchema = React.useMemo(() => {
-    return CreateUserInputSchema.superRefine((data, ctx) => {
+    return CreateUserInputSchema.extend({
+      currentPassword: z.string().optional(),
+    }).superRefine((data, ctx) => {
       // En modo creación, la contraseña es obligatoria y mín 6 chars
       if (!initialData && (!data.password || data.password.length < 6)) {
         ctx.addIssue({
@@ -49,6 +53,14 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
           code: z.ZodIssueCode.custom,
           path: ["password"],
           message: "La contraseña debe tener al menos 6 caracteres.",
+        });
+      }
+      // Validar que la nueva contraseña no sea igual a la actual (solo en edición)
+      if (initialData && data.password && data.currentPassword && data.password === data.currentPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["password"],
+          message: "La nueva contraseña no puede ser igual a la actual.",
         });
       }
     });
@@ -87,6 +99,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
       username: initialData?.username || initialData?.email || "",
       email: (initialData?.username && initialData?.email) ? initialData.email : "", // Si ya tiene username, el email es real. Si no, el email era username.
       password: "",
+      currentPassword: "",
       phone: initialData?.phone || "",
       role: initialData?.role || "",
       branch: initialData?.sucursal || "",
@@ -121,9 +134,11 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         role: initialData.role,
         branch: initialData.sucursal || (GLOBAL_ACCESS_ROLES.includes(initialData.role) ? 'TODAS' : ''),
         status: initialData.active !== false,
-        password: "" // La contraseña no se obtiene para editar
+        password: "", // La contraseña no se obtiene para editar
+        currentPassword: ""
       });
       setPhoneValue(initialData.phone || '');
+      setCurrentPasswordDisplay('••••••••'); // Mostrar placeholder
     } else {
       // Reset defaults for new user
       form.reset({
@@ -131,12 +146,14 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         username: "",
         email: "",
         password: "",
+        currentPassword: "",
         phone: "",
         role: "",
         branch: "",
         status: true
       });
       setPhoneValue('');
+      setCurrentPasswordDisplay('');
     }
   }, [initialData, form]);
 
@@ -276,20 +293,83 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
             )}
           />
 
+          {initialData && (
+            <FormField
+              control={form.control}
+              name="currentPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contraseña Anterior</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPasswordDisplay}
+                        disabled
+                        className="bg-muted"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      >
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    La contraseña actual está protegida. Solo puedes asignar una nueva.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
-            name="email"
+            name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Correo Electrónico (Opcional)</FormLabel>
+                <FormLabel>{initialData ? 'Nueva Contraseña' : 'Contraseña'}</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Ej: juan@ejemplo.com"
-                    {...field}
-                    className="normal-case"
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder={initialData ? "Ingrese nueva contraseña" : "Mínimo 6 caracteres"}
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </FormControl>
+                {initialData ? (
+                  <FormDescription className="text-xs">
+                    Ingrese una nueva contraseña para cambiarla. El usuario deberá cambiarla en su próximo inicio de sesión.
+                  </FormDescription>
+                ) : (
+                  <FormDescription>
+                    La contraseña debe tener al menos 6 caracteres. El usuario deberá cambiarla en su primer inicio de sesión.
+                  </FormDescription>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -312,45 +392,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
               )}
             />
           )}
-
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{initialData ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder={initialData ? "Dejar en blanco para mantener actual" : "Mínimo 6 caracteres"}
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </FormControl>
-                {!initialData && (
-                  <FormDescription>
-                    La contraseña debe tener al menos 6 caracteres.
-                  </FormDescription>
-                )}
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}

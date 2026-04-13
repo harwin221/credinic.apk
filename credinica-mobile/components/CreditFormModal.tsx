@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20, 
         borderTopRightRadius: 20, 
         padding: 20, 
-        height: '95%', 
+        height: '90%', 
         width: '100%' 
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -502,8 +502,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     buttonContainer: { 
-        marginTop: 20, 
-        marginBottom: 60,
+        marginTop: 16, 
+        paddingBottom: 10,
     },
     submitButton: {
         flexDirection: 'row',

@@ -63,10 +63,10 @@ export async function createUserService(
     const emailValue = email || null;
 
     const sql = `
-        INSERT INTO users (id, fullName, email, username, hashed_password, phone, role, sucursal_id, sucursal_name, active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, fullName, email, username, hashed_password, phone, role, sucursal_id, sucursal_name, active, mustChangePassword)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    await query(sql, [newUserId, displayName.toUpperCase(), emailValue, username.toLowerCase(), hashedPassword, phoneValue, role.toUpperCase(), branchId, branchName, status]);
+    await query(sql, [newUserId, displayName.toUpperCase(), emailValue, username.toLowerCase(), hashedPassword, phoneValue, role.toUpperCase(), branchId, branchName, status, true]);
 
     return { uid: newUserId, email: email || username, message: 'User created successfully in DB.' };
   } catch (error: any) {
@@ -75,13 +75,63 @@ export async function createUserService(
   }
 }
 
-export async function updateUserPassword(userId: string, newPassword: string): Promise<{ success: boolean, error?: string }> {
+export async function updateUserPassword(userId: string, newPassword: string, oldPassword?: string, isAdminChange: boolean = false): Promise<{ success: boolean, error?: string }> {
   try {
+    // Si se proporciona oldPassword, verificar que sea correcta (cambio por el usuario mismo)
+    if (oldPassword) {
+      const users: any = await query('SELECT hashed_password FROM users WHERE id = ?', [userId]);
+      if (users.length === 0) {
+        return { success: false, error: 'Usuario no encontrado.' };
+      }
+      
+      const isValid = await bcrypt.compare(oldPassword, users[0].hashed_password);
+      if (!isValid) {
+        return { success: false, error: 'La contraseña actual es incorrecta.' };
+      }
+    }
+
+    // Verificar que la nueva contraseña no sea igual a la anterior
+    const users: any = await query('SELECT hashed_password FROM users WHERE id = ?', [userId]);
+    if (users.length > 0) {
+      const isSamePassword = await bcrypt.compare(newPassword, users[0].hashed_password);
+      if (isSamePassword) {
+        return { success: false, error: 'La nueva contraseña no puede ser igual a la anterior.' };
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await query('UPDATE users SET hashed_password = ?, mustChangePassword = ? WHERE id = ?', [hashedPassword, false, userId]);
+    
+    // Si es cambio por admin, marcar mustChangePassword = true
+    // Si es cambio por el usuario mismo (con oldPassword), marcar mustChangePassword = false
+    const mustChangePassword = isAdminChange ? true : false;
+    
+    await query('UPDATE users SET hashed_password = ?, mustChangePassword = ? WHERE id = ?', [hashedPassword, mustChangePassword, userId]);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: 'No se pudo actualizar la contraseña.' };
+  }
+}
+
+export async function getUserPassword(userId: string): Promise<{ success: boolean, password?: string, error?: string }> {
+  try {
+    const users: any = await query('SELECT hashed_password FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return { success: false, error: 'Usuario no encontrado.' };
+    }
+    // Retornamos el hash para que el admin pueda ver que existe, pero no el valor real
+    return { success: true, password: '••••••••' }; // Placeholder visual
+  } catch (error: any) {
+    return { success: false, error: 'No se pudo obtener la contraseña.' };
+  }
+}
+
+export async function setTemporaryPassword(userId: string, temporaryPassword: string): Promise<{ success: boolean, error?: string }> {
+  try {
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+    await query('UPDATE users SET hashed_password = ?, mustChangePassword = ? WHERE id = ?', [hashedPassword, true, userId]);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: 'No se pudo establecer la contraseña temporal.' };
   }
 }
 
