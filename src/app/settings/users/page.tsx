@@ -20,8 +20,8 @@ import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
 
-const CREATE_ROLES: UserRole[] = ['ADMINISTRADOR', 'OPERATIVO'];
-const EDIT_DELETE_ROLES: UserRole[] = ['ADMINISTRADOR', 'OPERATIVO'];
+const CREATE_ROLES: UserRole[] = ['ADMINISTRADOR'];
+const EDIT_DELETE_ROLES: UserRole[] = ['ADMINISTRADOR'];
 const RESET_PASS_ROLES: UserRole[] = ['ADMINISTRADOR'];
 
 export default function UsersPage() {

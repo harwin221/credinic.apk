@@ -15,6 +15,11 @@ export async function createClient(
     actor: User,
 ): Promise<{ success: boolean; clientId?: string; error?: string }> {
     try {
+        // GESTOR no puede crear clientes
+        if (actor.role.toUpperCase() === 'GESTOR') {
+            return { success: false, error: 'Los gestores no tienen permisos para crear clientes. Solo pueden crear solicitudes de crédito para clientes existentes en su cartera.' };
+        }
+
         const newClientId = `cli_${Date.now()}`;
         const sequence = await getNextSequenceValue('clientNumber');
         const clientNumber = `CLI-${String(sequence).padStart(4, '0')}`;

@@ -236,7 +236,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'disbursement:view'
   ],
   GESTOR: [
-    'dashboard:view', 'client:view', 'client:create', 'client:edit',
+    'dashboard:view', 'client:view',
     'credit:create', 'credit:pay', 'payment:void_request',
     'calculator:use', 'reports:view'
   ],

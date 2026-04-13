@@ -26,9 +26,9 @@ import { useToast } from '@/hooks/use-toast';
 import { AccessDenied } from '@/components/AccessDenied';
 import { useRouter } from 'next/navigation';
 
-const VIEW_ROLES: UserRole[] = ['ADMINISTRADOR', 'OPERATIVO', 'GERENTE', 'FINANZAS'];
-const CREATE_ROLES: UserRole[] = ['ADMINISTRADOR', 'OPERATIVO'];
-const EDIT_ROLES: UserRole[] = ['ADMINISTRADOR', 'OPERATIVO'];
+const VIEW_ROLES: UserRole[] = ['ADMINISTRADOR'];
+const CREATE_ROLES: UserRole[] = ['ADMINISTRADOR'];
+const EDIT_ROLES: UserRole[] = ['ADMINISTRADOR'];
 const DELETE_ROLES: UserRole[] = ['ADMINISTRADOR'];
 
 export default function SucursalesPage() {
