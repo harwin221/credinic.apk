@@ -322,15 +322,31 @@ export default function CreditsPage() {
       <AlertDialog open={!!creditToDelete} onOpenChange={(open) => !open && setCreditToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente la solicitud de crédito del sistema.
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              ¿Eliminar Crédito Permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-semibold text-foreground">
+                Estás a punto de eliminar el crédito {creditToDelete?.creditNumber} de {creditToDelete?.clientName}
+              </p>
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 space-y-2">
+                <p className="text-sm font-medium text-destructive">⚠️ ADVERTENCIA: Esta acción es IRREVERSIBLE</p>
+                <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                  <li>Se eliminará permanentemente del sistema</li>
+                  <li>Se perderá todo el historial asociado</li>
+                  <li>No se puede eliminar si tiene pagos registrados</li>
+                </ul>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Si el crédito tiene pagos aplicados, deberás anularlos primero antes de poder eliminarlo.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteCredit} className="bg-destructive hover:bg-destructive/90">
-              Confirmar Eliminación
+              Sí, Eliminar Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -288,8 +288,26 @@ export async function deleteCredit(id: string, actor: User): Promise<{ success: 
             return { success: false, error: 'No tienes permisos para eliminar créditos.' };
         }
 
+        // Verificar si el crédito tiene pagos registrados
+        const paymentCount: any = await query('SELECT COUNT(*) as count FROM payments_registered WHERE creditId = ?', [id]);
+        if (paymentCount[0].count > 0) {
+            return { 
+                success: false, 
+                error: `Este crédito tiene ${paymentCount[0].count} pago(s) registrado(s). No se puede eliminar un crédito con pagos aplicados. Debes anular los pagos primero o contactar al administrador del sistema.` 
+            };
+        }
+
+        // Obtener información del crédito antes de eliminarlo para el log
+        const creditRows: any = await query('SELECT creditNumber, clientName FROM credits WHERE id = ? LIMIT 1', [id]);
+        const creditInfo = creditRows.length > 0 ? creditRows[0] : null;
+
         await query('DELETE FROM credits WHERE id = ?', [id]);
-        await createLog(actor, 'credit:delete', `Eliminó el crédito con ID ${id}.`, { targetId: id });
+        
+        const logMessage = creditInfo 
+            ? `Eliminó el crédito ${creditInfo.creditNumber} del cliente ${creditInfo.clientName}.`
+            : `Eliminó el crédito con ID ${id}.`;
+            
+        await createLog(actor, 'credit:delete', logMessage, { targetId: id });
         revalidatePath('/credits');
         return { success: true };
     } catch (error: any) {
