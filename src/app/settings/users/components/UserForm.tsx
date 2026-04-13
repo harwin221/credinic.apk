@@ -276,15 +276,52 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
 
           <FormField
             control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Correo Electrónico (Opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="Ej: juan@ejemplo.com"
+                    {...field}
+                    className="normal-case"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {showPhoneField && (
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input type="tel" placeholder="8888-8888" {...field} value={phoneValue} onChange={handlePhoneChange} className="pl-8" maxLength={9} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          <FormField
+            control={form.control}
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{initialData ? 'Nueva Contraseña Temporal' : 'Contraseña'}</FormLabel>
+                <FormLabel>{initialData ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder={initialData ? "Dejar vacío para no cambiar" : "Mínimo 6 caracteres"}
+                      placeholder={initialData ? "Dejar en blanco para mantener actual" : "Mínimo 6 caracteres"}
                       {...field}
                     />
                     <Button
@@ -302,11 +339,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
                     </Button>
                   </div>
                 </FormControl>
-                {initialData ? (
-                  <FormDescription className="text-xs">
-                    Si ingresas una contraseña, el usuario deberá cambiarla en su próximo inicio de sesión.
-                  </FormDescription>
-                ) : (
+                {!initialData && (
                   <FormDescription>
                     La contraseña debe tener al menos 6 caracteres.
                   </FormDescription>
