@@ -175,6 +175,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log('[UserForm] onSubmit called with values:', values);
     setLoading(true);
     if (!currentUser) {
       toast({ title: "Error", description: "No se pudo identificar al usuario actual.", variant: "destructive" });
@@ -198,9 +199,11 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         
         // Solo incluir password si se ingresó algo
         if (values.password && values.password.trim().length > 0) {
+          console.log('[UserForm] Including password in update');
           updateData.password = values.password;
         }
         
+        console.log('[UserForm] Calling updateUserAction with:', updateData);
         await updateUserAction(initialData.id, updateData, currentUser);
 
       } else {
