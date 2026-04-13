@@ -31,9 +31,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
   const [branches, setBranches] = React.useState<{ value: string, label: string }[]>([]);
   const [existingUsers, setExistingUsers] = React.useState<AppUser[]>([]);
   const [loading, setLoading] = React.useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const [currentPasswordDisplay, setCurrentPasswordDisplay] = React.useState('••••••••');
 
   const formSchema = React.useMemo(() => {
     return CreateUserInputSchema.extend({
@@ -53,14 +51,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
           code: z.ZodIssueCode.custom,
           path: ["password"],
           message: "La contraseña debe tener al menos 6 caracteres.",
-        });
-      }
-      // Validar que la nueva contraseña no sea igual a la actual (solo en edición)
-      if (initialData && data.password && data.currentPassword && data.password === data.currentPassword) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["password"],
-          message: "La nueva contraseña no puede ser igual a la actual.",
         });
       }
     });
@@ -138,7 +128,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         currentPassword: ""
       });
       setPhoneValue(initialData.phone || '');
-      setCurrentPasswordDisplay('••••••••'); // Mostrar placeholder
     } else {
       // Reset defaults for new user
       form.reset({
@@ -153,7 +142,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         status: true
       });
       setPhoneValue('');
-      setCurrentPasswordDisplay('');
     }
   }, [initialData, form]);
 
