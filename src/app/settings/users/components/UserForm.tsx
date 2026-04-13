@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { createUser, updateUserAction } from "@/app/settings/users/actions"
 import { CreateUserInputSchema, AppUser } from "@/lib/types"
 import { USER_ROLES } from "@/lib/constants"
-import { Loader2, Phone, Eye, EyeOff } from "lucide-react"
+import { Loader2, Phone, Eye, EyeOff, Info } from "lucide-react"
 import { formatPhone } from "@/lib/utils"
 import { useUser } from "@/hooks/use-user"
 import { getSucursales } from "@/services/sucursal-service"
@@ -294,42 +294,19 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
           />
 
           {initialData && (
-            <FormField
-              control={form.control}
-              name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contraseña Anterior</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={showCurrentPassword ? "text" : "password"}
-                        value={currentPasswordDisplay}
-                        disabled
-                        className="bg-muted"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      >
-                        {showCurrentPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    La contraseña actual está protegida. Solo puedes asignar una nueva.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-900 mb-1">
+                    Cambio de Contraseña
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    La contraseña actual está protegida y no se puede recuperar. Si ingresas una nueva contraseña abajo, el usuario deberá cambiarla en su próximo inicio de sesión.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           <FormField
@@ -337,12 +314,12 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{initialData ? 'Nueva Contraseña' : 'Contraseña'}</FormLabel>
+                <FormLabel>{initialData ? 'Nueva Contraseña Temporal' : 'Contraseña'}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder={initialData ? "Ingrese nueva contraseña" : "Mínimo 6 caracteres"}
+                      placeholder={initialData ? "Ingrese nueva contraseña temporal" : "Mínimo 6 caracteres"}
                       {...field}
                       onChange={(e) => field.onChange(e.target.value)}
                     />
@@ -363,7 +340,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
                 </FormControl>
                 {initialData ? (
                   <FormDescription className="text-xs">
-                    Ingrese una nueva contraseña para cambiarla. El usuario deberá cambiarla en su próximo inicio de sesión.
+                    <strong>Importante:</strong> Anota esta contraseña antes de guardar. El usuario deberá usarla para iniciar sesión y luego cambiarla por una personal.
                   </FormDescription>
                 ) : (
                   <FormDescription>

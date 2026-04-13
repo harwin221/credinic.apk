@@ -242,7 +242,7 @@ export default function UsersPage() {
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="font-semibold">Nombre</TableHead>
-              <TableHead className="font-semibold">Email</TableHead>
+              <TableHead className="font-semibold">Usuario</TableHead>
               <TableHead className="font-semibold">Rol</TableHead>
               <TableHead className="font-semibold">Sucursal</TableHead>
               <TableHead className="font-semibold">Estado</TableHead>
@@ -263,7 +263,7 @@ export default function UsersPage() {
               filteredUsers.map((user) => (
                 <TableRow key={user.id} className="hover:bg-gray-50">
                   <TableCell className="font-medium">{user.fullName}</TableCell>
-                  <TableCell className="text-gray-600">{user.email}</TableCell>
+                  <TableCell className="text-gray-600">{user.username}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-medium">
                       {user.role}
