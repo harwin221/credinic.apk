@@ -77,22 +77,11 @@ export default function ProfileScreen() {
             <SyncIndicator />
             
             <View style={styles.header}>
-                <View style={styles.avatarContainer}>
-                    <MaterialCommunityIcons name="account-circle" size={100} color="#0ea5e9" />
-                </View>
                 <Text style={styles.userName}>{user?.fullName || 'Cargando...'}</Text>
                 <Text style={styles.userRole}>{user?.role || 'User'}</Text>
             </View>
 
             <View style={styles.infoContainer}>
-                <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="office-building" size={24} color="#64748b" />
-                    <View style={styles.infoText}>
-                        <Text style={styles.label}>Sucursal</Text>
-                        <Text style={styles.value}>{user?.sucursalName || 'N/A'}</Text>
-                    </View>
-                </View>
-
                 <View style={styles.infoRow}>
                     <MaterialCommunityIcons name="account-badge-outline" size={24} color="#64748b" />
                     <View style={styles.infoText}>
@@ -221,14 +210,12 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        paddingVertical: 30,
+        paddingVertical: 20,
+        paddingTop: 30,
         backgroundColor: '#f8fafc',
     },
-    avatarContainer: {
-        marginBottom: 15,
-    },
     userName: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#334155',
         textAlign: 'center',
@@ -237,7 +224,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#0ea5e9',
         fontWeight: '600',
-        marginTop: 4,
+        marginTop: 6,
     },
     infoContainer: {
         padding: 25,
@@ -245,7 +232,7 @@ const styles = StyleSheet.create({
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 25,
+        marginBottom: 20,
     },
     infoText: {
         marginLeft: 20,
