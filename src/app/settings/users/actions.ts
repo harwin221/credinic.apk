@@ -35,21 +35,17 @@ export async function updateUserAction(
   newData: Partial<User> & { password?: string },
   actor: User
 ): Promise<{ success: boolean; error?: string }> {
-  console.log('[updateUserAction] Called with userId:', userId, 'newData:', newData);
   const oldData = await getUser(userId);
   const { password, ...userFields } = newData;
 
   // 1. Update user fields
   const result = await updateUserService(userId, userFields);
-  console.log('[updateUserAction] updateUserService result:', result);
 
   if (!result.success) return result;
 
-  // 2. Update password if provided - cuando el admin cambia la contraseña, se marca mustChangePassword
+  // 2. Update password if provided
   if (password && password.length >= 6) {
-    console.log('[updateUserAction] Updating password for user:', userId);
-    const passwordResult = await updateUserPassword(userId, password, undefined, true); // isAdminChange = true
-    console.log('[updateUserAction] updateUserPassword result:', passwordResult);
+    const passwordResult = await updateUserPassword(userId, password, undefined, true);
     if (!passwordResult.success) {
       return { success: false, error: "Usuario actualizado, pero falló el cambio de contraseña." };
     }
@@ -75,7 +71,6 @@ export async function updateUserAction(
     revalidatePath('/settings/users');
     revalidatePath('/audit');
   }
-  console.log('[updateUserAction] Completed successfully');
   return result;
 }
 

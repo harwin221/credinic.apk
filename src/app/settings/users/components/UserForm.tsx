@@ -85,7 +85,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
     defaultValues: {
       displayName: initialData?.fullName || "",
       username: initialData?.username || initialData?.email || "",
-      email: (initialData?.username && initialData?.email) ? initialData.email : "", // Si ya tiene username, el email es real. Si no, el email era username.
+      email: (initialData?.username && initialData?.email) ? initialData.email : "",
       password: "",
       phone: initialData?.phone || "",
       role: initialData?.role || "",
@@ -121,11 +121,10 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         role: initialData.role,
         branch: initialData.sucursal || (GLOBAL_ACCESS_ROLES.includes(initialData.role) ? 'TODAS' : ''),
         status: initialData.active !== false,
-        password: "", // La contraseña no se obtiene para editar
+        password: "",
       });
       setPhoneValue(initialData.phone || '');
     } else {
-      // Reset defaults for new user
       form.reset({
         displayName: "",
         username: "",
@@ -144,24 +143,18 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
     if (!fullName) return;
 
     const currentUsername = form.getValues('username');
-    // Solo generar si el campo de usuario está vacío o si estamos creando uno nuevo
-    // Si estamos editando y ya tiene usuario, no lo sobreescribimos automáticamente a menos que esté vacío
     if (initialData && currentUsername) return;
-    if (!initialData && currentUsername) return; // Si el usuario ya escribió algo, no lo borramos
+    if (!initialData && currentUsername) return;
 
-    // Normalizar: quitar acentos, minúsculas
     const normalized = fullName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const parts = normalized.split(' ').filter(p => p.length > 0);
 
-    if (parts.length < 2) return; // Necesitamos al menos nombre y apellido
+    if (parts.length < 2) return;
 
-    let baseUsername = `${parts[0]}.${parts[1]}`; // juan.perez
-
-    // Chequear duplicados
+    let baseUsername = `${parts[0]}.${parts[1]}`;
     let candidate = baseUsername;
     let counter = 1;
 
-    // Filtrar usuarios existentes para no chocar (excluyendo el actual si es edición)
     const otherUsers = initialData
       ? existingUsers.filter(u => u.id !== initialData.id)
       : existingUsers;
@@ -175,7 +168,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('[UserForm] onSubmit called with values:', values);
     setLoading(true);
     if (!currentUser) {
       toast({ title: "Error", description: "No se pudo identificar al usuario actual.", variant: "destructive" });
@@ -197,13 +189,10 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
           active: values.status,
         };
         
-        // Solo incluir password si se ingresó algo
         if (values.password && values.password.trim().length > 0) {
-          console.log('[UserForm] Including password in update');
           updateData.password = values.password;
         }
         
-        console.log('[UserForm] Calling updateUserAction with:', updateData);
         await updateUserAction(initialData.id, updateData, currentUser);
 
       } else {
@@ -295,9 +284,8 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder={initialData ? "Ingrese nueva contraseña temporal" : "Mínimo 6 caracteres"}
+                      placeholder={initialData ? "Dejar vacío para no cambiar" : "Mínimo 6 caracteres"}
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value)}
                     />
                     <Button
                       type="button"
@@ -316,11 +304,11 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
                 </FormControl>
                 {initialData ? (
                   <FormDescription className="text-xs">
-                    <strong>Importante:</strong> Anota esta contraseña antes de guardar. El usuario deberá usarla para iniciar sesión y luego cambiarla por una personal.
+                    Si ingresas una contraseña, el usuario deberá cambiarla en su próximo inicio de sesión.
                   </FormDescription>
                 ) : (
                   <FormDescription>
-                    La contraseña debe tener al menos 6 caracteres. El usuario deberá cambiarla en su primer inicio de sesión.
+                    La contraseña debe tener al menos 6 caracteres.
                   </FormDescription>
                 )}
                 <FormMessage />
@@ -416,4 +404,3 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
     </Form>
   )
 }
-// Force deployment trigger
