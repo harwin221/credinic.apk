@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { createUser, updateUserAction } from "@/app/settings/users/actions"
 import { CreateUserInputSchema, AppUser } from "@/lib/types"
 import { USER_ROLES } from "@/lib/constants"
-import { Loader2, Phone, Eye, EyeOff, Info } from "lucide-react"
+import { Loader2, Phone, Eye, EyeOff } from "lucide-react"
 import { formatPhone } from "@/lib/utils"
 import { useUser } from "@/hooks/use-user"
 import { getSucursales } from "@/services/sucursal-service"
@@ -284,22 +284,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
               </FormItem>
             )}
           />
-
-          {initialData && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-amber-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-900 mb-1">
-                    Cambio de Contraseña
-                  </p>
-                  <p className="text-xs text-amber-700">
-                    La contraseña actual está protegida y no se puede recuperar. Si ingresas una nueva contraseña abajo, el usuario deberá cambiarla en su próximo inicio de sesión.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           <FormField
             control={form.control}
