@@ -34,9 +34,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const formSchema = React.useMemo(() => {
-    return CreateUserInputSchema.extend({
-      currentPassword: z.string().optional(),
-    }).superRefine((data, ctx) => {
+    return CreateUserInputSchema.superRefine((data, ctx) => {
       // En modo creación, la contraseña es obligatoria y mín 6 chars
       if (!initialData && (!data.password || data.password.length < 6)) {
         ctx.addIssue({
@@ -89,7 +87,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
       username: initialData?.username || initialData?.email || "",
       email: (initialData?.username && initialData?.email) ? initialData.email : "", // Si ya tiene username, el email es real. Si no, el email era username.
       password: "",
-      currentPassword: "",
       phone: initialData?.phone || "",
       role: initialData?.role || "",
       branch: initialData?.sucursal || "",
@@ -125,7 +122,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         branch: initialData.sucursal || (GLOBAL_ACCESS_ROLES.includes(initialData.role) ? 'TODAS' : ''),
         status: initialData.active !== false,
         password: "", // La contraseña no se obtiene para editar
-        currentPassword: ""
       });
       setPhoneValue(initialData.phone || '');
     } else {
@@ -135,7 +131,6 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
         username: "",
         email: "",
         password: "",
-        currentPassword: "",
         phone: "",
         role: "",
         branch: "",
