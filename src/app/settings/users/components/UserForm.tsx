@@ -185,7 +185,7 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
       const selectedBranch = branches.find(b => b.value === values.branch);
 
       if (initialData) {
-        await updateUserAction(initialData.id, {
+        const updateData: any = {
           fullName: values.displayName.toUpperCase(),
           username: values.username,
           email: values.email || undefined,
@@ -194,8 +194,14 @@ export function UserForm({ onFinished, initialData }: UserFormProps) {
           sucursal: values.branch,
           sucursalName: selectedBranch?.label,
           active: values.status,
-          password: values.password // Ahora enviamos la contraseña si se cambió
-        }, currentUser);
+        };
+        
+        // Solo incluir password si se ingresó algo
+        if (values.password && values.password.trim().length > 0) {
+          updateData.password = values.password;
+        }
+        
+        await updateUserAction(initialData.id, updateData, currentUser);
 
       } else {
         if (!values.password) {
