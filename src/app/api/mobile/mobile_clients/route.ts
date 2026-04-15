@@ -23,9 +23,9 @@ export async function GET(request: Request) {
 
         const gestorName = userRows[0].fullName;
 
-        // Obtener TODOS los clientes que alguna vez tuvieron crédito con el gestor (igual que la web)
+        // Obtener solo clientes con créditos activos, pendientes o aprobados del gestor actual
         const gestorCredits: any[] = await query(
-            'SELECT DISTINCT clientId FROM credits WHERE collectionsManager = ?',
+            "SELECT DISTINCT clientId FROM credits WHERE collectionsManager = ? AND status IN ('Active', 'Pending', 'Approved')",
             [gestorName]
         );
 
