@@ -23,9 +23,14 @@ export async function GET(request: Request) {
 
         const gestorName = userRows[0].fullName;
 
-        // Obtener solo clientes con créditos activos, pendientes o aprobados del gestor actual
+        // Obtener clientes con créditos activos/pendientes/aprobados O créditos pagados recientemente (últimos 30 días)
         const gestorCredits: any[] = await query(
-            "SELECT DISTINCT clientId FROM credits WHERE collectionsManager = ? AND status IN ('Active', 'Pending', 'Approved')",
+            `SELECT DISTINCT clientId FROM credits 
+             WHERE collectionsManager = ? 
+             AND (
+               status IN ('Active', 'Pending', 'Approved')
+               OR (status = 'Paid' AND updatedAt >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
+             )`,
             [gestorName]
         );
 

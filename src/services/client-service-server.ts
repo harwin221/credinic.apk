@@ -237,9 +237,14 @@ export const getClients = async (options: { searchTerm?: string; user?: User, fo
     if (user && !isGestorGlobalSearch) {
         const userRole = user.role.toUpperCase();
         if (userRole === 'GESTOR') {
-            // Solo mostrar clientes con créditos activos del gestor actual
+            // Mostrar clientes con créditos activos/pendientes/aprobados O créditos pagados recientemente (últimos 30 días)
             const gestorCredits: any[] = await query(
-                "SELECT DISTINCT clientId FROM credits WHERE collectionsManager = ? AND status IN ('Active', 'Pending', 'Approved')",
+                `SELECT DISTINCT clientId FROM credits 
+                 WHERE collectionsManager = ? 
+                 AND (
+                   status IN ('Active', 'Pending', 'Approved')
+                   OR (status = 'Paid' AND updatedAt >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
+                 )`,
                 [user.fullName]
             );
             const clientIds = gestorCredits.map(c => c.clientId);
