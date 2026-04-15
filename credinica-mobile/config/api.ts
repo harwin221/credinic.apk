@@ -4,8 +4,11 @@
 // Para desarrollo local (tu computadora)
 // export const API_BASE_URL = 'http://192.168.0.13:3000'; // Cambia la IP por la de tu computadora
 
-// Para producción (Vercel)
-export const API_BASE_URL = 'https://credinic-apk.vercel.app';
+// Para producción (URL real del sistema)
+export const API_BASE_URL = 'https://app.credinica.com';
+
+// Para desarrollo con Vercel (testing)
+// export const API_BASE_URL = 'https://credinic-apk.vercel.app';
 
 // Para desarrollo con túnel (ngrok, etc)
 // export const API_BASE_URL = 'https://tu-tunel.ngrok.io';
