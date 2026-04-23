@@ -105,6 +105,13 @@ export const reportList = [
     permission: 'reports:view:saldos',
   },
   {
+    title: "Créditos Ganados y Perdidos",
+    category: "Cartera",
+    icon: TrendingUp,
+    href: "/reports/ganados-perdidos",
+    permission: 'reports:view:saldos',
+  },
+  {
     title: "Cancelados y No Renovados",
     category: "Cartera",
     icon: UserCheck,
