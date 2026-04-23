@@ -49,34 +49,49 @@ export async function GET(request: Request) {
 
     const userRole = session.role.toUpperCase();
 
-    // Obtener gestores según permisos
-    let gestoresQuery = 'SELECT id, fullName, sucursal_id FROM users WHERE role = "GESTOR"';
-    const gestoresParams: any[] = [];
-
-    if (userRole === 'GERENTE' && session.sucursal) {
-      gestoresQuery += ' AND sucursal_id = ?';
-      gestoresParams.push(session.sucursal);
-    }
-
-    // Filtrar por sucursales si se especificaron
-    if (sucursalIds.length > 0 && userRole === 'ADMINISTRADOR') {
-      const placeholders = sucursalIds.map(() => '?').join(',');
-      gestoresQuery += ` AND sucursal_id IN (${placeholders})`;
-      gestoresParams.push(...sucursalIds);
-    }
-
-    // Filtrar por usuarios específicos si se especificaron
+    // Convertir IDs de usuarios a nombres completos para buscar en collectionsManager
+    let userNamesToFilter: string[] = [];
     if (userIds.length > 0) {
       const placeholders = userIds.map(() => '?').join(',');
-      gestoresQuery += ` AND id IN (${placeholders})`;
-      gestoresParams.push(...userIds);
+      const userNamesResult: any[] = await query(
+        `SELECT fullName FROM users WHERE id IN (${placeholders})`, 
+        userIds
+      );
+      userNamesToFilter = userNamesResult.map(u => u.fullName);
     }
 
-    const gestores: any[] = await query(gestoresQuery, gestoresParams);
+    // Obtener todos los usuarios activos que pueden tener créditos asignados
+    let allUsersSql = `
+      SELECT u.id, u.fullName, u.sucursal_id, u.role
+      FROM users u
+      WHERE u.active = true 
+      AND u.role IN ('GESTOR', 'ADMINISTRADOR', 'GERENTE', 'FINANZAS', 'OPERATIVO', 'CAJERO')
+    `;
+    const allUsersParams: any[] = [];
+
+    // Filtrar por sucursal si es gerente
+    if (userRole === 'GERENTE' && session.sucursal) {
+      allUsersSql += ' AND u.sucursal_id = ?';
+      allUsersParams.push(session.sucursal);
+    }
+
+    // Filtrar por sucursales si se especificaron (solo Admin)
+    if (sucursalIds.length > 0 && userRole === 'ADMINISTRADOR') {
+      const placeholders = sucursalIds.map(() => '?').join(',');
+      allUsersSql += ` AND u.sucursal_id IN (${placeholders})`;
+      allUsersParams.push(...sucursalIds);
+    }
+
+    let allUsers: any[] = await query(allUsersSql, allUsersParams);
+
+    // Filtrar por usuarios específicos si se especificaron
+    if (userNamesToFilter.length > 0) {
+      allUsers = allUsers.filter(u => userNamesToFilter.includes(u.fullName));
+    }
 
     const reportData: GestorData[] = [];
 
-    for (const gestor of gestores) {
+    for (const usuario of allUsers) {
       const ganados: ClienteGanadoPerdido[] = [];
       const perdidos: ClienteGanadoPerdido[] = [];
 
@@ -103,7 +118,7 @@ export async function GET(request: Request) {
         ORDER BY c.deliveryDate
       `;
 
-      const nuevos: any[] = await query(nuevosQuery, [gestor.fullName, fechaDesde, fechaHasta]);
+      const nuevos: any[] = await query(nuevosQuery, [usuario.fullName, fechaDesde, fechaHasta]);
 
       for (const nuevo of nuevos) {
         ganados.push({
@@ -144,7 +159,7 @@ export async function GET(request: Request) {
         ORDER BY c.deliveryDate
       `;
 
-      const inactivos: any[] = await query(inactivosQuery, [gestor.fullName, fechaDesde, fechaHasta]);
+      const inactivos: any[] = await query(inactivosQuery, [usuario.fullName, fechaDesde, fechaHasta]);
 
       for (const inactivo of inactivos) {
         // Obtener el crédito anterior más reciente (el que canceló antes de renovar)
@@ -212,7 +227,7 @@ export async function GET(request: Request) {
         ORDER BY fechaCancelacion
       `;
 
-      const perdidosData: any[] = await query(perdidosQuery, [gestor.fullName, fechaDesde, fechaHasta]);
+      const perdidosData: any[] = await query(perdidosQuery, [usuario.fullName, fechaDesde, fechaHasta]);
 
       for (const perdido of perdidosData) {
         // Promedio del crédito que canceló
@@ -245,7 +260,7 @@ export async function GET(request: Request) {
 
       if (totalGanados > 0 || totalPerdidos > 0) {
         reportData.push({
-          gestorName: gestor.fullName,
+          gestorName: usuario.fullName,
           ganados,
           perdidos,
           totalGanados,
