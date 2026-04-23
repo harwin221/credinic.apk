@@ -228,6 +228,7 @@ export async function GET(request: Request) {
           c.clientId,
           cl.name as clientName,
           c.principalAmount as montoEntregado,
+          c.deliveryDate,
           MAX(pr.paymentDate) as fechaCancelacion
         FROM credits c
         INNER JOIN clients cl ON c.clientId = cl.id
@@ -236,7 +237,7 @@ export async function GET(request: Request) {
           AND c.status = 'Paid'
           AND pr.status != 'ANULADO'
           AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) BETWEEN ? AND ?
-        GROUP BY c.id, c.clientId, cl.name, c.principalAmount
+        GROUP BY c.id, c.clientId, cl.name, c.principalAmount, c.deliveryDate
         HAVING NOT EXISTS (
             SELECT 1 FROM credits c2 
             WHERE c2.clientId = c.clientId 
