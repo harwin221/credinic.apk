@@ -27,6 +27,7 @@ import { getUsers } from '@/services/user-service-client';
 import { getPortfolioForGestor, type GestorDashboardData } from '@/services/portfolio-service';
 import { GestorDashboard } from './GestorDashboard';
 import { ReceiptPreview } from '@/app/credits/components/ReceiptPreview';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const formatCurrency = (amount: number = 0) => {
     return `C$${amount.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -222,6 +223,30 @@ export function GlobalDashboard({ user, initialSucursales, initialReportData }: 
     const totalColocado = reportData.reduce((sum, data) => sum + data.colocacion, 0);
     const totalDesembolsos = reportData.reduce((sum, data) => sum + data.desembolsos, 0);
 
+    // Preparar datos para el gráfico de barras
+    const chartData = reportData
+        .filter(item => item.recuperacion > 0)
+        .map(item => ({
+            name: item.userName.split(' ').slice(0, 2).join(' '), // Primeros 2 nombres para que quepa
+            recuperacion: item.recuperacion,
+            fullName: item.userName
+        }));
+
+    // Colores para las barras (similar a la imagen)
+    const COLORS = ['#FCD34D', '#FDE047', '#BEF264', '#86EFAC', '#34D399', '#2DD4BF', '#22D3EE', '#60A5FA', '#818CF8', '#A78BFA', '#C084FC', '#E879F9', '#F472B6', '#FB923C', '#FDBA74'];
+
+    const CustomTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+                    <p className="font-semibold text-sm">{payload[0].payload.fullName}</p>
+                    <p className="text-primary font-bold">{formatCurrency(payload[0].value)}</p>
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
         <>
             <div className="space-y-6">
@@ -315,6 +340,41 @@ export function GlobalDashboard({ user, initialSucursales, initialReportData }: 
                                 color="bg-gradient-to-br from-orange-500 to-amber-500"
                             />
                         </div>
+
+                        {/* Gráfico de Barras de Recuperación */}
+                        {chartData.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        📊 Recuperado
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                            <XAxis 
+                                                dataKey="name" 
+                                                angle={-45} 
+                                                textAnchor="end" 
+                                                height={80}
+                                                tick={{ fontSize: 11 }}
+                                            />
+                                            <YAxis 
+                                                tick={{ fontSize: 11 }}
+                                                tickFormatter={(value) => `C$${(value / 1000).toFixed(0)}k`}
+                                            />
+                                            <Tooltip content={<CustomTooltip />} />
+                                            <Bar dataKey="recuperacion" radius={[8, 8, 0, 0]}>
+                                                {chartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         <Card>
                             <CardHeader>
