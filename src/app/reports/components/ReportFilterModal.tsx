@@ -278,7 +278,7 @@ export function ReportFilterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-lg max-h-[85vh] p-0 overflow-hidden flex flex-col bg-white">
+      <DialogContent className="w-full max-w-2xl max-h-[85vh] p-0 overflow-hidden flex flex-col bg-white">
         <DialogHeader className="p-4 pb-3 border-b">
           <DialogTitle className="text-base font-semibold text-gray-800">{reportTitle}</DialogTitle>
           <DialogDescription className="text-xs text-gray-500">Selecciona los filtros para generar el reporte.</DialogDescription>
