@@ -72,41 +72,39 @@ function CheckboxFilterGroup({
   };
 
   return (
-    <div className="space-y-1 flex flex-col">
-      <Label className={cn("font-semibold text-[11px]", disabled && "text-muted-foreground")}>{title}</Label>
-      <div className={cn("rounded-md border p-1 flex-1 flex flex-col", disabled && "bg-muted/50 cursor-not-allowed")}>
-        <ScrollArea className="flex-1 h-24">
-          <div className={cn("space-y-2 p-1", disabled && "pointer-events-none")}>
+    <div className="space-y-2 flex flex-col">
+      <Label className={cn("font-semibold text-sm text-gray-700", disabled && "text-muted-foreground")}>{title}</Label>
+      <div className={cn("rounded-lg border border-gray-200 bg-white p-3 flex-1 flex flex-col shadow-sm", disabled && "bg-gray-50 cursor-not-allowed")}>
+        <ScrollArea className="flex-1 h-32">
+          <div className={cn("space-y-2.5", disabled && "pointer-events-none")}>
             {items.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">{emptyMessage}</p>
+              <p className="text-sm text-gray-400 text-center py-6">{emptyMessage}</p>
             ) : (
               items.map((item) => (
-                <div key={`${title}-${item.id}`} className="flex items-start gap-2.5">
+                <div key={`${title}-${item.id}`} className="flex items-center gap-3 hover:bg-gray-50 p-1.5 rounded transition-colors">
                   <Checkbox
                     id={`${item.id}-${title}`}
                     checked={selectedItems.includes(item.id)}
                     onCheckedChange={(checked) => handleItemChange(item.id, !!checked)}
-                    className="mt-0.5 h-3.5 w-3.5"
+                    className="h-4 w-4 border-2 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                   />
-                  <div className="grid gap-1 leading-none">
-                    <Label htmlFor={`${item.id}-${title}`} className="font-normal text-[13px] text-foreground cursor-pointer break-words">
-                      {item.name}
-                    </Label>
-                  </div>
+                  <Label htmlFor={`${item.id}-${title}`} className="font-normal text-sm text-gray-700 cursor-pointer flex-1">
+                    {item.name}
+                  </Label>
                 </div>
               ))
             )}
           </div>
         </ScrollArea>
         {items.length > 0 && (
-          <div className={cn("border-t mt-1 pt-1.5 flex items-center space-x-2.5", disabled && "pointer-events-none")}>
+          <div className={cn("border-t border-gray-200 mt-2 pt-2 flex items-center gap-3", disabled && "pointer-events-none")}>
             <Checkbox
               id={`select-all-${title.replace(/\s+/g, '-')}`}
               checked={isAllSelected}
               onCheckedChange={handleSelectAll}
-              className="h-3.5 w-3.5"
+              className="h-4 w-4 border-2 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
             />
-            <Label htmlFor={`select-all-${title.replace(/\s+/g, '-')}`} className="font-normal text-xs cursor-pointer">
+            <Label htmlFor={`select-all-${title.replace(/\s+/g, '-')}`} className="font-medium text-sm text-blue-600 cursor-pointer">
               Seleccionar todos
             </Label>
           </div>
@@ -262,7 +260,8 @@ export function ReportFilterModal({
     setTimeout(() => {
       onSubmit({ queryString: params.toString() });
       setIsSubmitting(false);
-      onClose();
+      // NO cerrar el modal para permitir generar múltiples reportes
+      // onClose();
     }, 500);
   };
 
@@ -279,19 +278,19 @@ export function ReportFilterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
-        <DialogHeader className="p-3 pb-1">
-          <DialogTitle className="text-base">{reportTitle}</DialogTitle>
-          <DialogDescription className="text-xs">Selecciona los filtros para generar el reporte.</DialogDescription>
+      <DialogContent className="w-full sm:max-w-5xl max-h-[90vh] p-0 overflow-hidden flex flex-col bg-white">
+        <DialogHeader className="p-6 pb-4 border-b">
+          <DialogTitle className="text-xl font-semibold text-gray-800">{reportTitle}</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">Selecciona los filtros para generar el reporte.</DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-3">
-          <div className="space-y-2 py-1">
+        <ScrollArea className="flex-1 px-6">
+          <div className="space-y-6 py-4">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-1 min-h-[160px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <CheckboxFilterGroup
-                  title="Sucursal:"
+                  title="Seleccione la Sucursal:"
                   items={sucursales}
                   selectedItems={selectedSucursales}
                   onSelectedItemsChange={setSelectedSucursales}
@@ -302,7 +301,7 @@ export function ReportFilterModal({
               {selectedSucursales.length > 0 ? (
                 <div className="animate-in fade-in slide-in-from-left-4 duration-500">
                   <CheckboxFilterGroup
-                    title="Personal de Oficina:"
+                    title="Seleccione el Supervisor:"
                     items={officeStaffItems}
                     selectedItems={selectedOfficeUsers}
                     onSelectedItemsChange={setSelectedOfficeUsers}
@@ -310,67 +309,61 @@ export function ReportFilterModal({
                   />
                 </div>
               ) : (
-                <div className="hidden lg:flex items-center justify-center border rounded-md bg-muted/20 border-dashed p-3 text-center text-muted-foreground text-xs">
-                  Seleccione una sucursal para continuar
-                </div>
-              )}
-
-              {selectedOfficeUsers.length > 0 ? (
-                <div className="animate-in fade-in slide-in-from-left-4 duration-700">
-                  <CheckboxFilterGroup
-                    title="Gestores de Cobro:"
-                    items={gestoresStaff.map(u => ({ id: u.id!, name: u.fullName }))}
-                    selectedItems={selectedGestores}
-                    onSelectedItemsChange={setSelectedGestores}
-                    emptyMessage="No hay gestores vinculados."
-                  />
-                </div>
-              ) : (
-                <div className="hidden lg:flex flex-col items-center justify-center border rounded-md bg-muted/10 border-dashed p-3 text-center text-muted-foreground text-xs space-y-1.5 opacity-60">
-                  <div className="w-7 h-7 rounded-full border-2 border-dashed flex items-center justify-center font-bold text-xs">3</div>
-                  <p>Seleccione Personal de Oficina</p>
+                <div className="flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 p-8 text-center">
+                  <p className="text-sm text-gray-400">Seleccione una sucursal para continuar</p>
                 </div>
               )}
             </div>
 
+            {selectedOfficeUsers.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+                <CheckboxFilterGroup
+                  title="Seleccione el Recolector:"
+                  items={gestoresStaff.map(u => ({ id: u.id!, name: u.fullName }))}
+                  selectedItems={selectedGestores}
+                  onSelectedItemsChange={setSelectedGestores}
+                  emptyMessage="No hay gestores vinculados."
+                />
+              </div>
+            )}
 
             {hasViewTypeFilter && (
-              <div className="space-y-1 pt-1">
-                <Label className="font-semibold text-[11px]">Configuración de Visualización</Label>
+              <div className="space-y-3 pt-2">
+                <Label className="font-semibold text-sm text-gray-700">Configuración de Visualización</Label>
                 <RadioGroup
                   value={viewType}
                   onValueChange={(value) => setViewType(value as any)}
-                  className="flex items-center space-x-3"
+                  className="flex items-center gap-6"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="detailed" id="detailed" />
-                    <Label htmlFor="detailed" className="font-normal cursor-pointer text-xs">Detallado</Label>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="detailed" id="detailed" className="border-2" />
+                    <Label htmlFor="detailed" className="font-normal cursor-pointer text-sm text-gray-700">Detallado</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="summary" id="summary" />
-                    <Label htmlFor="summary" className="font-normal cursor-pointer text-xs">Resumido</Label>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="summary" id="summary" className="border-2" />
+                    <Label htmlFor="summary" className="font-normal cursor-pointer text-sm text-gray-700">Resumido</Label>
                   </div>
                 </RadioGroup>
               </div>
             )}
 
-            <Separator className="my-2" />
+            <Separator className="my-4" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-0.5 pb-1">
-              <div className="space-y-1.5">
-                <Label htmlFor="fecha-inicial" className="text-xs">Fecha Inicial:</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="fecha-inicial" className="text-sm font-semibold text-gray-700">Fecha Inicial:</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       id="fecha-inicial"
                       variant={"outline"}
                       className={cn(
-                        "w-full justify-start text-left font-normal h-9 text-sm",
-                        !fechaInicial && "text-muted-foreground"
+                        "w-full justify-start text-left font-normal h-10 border-gray-300 hover:border-blue-400",
+                        !fechaInicial && "text-gray-400"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {fechaInicial ? format(fechaInicial, 'PPP', { locale: es }) : <span>DD/MM/YYYY</span>}
+                      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                      {fechaInicial ? format(fechaInicial, 'dd/MM/yyyy', { locale: es }) : <span>DD/MM/YYYY</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -383,20 +376,20 @@ export function ReportFilterModal({
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="fecha-final" className="text-xs">Fecha Final:</Label>
+              <div className="space-y-2">
+                <Label htmlFor="fecha-final" className="text-sm font-semibold text-gray-700">Fecha Final:</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       id="fecha-final"
                       variant={"outline"}
                       className={cn(
-                        "w-full justify-start text-left font-normal h-9 text-sm",
-                        !fechaFinal && "text-muted-foreground"
+                        "w-full justify-start text-left font-normal h-10 border-gray-300 hover:border-blue-400",
+                        !fechaFinal && "text-gray-400"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {fechaFinal ? format(fechaFinal, 'PPP', { locale: es }) : <span>DD/MM/YYYY</span>}
+                      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                      {fechaFinal ? format(fechaFinal, 'dd/MM/yyyy', { locale: es }) : <span>DD/MM/YYYY</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -414,16 +407,16 @@ export function ReportFilterModal({
         </ScrollArea>
 
 
-        <DialogFooter className="p-3 pt-1.5 border-t mt-0">
-          <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-8 text-xs">
-              Cancelar
-            </Button>
-          </DialogClose>
-          <Button type="button" onClick={handleSubmit} disabled={isSubmitting} className="sm:w-32 h-8 text-xs bg-accent text-accent-foreground hover:bg-accent/90">
+        <DialogFooter className="p-6 pt-4 border-t bg-gray-50 flex justify-center gap-3">
+          <Button 
+            type="button" 
+            onClick={handleSubmit} 
+            disabled={isSubmitting} 
+            className="px-8 h-10 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-md hover:shadow-lg transition-all"
+          >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Generando...
               </>
             ) : (
