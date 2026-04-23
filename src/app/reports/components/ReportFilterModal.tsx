@@ -286,7 +286,7 @@ export function ReportFilterModal({
         <ScrollArea className="flex-1 px-3 py-2">
           <div className="space-y-2.5 pb-2">
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-3 gap-2.5">
               <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <CheckboxFilterGroup
                   title="Seleccione la Sucursal:"
@@ -309,22 +309,26 @@ export function ReportFilterModal({
                 </div>
               ) : (
                 <div className="flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 p-3 text-center">
-                  <p className="text-xs text-gray-400">Seleccione una sucursal para continuar</p>
+                  <p className="text-xs text-gray-400">Seleccione una sucursal</p>
                 </div>
               )}
-            </div>
 
-            {selectedOfficeUsers.length > 0 && (
-              <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-                <CheckboxFilterGroup
-                  title="Seleccione el Recolector:"
-                  items={gestoresStaff.map(u => ({ id: u.id!, name: u.fullName }))}
-                  selectedItems={selectedGestores}
-                  onSelectedItemsChange={setSelectedGestores}
-                  emptyMessage="No hay gestores vinculados."
-                />
-              </div>
-            )}
+              {selectedOfficeUsers.length > 0 ? (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-700">
+                  <CheckboxFilterGroup
+                    title="Seleccione el Recolector:"
+                    items={gestoresStaff.map(u => ({ id: u.id!, name: u.fullName }))}
+                    selectedItems={selectedGestores}
+                    onSelectedItemsChange={setSelectedGestores}
+                    emptyMessage="No hay gestores vinculados."
+                  />
+                </div>
+              ) : selectedSucursales.length > 0 ? (
+                <div className="flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 p-3 text-center">
+                  <p className="text-xs text-gray-400">Seleccione un supervisor</p>
+                </div>
+              ) : null}
+            </div>
 
             {hasViewTypeFilter && (
               <div className="space-y-1">
