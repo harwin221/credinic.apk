@@ -210,7 +210,7 @@ export async function GET(request: Request) {
           c.clientId,
           cl.name as clientName,
           c.principalAmount as montoEntregado,
-          MAX(pr.paymentDate) as fechaCancelacion
+          DATE(MAX(pr.paymentDate)) as fechaCancelacion
         FROM credits c
         INNER JOIN clients cl ON c.clientId = cl.id
         INNER JOIN payments_registered pr ON c.id = pr.creditId
@@ -218,11 +218,11 @@ export async function GET(request: Request) {
           AND c.status = 'Paid'
           AND pr.status != 'ANULADO'
         GROUP BY c.id, c.clientId, cl.name, c.principalAmount
-        HAVING fechaCancelacion BETWEEN ? AND ?
+        HAVING DATE(fechaCancelacion) BETWEEN ? AND ?
           AND NOT EXISTS (
             SELECT 1 FROM credits c2 
             WHERE c2.clientId = c.clientId 
-            AND c2.deliveryDate > fechaCancelacion
+            AND DATE(c2.deliveryDate) > DATE(fechaCancelacion)
           )
         ORDER BY fechaCancelacion
       `;

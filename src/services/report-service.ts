@@ -438,7 +438,7 @@ export async function generateNonRenewedReport(filters: ReportFilters): Promise<
             c.termMonths,
             c.dueDate,
             c.collectionsManager as gestorName,
-            MAX(pr.paymentDate) as cancellationDate
+            DATE(MAX(pr.paymentDate)) as cancellationDate
         FROM credits c
         JOIN clients cl ON c.clientId = cl.id
         LEFT JOIN payments_registered pr ON c.id = pr.creditId AND pr.status != 'ANULADO'
