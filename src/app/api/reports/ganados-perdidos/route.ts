@@ -34,10 +34,14 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const fechaDesde = searchParams.get('fechaDesde');
-    const fechaHasta = searchParams.get('fechaHasta');
-    const sucursalId = searchParams.get('sucursalId');
-    const gestorId = searchParams.get('gestorId');
+    const fechaDesde = searchParams.get('fechaDesde') || searchParams.get('from');
+    const fechaHasta = searchParams.get('fechaHasta') || searchParams.get('to');
+    const sucursalIds = searchParams.getAll('sucursalId').length > 0 
+      ? searchParams.getAll('sucursalId') 
+      : searchParams.getAll('sucursal');
+    const userIds = searchParams.getAll('gestorId').length > 0 
+      ? searchParams.getAll('gestorId') 
+      : searchParams.getAll('user');
 
     if (!fechaDesde || !fechaHasta) {
       return NextResponse.json({ success: false, error: 'Fechas requeridas' }, { status: 400 });
@@ -54,14 +58,18 @@ export async function GET(request: Request) {
       gestoresParams.push(session.sucursal);
     }
 
-    if (sucursalId && sucursalId !== 'all' && userRole === 'ADMINISTRADOR') {
-      gestoresQuery += ' AND sucursal_id = ?';
-      gestoresParams.push(sucursalId);
+    // Filtrar por sucursales si se especificaron
+    if (sucursalIds.length > 0 && userRole === 'ADMINISTRADOR') {
+      const placeholders = sucursalIds.map(() => '?').join(',');
+      gestoresQuery += ` AND sucursal_id IN (${placeholders})`;
+      gestoresParams.push(...sucursalIds);
     }
 
-    if (gestorId && gestorId !== 'all') {
-      gestoresQuery += ' AND id = ?';
-      gestoresParams.push(gestorId);
+    // Filtrar por usuarios específicos si se especificaron
+    if (userIds.length > 0) {
+      const placeholders = userIds.map(() => '?').join(',');
+      gestoresQuery += ` AND id IN (${placeholders})`;
+      gestoresParams.push(...userIds);
     }
 
     const gestores: any[] = await query(gestoresQuery, gestoresParams);
