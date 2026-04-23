@@ -109,7 +109,7 @@ export async function GET(request: Request) {
         INNER JOIN clients cl ON c.clientId = cl.id
         WHERE c.collectionsManager = ?
           AND c.status IN ('Active', 'Paid')
-          AND c.deliveryDate BETWEEN ? AND ?
+          AND DATE(DATE_SUB(c.deliveryDate, INTERVAL 6 HOUR)) BETWEEN ? AND ?
           AND (
             SELECT COUNT(*) FROM credits c2 
             WHERE c2.clientId = c.clientId 
@@ -136,7 +136,7 @@ export async function GET(request: Request) {
       // GANADOS - INACTIVOS (Cliente que renovó después de cancelar)
       // ============================================
       // Buscar créditos que se entregaron en el rango de fechas
-      // Y que el cliente tenga un crédito anterior que fue cancelado
+      // Y que el cliente tenga un crédito anterior que fue cancelado ANTES del rango
       const inactivosQuery = `
         SELECT 
           c.id as creditId,
@@ -148,18 +148,21 @@ export async function GET(request: Request) {
         INNER JOIN clients cl ON c.clientId = cl.id
         WHERE c.collectionsManager = ?
           AND c.status IN ('Active', 'Paid')
-          AND c.deliveryDate BETWEEN ? AND ?
+          AND DATE(DATE_SUB(c.deliveryDate, INTERVAL 6 HOUR)) BETWEEN ? AND ?
           AND EXISTS (
             SELECT 1 FROM credits c_prev
+            INNER JOIN payments_registered pr ON c_prev.id = pr.creditId
             WHERE c_prev.clientId = c.clientId
             AND c_prev.id != c.id
-            AND c_prev.deliveryDate < c.deliveryDate
             AND c_prev.status = 'Paid'
+            AND pr.status != 'ANULADO'
+            AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) < ?
+            GROUP BY c_prev.id
           )
         ORDER BY c.deliveryDate
       `;
 
-      const inactivos: any[] = await query(inactivosQuery, [usuario.fullName, fechaDesde, fechaHasta]);
+      const inactivos: any[] = await query(inactivosQuery, [usuario.fullName, fechaDesde, fechaHasta, fechaDesde]);
 
       for (const inactivo of inactivos) {
         // Obtener el crédito anterior más reciente (el que canceló antes de renovar)
@@ -210,19 +213,21 @@ export async function GET(request: Request) {
           c.clientId,
           cl.name as clientName,
           c.principalAmount as montoEntregado,
-          DATE(MAX(pr.paymentDate)) as fechaCancelacion
+          MAX(pr.paymentDate) as fechaCancelacion
         FROM credits c
         INNER JOIN clients cl ON c.clientId = cl.id
         INNER JOIN payments_registered pr ON c.id = pr.creditId
         WHERE c.collectionsManager = ?
           AND c.status = 'Paid'
           AND pr.status != 'ANULADO'
+          AND DATE(DATE_SUB(pr.paymentDate, INTERVAL 6 HOUR)) BETWEEN ? AND ?
         GROUP BY c.id, c.clientId, cl.name, c.principalAmount
-        HAVING DATE(fechaCancelacion) BETWEEN ? AND ?
-          AND NOT EXISTS (
+        HAVING NOT EXISTS (
             SELECT 1 FROM credits c2 
             WHERE c2.clientId = c.clientId 
-            AND DATE(c2.deliveryDate) > DATE(fechaCancelacion)
+            AND c2.id != c.id
+            AND c2.status IN ('Active', 'Paid')
+            AND c2.deliveryDate >= c.deliveryDate
           )
         ORDER BY fechaCancelacion
       `;

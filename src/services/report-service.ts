@@ -438,21 +438,13 @@ export async function generateNonRenewedReport(filters: ReportFilters): Promise<
             c.termMonths,
             c.dueDate,
             c.collectionsManager as gestorName,
-            DATE(MAX(pr.paymentDate)) as cancellationDate
+            MAX(pr.paymentDate) as cancellationDate
         FROM credits c
         JOIN clients cl ON c.clientId = cl.id
         LEFT JOIN payments_registered pr ON c.id = pr.creditId AND pr.status != 'ANULADO'
         WHERE c.status = 'Paid'
     `;
     const params: any[] = [];
-    if (filters.dateFrom) {
-        paidCreditsSql += ` AND DATE(pr.paymentDate) >= ?`;
-        params.push(filters.dateFrom);
-    }
-    if (filters.dateTo) {
-        paidCreditsSql += ` AND DATE(pr.paymentDate) <= ?`;
-        params.push(filters.dateTo);
-    }
 
     if (filters.sucursales && filters.sucursales.length > 0) {
         const sucursalNamesResult: any = await query(`SELECT name FROM sucursales WHERE id IN (${filters.sucursales.map(() => '?').join(',')})`, [...filters.sucursales]);
@@ -471,8 +463,23 @@ export async function generateNonRenewedReport(filters: ReportFilters): Promise<
             params.push(...userNames);
         }
     }
-
+    
     paidCreditsSql += ` GROUP BY c.id`;
+    
+    // Aplicar filtro de fechas después del GROUP BY usando HAVING
+    const havingConditions: string[] = [];
+    if (filters.dateFrom) {
+        havingConditions.push(`DATE(DATE_SUB(cancellationDate, INTERVAL 6 HOUR)) >= ?`);
+        params.push(filters.dateFrom);
+    }
+    if (filters.dateTo) {
+        havingConditions.push(`DATE(DATE_SUB(cancellationDate, INTERVAL 6 HOUR)) <= ?`);
+        params.push(filters.dateTo);
+    }
+    
+    if (havingConditions.length > 0) {
+        paidCreditsSql += ` HAVING ${havingConditions.join(' AND ')}`;
+    }
 
     const paidCredits = await query(paidCreditsSql, params) as any[];
 
