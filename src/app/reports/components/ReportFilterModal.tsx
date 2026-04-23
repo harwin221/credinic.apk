@@ -72,11 +72,11 @@ function CheckboxFilterGroup({
   };
 
   return (
-    <div className="space-y-1 flex flex-col">
+    <div className="space-y-0.5 flex flex-col">
       <Label className={cn("font-semibold text-xs text-gray-700", disabled && "text-muted-foreground")}>{title}</Label>
       <div className={cn("rounded-lg border border-gray-200 bg-white p-1.5 flex flex-col shadow-sm", disabled && "bg-gray-50 cursor-not-allowed")}>
-        <ScrollArea className="h-24">
-          <div className={cn("space-y-0.5 pr-3", disabled && "pointer-events-none")}>
+        <ScrollArea className="h-20">
+          <div className={cn("space-y-0.5 pr-2", disabled && "pointer-events-none")}>
             {items.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-2">{emptyMessage}</p>
             ) : (
@@ -86,9 +86,9 @@ function CheckboxFilterGroup({
                     id={`${item.id}-${title}`}
                     checked={selectedItems.includes(item.id)}
                     onCheckedChange={(checked) => handleItemChange(item.id, !!checked)}
-                    className="h-3 w-3 border-2 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    className="h-3 w-3 border-2 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 shrink-0"
                   />
-                  <Label htmlFor={`${item.id}-${title}`} className="font-normal text-xs text-gray-700 cursor-pointer flex-1">
+                  <Label htmlFor={`${item.id}-${title}`} className="font-normal text-xs text-gray-700 cursor-pointer flex-1 leading-tight">
                     {item.name}
                   </Label>
                 </div>
@@ -102,7 +102,7 @@ function CheckboxFilterGroup({
               id={`select-all-${title.replace(/\s+/g, '-')}`}
               checked={isAllSelected}
               onCheckedChange={handleSelectAll}
-              className="h-3 w-3 border-2 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+              className="h-3 w-3 border-2 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 shrink-0"
             />
             <Label htmlFor={`select-all-${title.replace(/\s+/g, '-')}`} className="font-medium text-xs text-blue-600 cursor-pointer">
               Seleccionar todos
@@ -278,16 +278,16 @@ export function ReportFilterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-xl max-h-[85vh] p-0 overflow-hidden flex flex-col bg-white">
+      <DialogContent className="w-full max-w-md max-h-[90vh] p-0 overflow-hidden flex flex-col bg-white">
         <DialogHeader className="p-3 pb-2 border-b">
-          <DialogTitle className="text-base font-semibold text-gray-800">{reportTitle}</DialogTitle>
+          <DialogTitle className="text-sm font-semibold text-gray-800">{reportTitle}</DialogTitle>
           <DialogDescription className="text-xs text-gray-500">Selecciona los filtros para generar el reporte.</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1 px-3 py-2">
-          <div className="space-y-3">
+          <div className="space-y-2.5">
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2.5">
               <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <CheckboxFilterGroup
                   title="Seleccione la Sucursal:"
@@ -309,7 +309,7 @@ export function ReportFilterModal({
                   />
                 </div>
               ) : (
-                <div className="flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 p-4 text-center">
+                <div className="flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 p-3 text-center">
                   <p className="text-xs text-gray-400">Seleccione una sucursal para continuar</p>
                 </div>
               )}
@@ -328,7 +328,7 @@ export function ReportFilterModal({
             )}
 
             {hasViewTypeFilter && (
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-1.5 pt-0.5">
                 <Label className="font-semibold text-xs text-gray-700">Configuración de Visualización</Label>
                 <RadioGroup
                   value={viewType}
@@ -349,7 +349,7 @@ export function ReportFilterModal({
 
             <Separator className="my-2" />
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2.5">
               <div className="space-y-1">
                 <Label htmlFor="fecha-inicial" className="text-xs font-semibold text-gray-700">Fecha Inicial:</Label>
                 <Popover>
