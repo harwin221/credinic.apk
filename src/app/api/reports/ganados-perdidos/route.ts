@@ -43,6 +43,15 @@ export async function GET(request: Request) {
       ? searchParams.getAll('gestorId') 
       : searchParams.getAll('user');
 
+    console.log('🔍 GANADOS-PERDIDOS - Parámetros recibidos:', {
+      fechaDesde,
+      fechaHasta,
+      sucursalIds,
+      userIds,
+      sessionRole: session.role,
+      sessionSucursal: session.sucursal
+    });
+
     if (!fechaDesde || !fechaHasta) {
       return NextResponse.json({ success: false, error: 'Fechas requeridas' }, { status: 400 });
     }
@@ -58,6 +67,7 @@ export async function GET(request: Request) {
         userIds
       );
       userNamesToFilter = userNamesResult.map(u => u.fullName);
+      console.log('👥 Nombres de usuarios a filtrar:', userNamesToFilter);
     }
 
     // Obtener todos los usuarios activos que pueden tener créditos asignados
@@ -83,15 +93,18 @@ export async function GET(request: Request) {
     }
 
     let allUsers: any[] = await query(allUsersSql, allUsersParams);
+    console.log('👤 Total usuarios encontrados:', allUsers.length);
 
     // Filtrar por usuarios específicos si se especificaron
     if (userNamesToFilter.length > 0) {
       allUsers = allUsers.filter(u => userNamesToFilter.includes(u.fullName));
+      console.log('👤 Usuarios después de filtrar:', allUsers.length);
     }
 
     const reportData: GestorData[] = [];
 
     for (const usuario of allUsers) {
+      console.log(`\n📊 Procesando usuario: ${usuario.fullName}`);
       const ganados: ClienteGanadoPerdido[] = [];
       const perdidos: ClienteGanadoPerdido[] = [];
 
@@ -119,6 +132,7 @@ export async function GET(request: Request) {
       `;
 
       const nuevos: any[] = await query(nuevosQuery, [usuario.fullName, fechaDesde, fechaHasta]);
+      console.log(`  ✅ NUEVOS encontrados: ${nuevos.length}`);
 
       for (const nuevo of nuevos) {
         ganados.push({
@@ -163,6 +177,7 @@ export async function GET(request: Request) {
       `;
 
       const inactivos: any[] = await query(inactivosQuery, [usuario.fullName, fechaDesde, fechaHasta, fechaDesde]);
+      console.log(`  🔄 INACTIVOS encontrados: ${inactivos.length}`);
 
       for (const inactivo of inactivos) {
         // Obtener el crédito anterior más reciente (el que canceló antes de renovar)
@@ -233,6 +248,7 @@ export async function GET(request: Request) {
       `;
 
       const perdidosData: any[] = await query(perdidosQuery, [usuario.fullName, fechaDesde, fechaHasta]);
+      console.log(`  ❌ PERDIDOS encontrados: ${perdidosData.length}`);
 
       for (const perdido of perdidosData) {
         // Promedio del crédito que canceló
@@ -276,6 +292,7 @@ export async function GET(request: Request) {
       }
     }
 
+    console.log(`\n📈 Total gestores con datos: ${reportData.length}`);
     return NextResponse.json({ success: true, data: reportData });
 
   } catch (error: any) {
