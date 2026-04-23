@@ -287,7 +287,7 @@ export function ReportFilterModal({
         <ScrollArea className="flex-1 px-4 py-3">
           <div className="space-y-3 pb-2">
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <CheckboxFilterGroup
                   title="Seleccione la Sucursal:"
@@ -299,7 +299,7 @@ export function ReportFilterModal({
               </div>
 
               {selectedSucursales.length > 0 ? (
-                <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <CheckboxFilterGroup
                     title="Seleccione el Supervisor:"
                     items={officeStaffItems}
