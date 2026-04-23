@@ -74,9 +74,9 @@ function CheckboxFilterGroup({
   return (
     <div className="space-y-1 flex flex-col">
       <Label className={cn("font-semibold text-xs text-gray-700", disabled && "text-muted-foreground")}>{title}</Label>
-      <div className={cn("rounded-lg border border-gray-200 bg-white p-1.5 flex-1 flex flex-col shadow-sm", disabled && "bg-gray-50 cursor-not-allowed")}>
-        <ScrollArea className="flex-1 h-16">
-          <div className={cn("space-y-0.5", disabled && "pointer-events-none")}>
+      <div className={cn("rounded-lg border border-gray-200 bg-white p-1.5 flex flex-col shadow-sm", disabled && "bg-gray-50 cursor-not-allowed")}>
+        <ScrollArea className="h-24">
+          <div className={cn("space-y-0.5 pr-3", disabled && "pointer-events-none")}>
             {items.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-2">{emptyMessage}</p>
             ) : (
@@ -278,16 +278,16 @@ export function ReportFilterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-2xl max-h-[80vh] p-0 overflow-hidden flex flex-col bg-white">
+      <DialogContent className="w-full sm:max-w-xl max-h-[85vh] p-0 overflow-hidden flex flex-col bg-white">
         <DialogHeader className="p-3 pb-2 border-b">
           <DialogTitle className="text-base font-semibold text-gray-800">{reportTitle}</DialogTitle>
           <DialogDescription className="text-xs text-gray-500">Selecciona los filtros para generar el reporte.</DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-3">
-          <div className="space-y-3 py-2">
+        <ScrollArea className="flex-1 px-3 py-2">
+          <div className="space-y-3">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <CheckboxFilterGroup
                   title="Seleccione la Sucursal:"
@@ -349,7 +349,7 @@ export function ReportFilterModal({
 
             <Separator className="my-2" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="fecha-inicial" className="text-xs font-semibold text-gray-700">Fecha Inicial:</Label>
                 <Popover>
