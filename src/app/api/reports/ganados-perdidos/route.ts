@@ -120,6 +120,8 @@ export async function GET(request: Request) {
       // ============================================
       // GANADOS - INACTIVOS (Cliente que renovó después de cancelar)
       // ============================================
+      // Buscar créditos que se entregaron en el rango de fechas
+      // Y que el cliente tenga un crédito anterior que fue cancelado
       const inactivosQuery = `
         SELECT 
           c.id as creditId,
@@ -132,23 +134,26 @@ export async function GET(request: Request) {
         WHERE c.collectionsManager = ?
           AND c.status IN ('Active', 'Paid')
           AND c.deliveryDate BETWEEN ? AND ?
-          AND (
-            SELECT COUNT(*) FROM credits c2 
-            WHERE c2.clientId = c.clientId 
-            AND c2.id != c.id
-          ) > 0
+          AND EXISTS (
+            SELECT 1 FROM credits c_prev
+            WHERE c_prev.clientId = c.clientId
+            AND c_prev.id != c.id
+            AND c_prev.deliveryDate < c.deliveryDate
+            AND c_prev.status = 'Paid'
+          )
         ORDER BY c.deliveryDate
       `;
 
       const inactivos: any[] = await query(inactivosQuery, [gestor.fullName, fechaDesde, fechaHasta]);
 
       for (const inactivo of inactivos) {
-        // Obtener crédito anterior (el que canceló antes de este)
+        // Obtener el crédito anterior más reciente (el que canceló antes de renovar)
         const creditoAnteriorQuery = `
           SELECT id FROM credits 
           WHERE clientId = ? 
           AND id != ? 
           AND deliveryDate < ?
+          AND status = 'Paid'
           ORDER BY deliveryDate DESC 
           LIMIT 1
         `;
